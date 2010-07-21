@@ -1,0 +1,108 @@
+%{
+#include "lexer.h"
+#include "shared.h"
+#include "AST.h"
+
+std::deque <Expression *> tree;
+std::string error_str;
+
+using namespace clc_o;
+using namespace clc_fvis;
+%}
+
+%union {
+Expression *expr;
+char *str;
+}
+
+%pure_parser
+%token <str> STR TYPE
+%type <expr> expr parms
+
+%left	PST				/* 15 */
+%right 	'=' SS SV SU SD SO SAND SXOR SOR
+%right	'?' ':' 
+%left   IN
+%left	OR
+%left	AND
+%left	'|'
+%left	'^'
+%left 	'&'
+%left	EE NE
+%left 	'<' LE '>' BE
+%left 	SL SR
+%left 	'+' '-'
+%left 	'*' '/' '%'
+%left 	MIN
+%right 	'~' '!'
+%left 	INC DEC ',' '(' ')' 		/* 1 */ // For objects: '.'
+
+%token INC	300	"++"
+%token DEC 	301	"--"
+%token SL 	302	"<<"
+%token SR 	303	">>"
+%token LE	304	"<="
+%token BE	305	">="
+%token EE	306	"=="
+%token NE	307	"!="
+%token AND	308	"&&"
+%token OR	309	"||"
+%token IN	310	"in"
+%token RA	311	".."
+%token SS	312	"+="
+%token SV	313	"-="
+%token SU	314	"*="
+%token SD	315	"/="
+%token SO	316	"%="
+%token SAND	317	"&="
+%token SXOR	318	"^="
+%token SOR	319	"|="
+%%
+
+expr: 	STR					{$$ = new Operand($1, 0); tree.push_back($$);}
+	| expr '*' expr 			{$$ = new Binary($1, $3, O_MUL); tree.push_back($$);}
+	| expr '/' expr 			{$$ = new Binary($1, $3, O_DIV); tree.push_back($$);}
+	| expr '%' expr 			{$$ = new Binary($1, $3, O_MOD); tree.push_back($$);}
+        | expr '+' expr 			{$$ = new Binary($1, $3, O_ADD); tree.push_back($$);}
+        | expr '-' expr 			{$$ = new Binary($1, $3, O_SUB); tree.push_back($$);}
+	| "++" expr	 			{$$ = new Unary($2, O_INC); tree.push_back($$);}
+	| "--" expr				{$$ = new Unary($2, O_DEC); tree.push_back($$);}
+	| '!' expr 				{$$ = new Unary($2, O_NEG); tree.push_back($$);}
+	| '~' expr 				{$$ = new Unary($2, O_INV); tree.push_back($$);}
+	| '(' expr ')'				{$$ = $2;}
+	| expr '(' parms ')' 			{$1->is_f_name=1;$$ = new Func($1); tree.push_back($$);}
+	| expr '('')' 		 		{$$ = new VFunc($1); tree.push_back($$);}
+	| '-' expr %prec MIN 			{$$ = new Unary($2, O_MIN); tree.push_back($$);}
+	| expr "<<" expr			{$$ = new Binary($1, $3, O_SL); tree.push_back($$);}
+	| expr ">>" expr			{$$ = new Binary($1, $3, O_SR); tree.push_back($$);}
+	| expr '<' expr				{$$ = new Binary($1, $3, O_LO); tree.push_back($$);}
+	| expr '>' expr				{$$ = new Binary($1, $3, O_UP); tree.push_back($$);}
+	| expr "<=" expr			{$$ = new Binary($1, $3, O_LE); tree.push_back($$);}
+	| expr ">=" expr			{$$ = new Binary($1, $3, O_BE); tree.push_back($$);}
+	| expr "==" expr			{$$ = new Binary($1, $3, O_EE); tree.push_back($$);}
+	| expr "!=" expr			{$$ = new Binary($1, $3, O_NE); tree.push_back($$);}
+	| expr '&' expr				{$$ = new Binary($1, $3, O_AND); tree.push_back($$);}
+	| expr '^' expr				{$$ = new Binary($1, $3, O_XOR); tree.push_back($$);}
+	| expr '|' expr				{$$ = new Binary($1, $3, O_OR); tree.push_back($$);}
+	| expr "&&" expr			{$$ = new Binary($1, $3, O_LAND); tree.push_back($$);}
+	| expr "||" expr			{$$ = new Binary($1, $3, O_LOR); tree.push_back($$);}
+	| expr '?' expr ':' expr		{$$ = new TOp($1, $3, $5); tree.push_back($$);}
+	| expr "in" '[' parms ']'		{$1->is_f_name=1;$$ = new Set($1); tree.push_back($$);}
+	//| expr "in" '[' expr ".." expr ']'	{$$ = setr_func($1, $4, $6);}
+	| TYPE '(' expr ')'			{$$ = new Cast($1, $3); tree.push_back($$);}
+	| expr INC %prec PST			{$$ = new Unary($1, O_INC); tree.push_back($$);}
+	| expr DEC %prec PST			{$$ = new Unary($1, O_DEC); tree.push_back($$);}
+	| expr '=' expr				{$$ = new Asgn($3); tree.push_back($$);}
+	| expr "+=" expr			{$$ = new Asgn2($3, O_SS); tree.push_back($$);}
+	| expr "-=" expr			{$$ = new Asgn2($3, O_SV); tree.push_back($$);}
+	| expr "*=" expr			{$$ = new Asgn2($3, O_SU); tree.push_back($$);}
+	| expr "/=" expr                        {$$ = new Asgn2($3, O_SD); tree.push_back($$);}
+	| expr "%=" expr                       	{$$ = new Asgn2($3, O_SO); tree.push_back($$);}
+	| expr "&=" expr			{$$ = new Asgn2($3, O_SAND); tree.push_back($$);}
+	| expr "^=" expr			{$$ = new Asgn2($3, O_SXOR); tree.push_back($$);}
+	| expr "|=" expr			{$$ = new Asgn2($3, O_SOR); tree.push_back($$);}	
+;
+parms:	expr					{$1->is_arg=1;}
+	| parms ',' parms			{$1->is_arg=1;
+						$3->is_arg=1;}
+%%
