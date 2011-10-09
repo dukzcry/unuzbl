@@ -1,0 +1,281 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		63942A4E135AB26F00D4C7B1 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 63942A4C135AB26F00D4C7B1 /* InfoPlist.strings */; };
+		63942A51135AB26F00D4C7B1 /* SASMegaRAID.h in Headers */ = {isa = PBXBuildFile; fileRef = 63942A50135AB26F00D4C7B1 /* SASMegaRAID.h */; };
+		63942A53135AB26F00D4C7B1 /* SASMegaRAID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 63942A52135AB26F00D4C7B1 /* SASMegaRAID.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		63942A44135AB26E00D4C7B1 /* SASMegaRAID.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SASMegaRAID.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		63942A48135AB26F00D4C7B1 /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
+		63942A4B135AB26F00D4C7B1 /* SASMegaRAID-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SASMegaRAID-Info.plist"; sourceTree = "<group>"; };
+		63942A4D135AB26F00D4C7B1 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		63942A4F135AB26F00D4C7B1 /* SASMegaRAID-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SASMegaRAID-Prefix.pch"; sourceTree = "<group>"; };
+		63942A50135AB26F00D4C7B1 /* SASMegaRAID.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SASMegaRAID.h; sourceTree = "<group>"; };
+		63942A52135AB26F00D4C7B1 /* SASMegaRAID.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SASMegaRAID.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		63942A3F135AB26E00D4C7B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		63942A37135AB26E00D4C7B1 = {
+			isa = PBXGroup;
+			children = (
+				63942A49135AB26F00D4C7B1 /* SASMegaRAID */,
+				63942A46135AB26E00D4C7B1 /* Frameworks */,
+				63942A45135AB26E00D4C7B1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		63942A45135AB26E00D4C7B1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				63942A44135AB26E00D4C7B1 /* SASMegaRAID.kext */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		63942A46135AB26E00D4C7B1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				63942A47135AB26F00D4C7B1 /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		63942A47135AB26F00D4C7B1 /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				63942A48135AB26F00D4C7B1 /* Kernel.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		63942A49135AB26F00D4C7B1 /* SASMegaRAID */ = {
+			isa = PBXGroup;
+			children = (
+				63942A50135AB26F00D4C7B1 /* SASMegaRAID.h */,
+				63942A52135AB26F00D4C7B1 /* SASMegaRAID.cpp */,
+				63942A4A135AB26F00D4C7B1 /* Supporting Files */,
+			);
+			path = SASMegaRAID;
+			sourceTree = "<group>";
+		};
+		63942A4A135AB26F00D4C7B1 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				63942A4B135AB26F00D4C7B1 /* SASMegaRAID-Info.plist */,
+				63942A4C135AB26F00D4C7B1 /* InfoPlist.strings */,
+				63942A4F135AB26F00D4C7B1 /* SASMegaRAID-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		63942A40135AB26E00D4C7B1 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				63942A51135AB26F00D4C7B1 /* SASMegaRAID.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		63942A43135AB26E00D4C7B1 /* SASMegaRAID */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 63942A56135AB26F00D4C7B1 /* Build configuration list for PBXNativeTarget "SASMegaRAID" */;
+			buildPhases = (
+				63942A3E135AB26E00D4C7B1 /* Sources */,
+				63942A3F135AB26E00D4C7B1 /* Frameworks */,
+				63942A40135AB26E00D4C7B1 /* Headers */,
+				63942A41135AB26E00D4C7B1 /* Resources */,
+				63942A42135AB26E00D4C7B1 /* Rez */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SASMegaRAID;
+			productName = SASMegaRAID;
+			productReference = 63942A44135AB26E00D4C7B1 /* SASMegaRAID.kext */;
+			productType = "com.apple.product-type.kernel-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		63942A39135AB26E00D4C7B1 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 63942A3C135AB26E00D4C7B1 /* Build configuration list for PBXProject "SASMegaRAID" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 63942A37135AB26E00D4C7B1;
+			productRefGroup = 63942A45135AB26E00D4C7B1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				63942A43135AB26E00D4C7B1 /* SASMegaRAID */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		63942A41135AB26E00D4C7B1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				63942A4E135AB26F00D4C7B1 /* InfoPlist.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		63942A42135AB26E00D4C7B1 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		63942A3E135AB26E00D4C7B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				63942A53135AB26F00D4C7B1 /* SASMegaRAID.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		63942A4C135AB26F00D4C7B1 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				63942A4D135AB26F00D4C7B1 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		63942A54135AB26F00D4C7B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		63942A55135AB26F00D4C7B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		63942A57135AB26F00D4C7B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SASMegaRAID/SASMegaRAID-Prefix.pch";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				INFOPLIST_FILE = "SASMegaRAID/SASMegaRAID-Info.plist";
+				MODULE_NAME = LSI.SASMegaRAID;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug;
+		};
+		63942A58135AB26F00D4C7B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "SASMegaRAID/SASMegaRAID-Prefix.pch";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				INFOPLIST_FILE = "SASMegaRAID/SASMegaRAID-Info.plist";
+				MODULE_NAME = LSI.SASMegaRAID;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		63942A3C135AB26E00D4C7B1 /* Build configuration list for PBXProject "SASMegaRAID" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				63942A54135AB26F00D4C7B1 /* Debug */,
+				63942A55135AB26F00D4C7B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		63942A56135AB26F00D4C7B1 /* Build configuration list for PBXNativeTarget "SASMegaRAID" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				63942A57135AB26F00D4C7B1 /* Debug */,
+				63942A58135AB26F00D4C7B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 63942A39135AB26E00D4C7B1 /* Project object */;
+}
