@@ -21,6 +21,17 @@
 Config_init() {
 	Local layout0, layout1, layout2, layout[1], layout[2], layout[3]
 	
+	; Tag naming
+	Tag_names[2]			:= "www"
+	Tag_names[3]			:= "mail"
+	Tag_names[4]			:= "im"
+	Tag_names[5]			:= "work"
+	Tag_names[6]			:= "media"
+	Tag_names[7]			:= "net"
+	Tag_names[8]			:= "misc"
+	Tag_names[9]			:= "gfx"
+	Tag_names[10]			:= "fs"
+	
 	; status bar
 	Config_showBar			:= True							; If false, the bar is hidden. It can be made visible or hidden by hotkey (see below).
 	Config_topBar			:= True							; If false, the bar is at the bottom.
@@ -92,8 +103,8 @@ Config_init() {
 		Config_layoutFunction[%A_Index%] := layout2
 		Config_layoutSymbol[%A_Index%]   := layout1
 	}
-	If (Config_viewCount > 9)
-		Config_viewCount := 9
+	;If (Config_viewCount > 9)
+	;	Config_viewCount := 9
 }
 
 Config_readinAny() {										; Add information to the variable "text" in this function to display it in the status bar.

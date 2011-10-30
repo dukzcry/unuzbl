@@ -48,7 +48,11 @@ Bar_init(m) {
 			Gui, +LabelBar_tagGui
 			Gui, Color, %Config_normBgColor1%
 			Gui, Font, c%Config_normFgColor1% s%Config_fontSize%, %Config_fontName%
-			text := " " i " "
+			; Naming tags like in dwm
+			If (StrLen(Tag_names[%i%]) > 0)
+				text := " " Tag_names[%i%] " "
+			Else
+				text := " " i " "
 			w := Bar_getTextWidth(text)	 
 			Gui, Add, Text, x0 y%y1% w%w% h%h% -Wrap Center vBar[%m%][%i%] gBar_tagGuiClick, %text%
 		}
@@ -608,7 +612,7 @@ Bar_updateTitle() {
 }
 
 Bar_updateView(m, v) {
-	Local bgColor, fgColor, GuiN, i, wndId0, wndIds
+	Local bgColor, fgColor, GuiN, i, wndId0, wndIds, text
 	
 	If (v = Monitor[%m%]_aView[1]) {
 		bgColor := Config_selBgColor2
@@ -630,5 +634,10 @@ Bar_updateView(m, v) {
 	Gui, Color, %bgColor%
 	Gui, Font, c%fgColor%
 	GuiControl, Font, Bar[%m%][%v%]
-	GuiControl, , Bar[%m%][%v%], %v%
+	; Naming tags like in dwm
+	If (StrLen(Tag_names[%v%]) > 0) {
+		text := Tag_names[%v%]
+		GuiControl, , Bar[%m%][%v%], %text%
+	} Else
+		GuiControl, , Bar[%m%][%v%], %v%
 }
