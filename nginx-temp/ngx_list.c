@@ -53,8 +53,8 @@ ngx_list_push(ngx_list_t *l)
 	ngx_list_part_t *prev;
 	size_t size = sizeof(ngx_list_part_t) + l->nalloc * l->size;
 	
-	if ( (u_char *)((char *) l->pool->d.last + size) >= l->pool->d.end )
-	    return NULL;
+	//if ( (u_char *)((char *) l->pool->d.last + size) >= l->pool->d.end )
+	    //return NULL;
 
         /* the last part is full, allocate a new list part */
 
