@@ -1,0 +1,10 @@
+[v] do not wait to read in handshaker
+[v] fast dying on closed socket when secure
+[v] do not kill IMAP session when secure
+[?v] handle secure more properly
+[v] proper dying when resolving times out
+[v] rework pop3 & smtp handlers
+[x] work on keepalive (reused connections)
+[x] ssl reusing for parallel connections
+    [x] handle unexpected early conn drop from client
+    [x] serialisation
