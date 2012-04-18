@@ -8,3 +8,5 @@
 [x] ssl reusing for parallel connections
     [x] handle unexpected early conn drop from client
     [x] serialisation
+[x] move to nginx >= 1.1.9 or backport 'valid' option
+    for resolver
