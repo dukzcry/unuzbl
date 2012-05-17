@@ -1,3 +1,5 @@
+Project stalled. Reasons: inconvenience of developing in virtual environment, impossibility of immediate contemplating of the work results ;) .
+
 Attention! Not ready at all, nothing to show, pure shame...
 
 I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers. Loosely based on Marco aka marco@ Peereboom work at mfi(4) in terms of OpenBSD project. This driver is Xcode project, for Mac OS X, written in so-called Embedded C++ language (real crap), although some restrictions broken by me (C++ templates were used in purpose of portability - like some generic PCI-related stuff).
