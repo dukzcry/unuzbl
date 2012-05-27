@@ -211,7 +211,7 @@ ngx_mail_core_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->so_keepalive, prev->so_keepalive, 0);
 #if (NGX_MAIL_SSL)
-    ngx_conf_merge_value(conf->ssl_session_reuse, prev->ssl_session_reuse, 1);
+    ngx_conf_merge_value(conf->ssl_session_reuse, prev->ssl_session_reuse, /*1*/0);
 
     if (conf->ssl_session_reuse == 1) {
 	ngx_mail_core_main_conf_t *cmcf = ngx_mail_cycle_get_module_main_conf(cf->cycle,
