@@ -1,0 +1,11 @@
+--- /boot/home/src/src/bin/Jamfile.orig	2012-07-20 13:05:22.258998272 +0400
++++ /boot/home/src/src/bin/Jamfile	2012-07-20 13:06:36.506986496 +0400
+@@ -279,6 +279,8 @@ SubInclude HAIKU_TOP src bin unrar ;
+ SubInclude HAIKU_TOP src bin writembr ;
+ SubInclude HAIKU_TOP src bin zic ;
+ 
++SubInclude HAIKU_TOP src bin aescan ;
++
+ # RCS commands
+ SubInclude HAIKU_TOP src bin rcs ;
+ 

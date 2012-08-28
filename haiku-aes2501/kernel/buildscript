@@ -1,0 +1,5 @@
+# Sisong IDE build script
+
+cd /boot/home/src/src/add-ons/kernel/drivers/input/aes2501
+jam -q
+%mkdir -p /boot/system/add-ons/kernel/drivers/input 2>/dev/null; cp /boot/home/src/generated/objects/haiku/x86/release/add-ons/kernel/drivers/input/aes2501/aes2501 /boot/system/add-ons/kernel/drivers/input/; cp /boot/home/src/generated/objects/haiku/x86/release/add-ons/kernel/drivers/input/aes2501/common/libfpaes.so /boot/system/lib/

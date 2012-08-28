@@ -1,0 +1,6 @@
+# Sisong IDE build script
+
+setgcc gcc2
+cd /boot/home/src/src/add-ons/input_server/devices/aes2501
+jam -q
+%rm /boot/system/add-ons/input_server/devices/aes2501 2>/dev/null; cp /boot/home/src/generated/objects/haiku/x86/release/add-ons/input_server/devices/aes2501/aes2501 /boot/system/add-ons/input_server/devices/

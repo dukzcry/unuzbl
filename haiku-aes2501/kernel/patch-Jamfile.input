@@ -1,0 +1,7 @@
+--- Jamfile	2012-06-25 17:41:57.829685760 +0400
++++ Jamfile.new	2012-06-25 17:41:51.504889344 +0400
+@@ -3,3 +3,4 @@ SubDir HAIKU_TOP src add-ons kernel driv
+ SubInclude HAIKU_TOP src add-ons kernel drivers input ps2_hid ;
+ SubInclude HAIKU_TOP src add-ons kernel drivers input usb_hid ;
+ SubInclude HAIKU_TOP src add-ons kernel drivers input wacom ;
++SubInclude HAIKU_TOP src add-ons kernel drivers input aes2501 ;

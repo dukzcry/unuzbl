@@ -1,0 +1,10 @@
+SubDir HAIKU_TOP src add-ons kernel drivers input aes2501 common ;
+
+
+StaticLibrary aes2501.a :
+	aes2501_lib.c
+	;
+
+SharedLibrary libfpaes.so :
+	aes2501_lib.c
+	;

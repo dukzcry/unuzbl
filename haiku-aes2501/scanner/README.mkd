@@ -1,0 +1,3 @@
+Required to build & run
+=======================
+Chicken Scheme compiler, see 'dependencies' folder of this repo and Jamfile for this app.

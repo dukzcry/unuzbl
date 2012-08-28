@@ -1,0 +1,6 @@
+# Sisong IDE build script
+
+setgcc gcc2
+cd /boot/home/src/src/bin/aescan/
+jam -q
+%cp /boot/home/src/generated/objects/haiku/x86/release/bin/aescan/aescan /boot/system/bin/

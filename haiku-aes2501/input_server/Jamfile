@@ -1,0 +1,12 @@
+SubDir HAIKU_TOP src add-ons input_server devices aes2501 ;
+
+
+UsePrivateHeaders input ;
+UseHeaders [ FDirName $(HAIKU_TOP) src add-ons kernel drivers input aes2501 common ] ;
+UseHeaders [ FDirName $(HAIKU_TOP) src bin aescan common ] ;
+
+SubDirC++Flags --no-warnings ;
+
+Addon <input>aes2501 :
+	AesInputDevice.cpp
+	: be input_server media device $(TARGET_LIBSUPC++) libfpaes.so ;

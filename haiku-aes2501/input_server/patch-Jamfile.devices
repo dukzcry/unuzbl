@@ -1,0 +1,8 @@
+--- /boot/home/src/src/add-ons/input_server/devices/Jamfile.orig	2012-05-10 23:09:02.000000000 +0400
++++ /boot/home/src/src/add-ons/input_server/devices/Jamfile	2012-06-26 16:52:52.749731840 +0400
+@@ -6,4 +6,4 @@ SubInclude HAIKU_TOP src add-ons input_s
+ #SubInclude HAIKU_TOP src add-ons input_server devices serial_mouse ;
+ SubInclude HAIKU_TOP src add-ons input_server devices tablet ;
+ SubInclude HAIKU_TOP src add-ons input_server devices wacom ;
+-
++SubInclude HAIKU_TOP src add-ons input_server devices aes2501 ;

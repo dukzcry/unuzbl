@@ -1,0 +1,8 @@
+# Optional settings file, to be placed as ~/config/settings/kernel/drivers/aes2501
+
+#handle_click true
+#handle_scroll true
+#do_scan true	# Communicate with scanning apps (i.e. aescan)
+
+# Order: 1 - left, 2 - middle, 3 - right
+#bind_to_which_button 2

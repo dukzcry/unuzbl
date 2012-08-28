@@ -1,0 +1,16 @@
+resource(1, "BEOS:APP_SIG") #'MIMS' "application/x-vnd.Haiku-AEScan";
+
+resource app_flags B_SINGLE_LAUNCH /* Limit to single instance */ 
+		 | B_BACKGROUND_APP;
+
+resource app_version {
+	major  = 1,
+	middle = 0,
+	minor  = 0,
+
+	variety = B_APPV_ALPHA,
+	internal = 0,
+
+	short_info = "AEScan",
+	long_info = "AuthenTec scanning app ©dukzcry"
+};

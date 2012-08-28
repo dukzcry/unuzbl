@@ -1,0 +1,17 @@
+ProjectRelativeDir = src bin aescan ;
+ProjectDirName = [ FDirName $(HAIKU_TOP) $(ProjectRelativeDir) ] ;
+ProjectSubDir = HAIKU_TOP $(ProjectRelativeDir) ;
+
+SubDir $(ProjectSubDir) ;
+
+SCHEMEFLAGS = "-c++ -I$(ProjectDirName)" ;
+
+#InstallChickenEggs [ FGristFiles main.o ] :
+#	bind
+#;
+
+BinCommand aescan :
+	main.scm
+	: chicken be
+	: aescan.rdef
+;
