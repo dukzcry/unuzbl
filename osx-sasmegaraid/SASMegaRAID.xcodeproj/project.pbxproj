@@ -7,19 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		63942A4E135AB26F00D4C7B1 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 63942A4C135AB26F00D4C7B1 /* InfoPlist.strings */; };
-		63942A51135AB26F00D4C7B1 /* SASMegaRAID.h in Headers */ = {isa = PBXBuildFile; fileRef = 63942A50135AB26F00D4C7B1 /* SASMegaRAID.h */; };
-		63942A53135AB26F00D4C7B1 /* SASMegaRAID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 63942A52135AB26F00D4C7B1 /* SASMegaRAID.cpp */; };
+		21BB6AA215ECC35E00511E10 /* SASMegaRAID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21BB6AA115ECC35E00511E10 /* SASMegaRAID.cpp */; };
+		21FB281915ECC3D000FEA0C9 /* OSDepend.h in Headers */ = {isa = PBXBuildFile; fileRef = 21FB281815ECC3D000FEA0C9 /* OSDepend.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		21BB6AA115ECC35E00511E10 /* SASMegaRAID.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SASMegaRAID.cpp; sourceTree = "<group>"; };
+		21FB281815ECC3D000FEA0C9 /* OSDepend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OSDepend.h; sourceTree = "<group>"; };
 		63942A44135AB26E00D4C7B1 /* SASMegaRAID.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SASMegaRAID.kext; sourceTree = BUILT_PRODUCTS_DIR; };
 		63942A48135AB26F00D4C7B1 /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
-		63942A4B135AB26F00D4C7B1 /* SASMegaRAID-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SASMegaRAID-Info.plist"; sourceTree = "<group>"; };
-		63942A4D135AB26F00D4C7B1 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		63942A4F135AB26F00D4C7B1 /* SASMegaRAID-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SASMegaRAID-Prefix.pch"; sourceTree = "<group>"; };
-		63942A50135AB26F00D4C7B1 /* SASMegaRAID.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SASMegaRAID.h; sourceTree = "<group>"; };
-		63942A52135AB26F00D4C7B1 /* SASMegaRAID.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SASMegaRAID.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,21 +65,10 @@
 		63942A49135AB26F00D4C7B1 /* SASMegaRAID */ = {
 			isa = PBXGroup;
 			children = (
-				63942A50135AB26F00D4C7B1 /* SASMegaRAID.h */,
-				63942A52135AB26F00D4C7B1 /* SASMegaRAID.cpp */,
-				63942A4A135AB26F00D4C7B1 /* Supporting Files */,
+				21FB281815ECC3D000FEA0C9 /* OSDepend.h */,
+				21BB6AA115ECC35E00511E10 /* SASMegaRAID.cpp */,
 			);
 			path = SASMegaRAID;
-			sourceTree = "<group>";
-		};
-		63942A4A135AB26F00D4C7B1 /* Supporting Files */ = {
-			isa = PBXGroup;
-			children = (
-				63942A4B135AB26F00D4C7B1 /* SASMegaRAID-Info.plist */,
-				63942A4C135AB26F00D4C7B1 /* InfoPlist.strings */,
-				63942A4F135AB26F00D4C7B1 /* SASMegaRAID-Prefix.pch */,
-			);
-			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -93,7 +78,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				63942A51135AB26F00D4C7B1 /* SASMegaRAID.h in Headers */,
+				21FB281915ECC3D000FEA0C9 /* OSDepend.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,7 +134,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				63942A4E135AB26F00D4C7B1 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -170,22 +154,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				63942A53135AB26F00D4C7B1 /* SASMegaRAID.cpp in Sources */,
+				21BB6AA215ECC35E00511E10 /* SASMegaRAID.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		63942A4C135AB26F00D4C7B1 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				63942A4D135AB26F00D4C7B1 /* en */,
-			);
-			name = InfoPlist.strings;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		63942A54135AB26F00D4C7B1 /* Debug */ = {
