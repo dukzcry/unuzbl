@@ -1,6 +1,8 @@
 #include "SASMegaRAID.h"
 #include "Registers.h"
 
+//OSDefineMetaClassAndStructors(SASMegaRAID, IOSCSIParallelInterfaceController);
+
 bool SASMegaRAID::init()
 {
     BaseClass::init();
