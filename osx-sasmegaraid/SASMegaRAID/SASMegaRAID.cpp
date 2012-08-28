@@ -87,7 +87,7 @@ UInt32 SASMegaRAID::MRAID_Read(IOByteCount offset)
     return data;
 }
 /*bool*/
-void SASMegaRAID::MRAID_Write(IOByteCount offset, IOByteCount data)
+void SASMegaRAID::MRAID_Write(IOByteCount offset, uint32_t data)
 {
     DnbgPrint(MRAID_D_RW, "%s[%p]::Read(): offset 0x%x data 0x08%x.\n", getName(), this, (UInt32) offset, (UInt32) data);
     OSWriteLittleInt32((void *) MemDesc, offset, data);
@@ -287,7 +287,7 @@ bool SASMegaRAID::InitializeController(void)
             
             fPCIDevice->setMemoryEnable(true);
             
-            MemDesc->initWithPhysicalAddress((IOPhysicalAddress32) barval, MRAID_PCI_MEMSIZE, kIODirectionOutIn);
+            MemDesc->withPhysicalAddress((IOPhysicalAddress32) barval, MRAID_PCI_MEMSIZE, kIODirectionOutIn);
             if(MemDesc != NULL) {
                 map = MemDesc->map();
                 if(map != NULL) {
@@ -309,7 +309,7 @@ bool SASMegaRAID::InitializeController(void)
             fPCIDevice->setMemoryEnable(true);
             
             /* Rework: Mapping with 64-bit address. */
-            MemDesc->initWithPhysicalAddress((IOPhysicalAddress64) barval >> 32, MRAID_PCI_MEMSIZE, kIODirectionOutIn);
+            MemDesc->withPhysicalAddress((IOPhysicalAddress64) barval >> 32, MRAID_PCI_MEMSIZE, kIODirectionOutIn);
             if(MemDesc != NULL) {
                 map = MemDesc->map();
                 if(map != NULL) {
