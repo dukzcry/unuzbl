@@ -185,8 +185,8 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     Producer = pcq->mpc_producer;
     Consumer = pcq->mpc_consumer;
     
-    DnbgPrint(MRAID_D_INTR, "%s[%p]::interruptHandler(): sc %#x pcq %#x.\n", 
-              getName(), this, (UInt32) sc, (UInt32) pcq);
+    DnbgPrint(MRAID_D_INTR, "%s[%p]::interruptHandler(): sc %p pcq %p.\n",
+              getName(), this, sc, pcq);
     
     while(Consumer != Producer) {
         DnbgPrint(MRAID_D_INTR, "%s[%p]::interruptHandler(): Prodh %#x Consh %#x.\n",
