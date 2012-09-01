@@ -328,6 +328,7 @@ bool SASMegaRAID::InitializeController(void)
             DbgPrint("Can't find out mapping scheme.\n");
             return free_start();
     }
+    createWorkLoop();
     MyWorkLoop = (IOWorkLoop *) getWorkLoop();
     if(!PCIHelperP->CreateDeviceInterrupt(this, getProvider(), MRAID_PREFER_MSI, &SASMegaRAID::interruptHandler, 
         &SASMegaRAID::interruptFilter))
