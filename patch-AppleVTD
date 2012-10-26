@@ -1,0 +1,240 @@
+1. Install IOKit private headers
+2. Apply patch against IOPCIFamily-162.3 & build
+
+--- IOPCIFamily.xcodeproj/project.pbxproj.orig	2012-10-24 23:14:56.000000000 +0400
++++ IOPCIFamily.xcodeproj/project.pbxproj	2012-10-26 03:30:23.000000000 +0400
+@@ -107,6 +107,8 @@
+ 		03DB1085033AA50A03CA2A5F /* IOPCIBridge.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = IOPCIBridge.h; sourceTree = "<group>"; };
+ 		03DB1086033AA50A03CA2A5F /* IOPCIDevice.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = IOPCIDevice.h; sourceTree = "<group>"; };
+ 		1590524609368A190010639A /* IOPCIConfigurator.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = IOPCIConfigurator.cpp; sourceTree = "<group>"; };
++		2152CDB616387A2F0056E691 /* vtd.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = vtd.c; sourceTree = "<group>"; };
++		21EDF600163991BF001B5CF3 /* dmar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dmar.h; sourceTree = "<group>"; };
+ 		4094C51900CEE7A80ACA2928 /* IOPCIBridge.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = IOPCIBridge.cpp; sourceTree = "<group>"; };
+ 		4094C51A00CEE7A80ACA2928 /* IOPCIDevice.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = IOPCIDevice.cpp; sourceTree = "<group>"; };
+ 		4094C51B00CEE7A80ACA2928 /* IOPCIDeviceI386.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = IOPCIDeviceI386.cpp; sourceTree = "<group>"; };
+@@ -185,6 +187,8 @@
+ 				4094C51A00CEE7A80ACA2928 /* IOPCIDevice.cpp */,
+ 				4094C51B00CEE7A80ACA2928 /* IOPCIDeviceI386.cpp */,
+ 				A655D6E40E4BB51D00550BCC /* IOPCIDeviceMappedIO.cpp */,
++				2152CDB616387A2F0056E691 /* vtd.c */,
++				21EDF600163991BF001B5CF3 /* dmar.h */,
+ 				03DB1082033AA50A03CA2A5F /* IOKit */,
+ 			);
+ 			name = Source;
+@@ -425,6 +429,7 @@
+ 		A613B2890D46AA65007BA726 /* Development */ = {
+ 			isa = XCBuildConfiguration;
+ 			buildSettings = {
++				ARCHS = "$(ONLY_ACTIVE_ARCH_PRE_XCODE_3_1)";
+ 				BUNDLE_STYLE = SHALLOW;
+ 				COPY_PHASE_STRIP = NO;
+ 				FRAMEWORK_SEARCH_PATHS = "";
+@@ -444,6 +449,7 @@
+ 				MODULE_IOKIT = YES;
+ 				MODULE_NAME = com.apple.iokit.IOPCIFamily;
+ 				MODULE_VERSION = 2.4.1;
++				ONLY_ACTIVE_ARCH_PRE_XCODE_3_1 = "$(NATIVE_ARCH_64)";
+ 				OTHER_CFLAGS = "";
+ 				OTHER_LDFLAGS = "";
+ 				OTHER_REZFLAGS = "";
+--- IOPCIBridge.cpp.orig	2012-10-24 23:32:23.000000000 +0400
++++ IOPCIBridge.cpp	2012-10-26 04:33:01.000000000 +0400
+@@ -855,10 +855,17 @@ IOReturn IOPCIBridge::configOp(IOService
+         }
+ 
+ #if ACPI_SUPPORT
++        /* Play safe for people with hackintoshes with enabled VT-d option */
++        if (IOService::getPlatform()->getProperty(kIOPlatformMapperPresentKey))
++        {
+ 		IOACPIPlatformDevice * acpiDevice;
+ 		if (!(acpiDevice = (typeof(acpiDevice)) device->getProvider()->metaCast("IOACPIPlatformDevice")))
+             panic("host!IOACPIPlatformDevice");
+ 		AppleVTD::install(gIOPCIConfigWorkLoop, gIOPCIFlags, acpiDevice, acpiDevice->getACPITableData("DMAR", 0));
++        }
++        else {
++            IOLog("Wanna try VT-D? Pass dart=1 parameter to kernel.\n");
++        }
+ #endif
+     }
+ 
+--- vtd.c.orig	2012-10-24 23:30:31.000000000 +0400
++++ vtd.c	2012-10-26 04:52:07.000000000 +0400
+@@ -36,7 +36,6 @@ extern "C" ppnum_t pmap_find_phys(pmap_t
+ 
+ /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+ 
+-#define ENA_QI			1
+ #define TABLE_CB		0
+ #define BSIMPLE			0
+ 
+@@ -55,10 +54,10 @@ extern "C" ppnum_t pmap_find_phys(pmap_t
+ 
+ #define VTLOG(fmt, args...)                   \
+     do {                                                    						\
+-        if ((gIOPCIFlags & kIOPCIConfiguratorVTLog) && !ml_at_interrupt_context())  \
++        if (/*(gIOPCIFlags & kIOPCIConfiguratorVTLog) &&*/ !ml_at_interrupt_context())  \
+             IOLog(fmt, ## args);                           							\
+-        if (gIOPCIFlags & kIOPCIConfiguratorVTLog)        							\
+-            kprintf(fmt, ## args);                          						\
++        /*if (gIOPCIFlags & kIOPCIConfiguratorVTLog)*/        							\
++            /*kprintf(fmt, ## args);*/                          						\
+     } while(0)
+ 
+ 
+@@ -156,6 +155,14 @@ enum
+ 	kTheDomain    = 2ULL
+ };
+ 
++/* Device features */
++typedef struct {
++    bool qi; /* Queued Invalidation */
++    //bool sc; /* Snoop Control */
++    //bool dp; /* DMA Passthrough */
++    //bool ir; /* Interrupt Remapping */
++} features;
++
+ typedef uint64_t page_entry_t;
+ 
+ // page_entry_t
+@@ -281,7 +288,7 @@ static inline void clflush(uintptr_t add
+ }
+ 
+ static
+-vtd_unit_t * unit_init(ACPI_DMAR_HARDWARE_UNIT * dmar)
++vtd_unit_t * unit_init(ACPI_DMAR_HARDWARE_UNIT * dmar, features *fs)
+ {
+ 	vtd_unit_t * unit;
+ 
+@@ -295,6 +302,10 @@ vtd_unit_t * unit_init(ACPI_DMAR_HARDWAR
+ 			dmar, dmar->Address, dmar->Flags);
+ 
+ 	unit->regs = (typeof unit->regs) ml_io_map(dmar->Address, 0x1000);
++    
++    /* Allows to boot for ones without this feature */
++    if (fs->qi && !((unit->regs->extended_capability >> 1) & 0x1))
++        fs->qi = false;
+ 
+ 	uint32_t
+ 	offset = (unit->regs->extended_capability >> (8 - 4)) & (((1 << 10) - 1) << 4);
+@@ -314,10 +325,11 @@ vtd_unit_t * unit_init(ACPI_DMAR_HARDWAR
+ 			unit->global, unit->selective, unit->caching, 
+ 			unit->iotlb, unit->num_fault, unit->faults);
+ 
++    /* TO-DO: Disable reported non-discoverable PCI devices: aka workaround_bios_bug */
+ 	// caching is only allowed for VMs
+-	if (unit->caching
++	/*if (unit->caching
+ 	// disable IG unit
+-	|| ((!unit->global) && (!(kIOPCIConfiguratorIGIsMapped & gIOPCIFlags))))
++	|| ((!unit->global) && (!(kIOPCIConfiguratorIGIsMapped & gIOPCIFlags))))*/
+ 	{
+ 		IODelete(unit, vtd_unit_t, 1);
+ 		unit = NULL;
+@@ -355,7 +367,7 @@ unit_faults(vtd_unit_t * unit, bool log)
+ }
+ 
+ static void 
+-unit_enable(vtd_unit_t * unit)
++unit_enable(vtd_unit_t * unit, features *fs)
+ {
+     uint32_t command;
+ 
+@@ -387,13 +399,13 @@ unit_enable(vtd_unit_t * unit)
+ 
+ 	command = 0;
+ 
+-#if ENA_QI
++    if (fs->qi) {
+ 	command |= (1UL<<26);
+ 	unit->regs->global_command = command;
+ 	__mfence();
+ 	while (!((1UL<<26) & unit->regs->global_status)) {}
+ 	VTLOG("did ena qi p 0x%qx v %p\n", unit->qi_address, unit->qi_table);
+-#endif
++    }
+ 
+ 	command |= (1UL<<31);
+ 	unit->regs->global_command = command;
+@@ -736,6 +748,7 @@ public:
+ 
+ 	enum { kMaxUnits = 8 };
+ 	vtd_unit_t * units[kMaxUnits];
++    features fs;
+ 
+ 	uint32_t fTreeBits;
+ 	uint32_t fMaxRoundSize;
+@@ -808,8 +821,6 @@ AppleVTD::install(IOWorkLoop * wl, uint3
+ 	AppleVTD * mapper = 0;
+ 	bool ok = false;
+ 
+-	if (!IOService::getPlatform()->getProperty(kIOPlatformMapperPresentKey)) return;
+-
+ 	VTLOG("DMAR %p\n", data);
+ 	if (data) 
+ 	{
+@@ -843,6 +854,7 @@ AppleVTD::init(IOWorkLoop * wl, const OS
+ 	wl->retain();
+ 	fWorkLoop = wl;
+ 	fCacheLineSize = cpuid_info()->cache_linesize;
++    fs.qi = true;
+ 
+ 	ACPI_TABLE_DMAR *           dmar = (typeof(dmar))      data->getBytesNoCopy();
+ 	ACPI_DMAR_HEADER *          dmarEnd = (typeof(dmarEnd))(((uintptr_t) dmar) + data->getLength());
+@@ -858,10 +870,12 @@ AppleVTD::init(IOWorkLoop * wl, const OS
+ 		{
+ 			case ACPI_DMAR_TYPE_HARDWARE_UNIT:
+ 				unit = (typeof(unit)) hdr;
+-				if ((units[unitIdx] = unit_init(unit))) unitIdx++;
++				if ((units[unitIdx] = unit_init(unit, &fs))) unitIdx++;
+ 				break;
+ 		}
+ 	}
++    
++    VTLOG("Queued Invalidation feature: %d\n", fs.qi);
+ 
+ 	return (unitIdx != 0);
+ }
+@@ -1357,7 +1371,7 @@ AppleVTD::initHardware(IOService *provid
+ 	{
+ 		unit->msi_data    = msiData & 0xff;
+ 		unit->msi_address = msiAddress;
+-		unit_enable(unit);
++		unit_enable(unit, &fs);
+ 	}
+ 	if (fIntES)   fIntES->enable();
+ 	if (fFaultES) fFaultES->enable();
+@@ -1428,7 +1442,7 @@ AppleVTD::callPlatformFunction(const OSS
+ 		{
+ 			for (idx = 0; (unit = units[idx]); idx++) 
+ 			{
+-				unit_enable(unit);
++				unit_enable(unit, &fs);
+ 			}
+ 			return (kIOReturnSuccess);
+ 		}
+@@ -1552,14 +1566,14 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
+ 	bzero(&fSpace->tables[0][addr], pages * sizeof(vtd_table_entry_t));
+ 	table_flush(&fSpace->tables[0][addr], pages * sizeof(vtd_table_entry_t), fCacheLineSize);
+ 
+-#if !ENA_QI
++    if (!fs.qi) {
+ 	IOSimpleLockLock(fHWLock);
+     iovmInvalidateSync(addr, pages);
+ 	IOSimpleLockUnlock(fHWLock);
+ 	space_free(fSpace, addr, pages);
+ 	return;
+ 
+-#else	/* !ENA_QI */
++    } else { /* ENA_QI */
+ 
+ 	leaf = true;
+ 	isLarge = (addr >= fSpace->rsize);
+@@ -1641,7 +1655,7 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
+ 
+ 	IOSimpleLockUnlock(fHWLock);
+ 
+-#endif /* ENA_QI */
++    }
+ }
+ 
+ #define stampPassed(a,b)	(((int32_t)((a)-(b))) >= 0)
