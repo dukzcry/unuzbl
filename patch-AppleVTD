@@ -317,7 +317,7 @@
  	IOSimpleLockUnlock(fHWLock);
  
 -#endif /* ENA_QI */
-+    }
++    } /* ENA_QI */
  }
  
  #define stampPassed(a,b)	(((int32_t)((a)-(b))) >= 0)
