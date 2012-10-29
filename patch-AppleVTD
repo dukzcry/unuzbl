@@ -69,7 +69,7 @@
  /*
   * DMAR Sub-tables, correspond to Type in ACPI_DMAR_HEADER
 --- vtd.c.orig	2012-10-26 05:15:48.000000000 +0400
-+++ vtd.c	2012-10-29 13:24:21.000000000 +0400
++++ vtd.c	2012-10-29 21:15:43.000000000 +0400
 @@ -24,6 +24,7 @@
  
  #include <IOKit/IOMapper.h>
@@ -78,17 +78,18 @@
  #include <libkern/tree.h>
  #include <libkern/OSDebug.h>
  #include <i386/cpuid.h>
-@@ -36,7 +37,8 @@ extern "C" ppnum_t pmap_find_phys(pmap_t
+@@ -36,7 +37,9 @@ extern "C" ppnum_t pmap_find_phys(pmap_t
  
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
  
 -#define ENA_QI			1
 +#define WA_BBUG         1
++//#define INCL_MAP
 +
  #define TABLE_CB		0
  #define BSIMPLE			0
  
-@@ -55,10 +57,10 @@ extern "C" ppnum_t pmap_find_phys(pmap_t
+@@ -55,10 +58,10 @@ extern "C" ppnum_t pmap_find_phys(pmap_t
  
  #define VTLOG(fmt, args...)                   \
      do {                                                    						\
@@ -102,7 +103,7 @@
      } while(0)
  
  
-@@ -156,6 +158,14 @@ enum
+@@ -156,6 +159,14 @@ enum
  	kTheDomain    = 2ULL
  };
  
@@ -117,7 +118,7 @@
  typedef uint64_t page_entry_t;
  
  // page_entry_t
-@@ -280,52 +290,6 @@ static inline void clflush(uintptr_t add
+@@ -280,52 +291,6 @@ static inline void clflush(uintptr_t add
  	__mfence();
  }
  
@@ -170,7 +171,7 @@
  static void 
  unit_faults(vtd_unit_t * unit, bool log)
  {
-@@ -355,7 +319,7 @@ unit_faults(vtd_unit_t * unit, bool log)
+@@ -355,7 +320,7 @@ unit_faults(vtd_unit_t * unit, bool log)
  }
  
  static void 
@@ -179,7 +180,7 @@
  {
      uint32_t command;
  
-@@ -387,13 +351,13 @@ unit_enable(vtd_unit_t * unit)
+@@ -387,13 +352,13 @@ unit_enable(vtd_unit_t * unit)
  
  	command = 0;
  
@@ -195,7 +196,7 @@
  
  	command |= (1UL<<31);
  	unit->regs->global_command = command;
-@@ -733,9 +697,11 @@ public:
+@@ -733,9 +698,11 @@ public:
  	IOInterruptEventSource * fIntES;
  	IOInterruptEventSource * fFaultES;
      IOTimerEventSource     * fTimerES;
@@ -207,17 +208,17 @@
  
  	uint32_t fTreeBits;
  	uint32_t fMaxRoundSize;
-@@ -793,6 +759,9 @@ public:
+@@ -793,6 +760,9 @@ public:
  				  const IODMAMapSpecification * mapSpecification);
  
      virtual addr64_t mapAddr(IOPhysicalAddress addr);
 +    vtd_unit_t * unit_init(ACPI_DMAR_HARDWARE_UNIT *);
-+    int parse_dev_scope(const void *, const void *, vtd_unit_t *);
++    int parse_dev_scope(const void *, const void *, UInt16, UInt16);
 +    UInt32 configRead32(UInt32 seg, UInt32 bus, UInt32 dev, UInt32 func, UInt32 off);
  };
  
  
-@@ -808,14 +777,13 @@ AppleVTD::install(IOWorkLoop * wl, uint3
+@@ -808,14 +778,13 @@ AppleVTD::install(IOWorkLoop * wl, uint3
  	AppleVTD * mapper = 0;
  	bool ok = false;
  
@@ -233,7 +234,7 @@
  			if (mapper->init(wl, data) && mapper->attach(provider))
  			{
  				ok = mapper->start(provider);
-@@ -843,6 +811,7 @@ AppleVTD::init(IOWorkLoop * wl, const OS
+@@ -843,6 +812,7 @@ AppleVTD::init(IOWorkLoop * wl, const OS
  	wl->retain();
  	fWorkLoop = wl;
  	fCacheLineSize = cpuid_info()->cache_linesize;
@@ -241,7 +242,7 @@
  
  	ACPI_TABLE_DMAR *           dmar = (typeof(dmar))      data->getBytesNoCopy();
  	ACPI_DMAR_HEADER *          dmarEnd = (typeof(dmarEnd))(((uintptr_t) dmar) + data->getLength());
-@@ -862,6 +831,8 @@ AppleVTD::init(IOWorkLoop * wl, const OS
+@@ -862,6 +832,8 @@ AppleVTD::init(IOWorkLoop * wl, const OS
  				break;
  		}
  	}
@@ -250,7 +251,28 @@
  
  	return (unitIdx != 0);
  }
-@@ -1357,7 +1328,7 @@ AppleVTD::initHardware(IOService *provid
+@@ -1225,6 +1197,10 @@ AppleVTD::initHardware(IOService *provid
+ 				mem = (typeof(mem)) hdr;
+ 				VTLOG("ACPI_DMAR_TYPE_RESERVED_MEMORY 0x%llx, 0x%llx\n", 
+ 					mem->BaseAddress, mem->EndAddress);
++                
++                if (parse_dev_scope((void *) (mem + 1), ((char *) mem) + mem->Header.Length, mem->Segment,
++                                    hdr->Type))
++                    continue;
+ 
+ 				addr = mem->BaseAddress;
+ 				count = atop_32(mem->EndAddress - addr);
+@@ -1322,6 +1298,9 @@ AppleVTD::initHardware(IOService *provid
+     }
+ 
+ 	//
++    
++    /* XXX: broken */
++    return false;
+ 
+ 	IOReturn  ret;
+ 	uint64_t  msiAddress;
+@@ -1357,11 +1336,11 @@ AppleVTD::initHardware(IOService *provid
  	{
  		unit->msi_data    = msiData & 0xff;
  		unit->msi_address = msiAddress;
@@ -259,7 +281,12 @@
  	}
  	if (fIntES)   fIntES->enable();
  	if (fFaultES) fFaultES->enable();
-@@ -1428,7 +1399,7 @@ AppleVTD::callPlatformFunction(const OSS
+-	
++
+ //	fTimerES->setTimeoutMS(10);
+ 
+ 	setProperty(kIOPlatformQuiesceActionKey, INT32_MAX - 1000, 64);
+@@ -1428,7 +1407,7 @@ AppleVTD::callPlatformFunction(const OSS
  		{
  			for (idx = 0; (unit = units[idx]); idx++) 
  			{
@@ -268,7 +295,7 @@
  			}
  			return (kIOReturnSuccess);
  		}
-@@ -1552,14 +1523,14 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
+@@ -1552,14 +1531,14 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
  	bzero(&fSpace->tables[0][addr], pages * sizeof(vtd_table_entry_t));
  	table_flush(&fSpace->tables[0][addr], pages * sizeof(vtd_table_entry_t), fCacheLineSize);
  
@@ -285,7 +312,7 @@
  
  	leaf = true;
  	isLarge = (addr >= fSpace->rsize);
-@@ -1641,7 +1612,7 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
+@@ -1641,7 +1620,7 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
  
  	IOSimpleLockUnlock(fHWLock);
  
@@ -294,7 +321,7 @@
  }
  
  #define stampPassed(a,b)	(((int32_t)((a)-(b))) >= 0)
-@@ -1769,5 +1740,123 @@ AppleVTD::iovmInsert(ppnum_t addr, IOIte
+@@ -1769,5 +1748,133 @@ AppleVTD::iovmInsert(ppnum_t addr, IOIte
  	STAT_ADD(fSpace, inserts, pageCount);
  }
  
@@ -316,7 +343,7 @@
 +    return value;
 +}
 +
-+int AppleVTD::parse_dev_scope(const void *start, const void *end, vtd_unit_t *unit)
++int AppleVTD::parse_dev_scope(const void *start, const void *end, UInt16 seg, UInt16 type)
 +{
 +    const ACPI_DMAR_DEVICE_SCOPE *scope;
 +    ACPI_DMAR_PCI_PATH *path;
@@ -336,13 +363,17 @@
 +        
 +        if (scope->EntryType == ACPI_DMAR_SCOPE_TYPE_ENDPOINT) {
 +            for (UInt32 off = 0; off < 256; off += 4)
-+                data[off >> 2] = configRead32(unit->dmar->Segment, scope->Bus, path->Device, path->Function, off);
++                data[off >> 2] = configRead32(seg, scope->Bus, path->Device, path->Function, off);
 +            vend = data[0] & 0xffff;
 +            if ((vend == 0xffff) || (vend == 0x0000) || (vend == 0x00ff) || (vend == 0xff00)) {
-+                IOLog("Non-existent device %04x:%02x:%02x.%u is reported in this unit\n",
-+                      unit->dmar->Segment, scope->Bus, path->Device, path->Function);
++                IOLog("Non-existent device %04x:%02x:%02x.%u is reported\n",
++                      seg, scope->Bus, path->Device, path->Function);
 +                fault++;
-+            }
++            } else
++            // disable IG unit
++            if (type == ACPI_DMAR_TYPE_HARDWARE_UNIT)
++                if ((seg == 0) && (scope->Bus == 0) && (path->Device == 2) && (path->Function == 0))
++                    return 1;
 +            count++;
 +        }
 +        
@@ -350,16 +381,25 @@
 +    }
 +    
 +    if (count == 0) {
-+        if (!unit->global)
-+            VTLOG("No devices found under the scope\n");
++        /*if (!unit->global)
++            VTLOG("No devices found under the scope\n");*/
++        if (type == ACPI_DMAR_TYPE_RESERVED_MEMORY)
++            return 1;
 +    }
-+#if WA_BBUG
 +    else if (count == fault) {
-+        IOLog("Workaround BIOS bug: ignore the unit due to all devices under it's scope aren't"
++        if (type == ACPI_DMAR_TYPE_HARDWARE_UNIT) {
++#if WA_BBUG
++            IOLog("Workaround BIOS bug: ignore the unit due to all devices under it's scope aren't"
 +              " PCI discoverable\n");
-+        return 1;
-+    }
++            return 1;
 +#endif
++            ;
++        } else {
++            IOLog("Ignore the RMRR due to all devices under it's scope aren't"
++                  " PCI discoverable\n");
++            return 1;
++        }
++    }
 +    
 +    return 0;
 +}
@@ -401,13 +441,10 @@
 +          unit->global, unit->selective, unit->caching,
 +          unit->iotlb, unit->num_fault, unit->faults);
 +
-+    parse_dev_scope((void *) (dmar + 1), ((char *) dmar) + dmar->Header.Length, unit);
-+    // XXX: broken
 +	// caching is only allowed for VMs
-+	/*if (unit->caching
-+        // disable IG unit
-+        || ((!unit->global) && (!(kIOPCIConfiguratorIGIsMapped & gIOPCIFlags)))
-+        || (parse_dev_scope(start_dev_scope, end_dev_scope, dmar->Segment)))*/
++	if (unit->caching
++        || parse_dev_scope((void *) (dmar + 1), ((char *) dmar) + dmar->Header.Length, dmar->Segment,
++                           ACPI_DMAR_TYPE_HARDWARE_UNIT))
 +	{
 +		IODelete(unit, vtd_unit_t, 1);
 +		unit = NULL;
