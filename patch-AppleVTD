@@ -52,13 +52,24 @@
  		AppleVTD::install(gIOPCIConfigWorkLoop, gIOPCIFlags, acpiDevice, acpiDevice->getACPITableData("DMAR", 0));
 +        }
 +        else {
-+            IOLog("Wanna try VT-D? Pass dart=1 parameter to kernel.\n");
++            IOLog("Wanna try VT-d? Pass dart=1 parameter to kernel.\n");
 +        }
  #endif
      }
  
+--- dmar.h.orig	2012-10-28 11:19:43.000000000 +0400
++++ dmar.h	2012-10-28 11:19:51.000000000 +0400
+@@ -103,6 +103,8 @@ typedef struct acpi_dmar_pci_path
+ 
+ } ACPI_DMAR_PCI_PATH;
+ 
++#define MIN_SCOPE_LEN (sizeof(struct acpi_dmar_device_scope) + \
++sizeof(struct acpi_dmar_pci_path))
+ 
+ /*
+  * DMAR Sub-tables, correspond to Type in ACPI_DMAR_HEADER
 --- vtd.c.orig	2012-10-26 05:15:48.000000000 +0400
-+++ vtd.c	2012-10-29 13:09:49.000000000 +0400
++++ vtd.c	2012-10-29 13:24:21.000000000 +0400
 @@ -24,6 +24,7 @@
  
  #include <IOKit/IOMapper.h>
@@ -283,7 +294,7 @@
  }
  
  #define stampPassed(a,b)	(((int32_t)((a)-(b))) >= 0)
-@@ -1769,5 +1740,121 @@ AppleVTD::iovmInsert(ppnum_t addr, IOIte
+@@ -1769,5 +1740,123 @@ AppleVTD::iovmInsert(ppnum_t addr, IOIte
  	STAT_ADD(fSpace, inserts, pageCount);
  }
  
@@ -338,8 +349,10 @@
 +        start = ((char *) start) + scope->Length;
 +    }
 +    
-+    if (count == 0 && !unit->global)
-+        VTLOG("No devices found under the scope\n");
++    if (count == 0) {
++        if (!unit->global)
++            VTLOG("No devices found under the scope\n");
++    }
 +#if WA_BBUG
 +    else if (count == fault) {
 +        IOLog("Workaround BIOS bug: ignore the unit due to all devices under it's scope aren't"
@@ -405,14 +418,3 @@
 +
  #endif /* ACPI_SUPPORT */
  
---- dmar.h.orig	2012-10-28 11:19:43.000000000 +0400
-+++ dmar.h	2012-10-28 11:19:51.000000000 +0400
-@@ -103,6 +103,8 @@ typedef struct acpi_dmar_pci_path
- 
- } ACPI_DMAR_PCI_PATH;
- 
-+#define MIN_SCOPE_LEN (sizeof(struct acpi_dmar_device_scope) + \
-+sizeof(struct acpi_dmar_pci_path))
- 
- /*
-  * DMAR Sub-tables, correspond to Type in ACPI_DMAR_HEADER
