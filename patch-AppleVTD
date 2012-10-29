@@ -69,7 +69,7 @@
  /*
   * DMAR Sub-tables, correspond to Type in ACPI_DMAR_HEADER
 --- vtd.c.orig	2012-10-26 05:15:48.000000000 +0400
-+++ vtd.c	2012-10-29 21:15:43.000000000 +0400
++++ vtd.c	2012-10-29 22:03:32.000000000 +0400
 @@ -24,6 +24,7 @@
  
  #include <IOKit/IOMapper.h>
@@ -214,7 +214,7 @@
      virtual addr64_t mapAddr(IOPhysicalAddress addr);
 +    vtd_unit_t * unit_init(ACPI_DMAR_HARDWARE_UNIT *);
 +    int parse_dev_scope(const void *, const void *, UInt16, UInt16);
-+    UInt32 configRead32(UInt32 seg, UInt32 bus, UInt32 dev, UInt32 func, UInt32 off);
++    UInt32 configRead16(UInt32 seg, UInt32 bus, UInt32 dev, UInt32 func, UInt32 off);
  };
  
  
@@ -321,11 +321,11 @@
  }
  
  #define stampPassed(a,b)	(((int32_t)((a)-(b))) >= 0)
-@@ -1769,5 +1748,133 @@ AppleVTD::iovmInsert(ppnum_t addr, IOIte
+@@ -1769,5 +1748,130 @@ AppleVTD::iovmInsert(ppnum_t addr, IOIte
  	STAT_ADD(fSpace, inserts, pageCount);
  }
  
-+UInt32 AppleVTD::configRead32(UInt32 seg, UInt32 bus, UInt32 dev, UInt32 func, UInt32 off)
++UInt32 AppleVTD::configRead16(UInt32 seg, UInt32 bus, UInt32 dev, UInt32 func, UInt32 off)
 +{
 +    IOACPIAddress address;
 +    UInt64 value;
@@ -338,7 +338,7 @@
 +    address.pci.reserved = 0;
 +    value = -1ULL;
 +    
-+    provider->readAddressSpace(&value, kIOACPIAddressSpaceIDPCIConfiguration, address, 32);
++    provider->readAddressSpace(&value, kIOACPIAddressSpaceIDPCIConfiguration, address, 16);
 +    
 +    return value;
 +}
@@ -347,7 +347,6 @@
 +{
 +    const ACPI_DMAR_DEVICE_SCOPE *scope;
 +    ACPI_DMAR_PCI_PATH *path;
-+    uint32_t data[256/sizeof(uint32_t)];
 +    UInt16 vend;
 +    int count = 0, fault = 0;
 +    
@@ -362,9 +361,7 @@
 +        }
 +        
 +        if (scope->EntryType == ACPI_DMAR_SCOPE_TYPE_ENDPOINT) {
-+            for (UInt32 off = 0; off < 256; off += 4)
-+                data[off >> 2] = configRead32(seg, scope->Bus, path->Device, path->Function, off);
-+            vend = data[0] & 0xffff;
++            vend = configRead16(seg, scope->Bus, path->Device, path->Function, 0);
 +            if ((vend == 0xffff) || (vend == 0x0000) || (vend == 0x00ff) || (vend == 0xff00)) {
 +                IOLog("Non-existent device %04x:%02x:%02x.%u is reported\n",
 +                      seg, scope->Bus, path->Device, path->Function);
