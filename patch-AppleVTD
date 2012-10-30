@@ -267,7 +267,7 @@
  
  	//
 +    
-+    /* XXX: broken */
++    /* XXX: broken, do { iovmMapMemory(); iovmFree(); } while (true);  */
 +    return false;
  
  	IOReturn  ret;
@@ -392,7 +392,7 @@
 +#endif
 +            ;
 +        } else {
-+            IOLog("Ignore the RMRR due to all devices under it's scope aren't"
++            IOLog("Ignore the reserved region due to all devices under it's scope aren't"
 +                  " PCI discoverable\n");
 +            return 1;
 +        }
