@@ -237,7 +237,7 @@
 +        map_flag = bf->table_bitmap[byte] & bit;
 +        if (!map_flag) {
 +            if (first_pass) {
-+                IOLog("space isn't mapped for: 0x%x", (int) ptoa_64(start));
++                IOLog("space isn't mapped for: 0x%xpg", start);
 +                first_pass = false;
 +            }
 +            end = start;
