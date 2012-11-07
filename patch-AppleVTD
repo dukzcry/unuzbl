@@ -67,7 +67,7 @@
 +sizeof(struct acpi_dmar_pci_path))
  
  /*
-  * DMAR Sub-tables, correspond to Type in ACPI_DMAR_HEADER 
+  * DMAR Sub-tables, correspond to Type in ACPI_DMAR_HEADER  
 --- vtd.c.old	2012-11-06 20:35:31.000000000 +0400
 +++ vtd.c	2012-11-07 16:18:26.000000000 +0400
 @@ -24,6 +24,7 @@
@@ -237,11 +237,7 @@
 +        map_flag = bf->table_bitmap[byte] & bit;
 +        if (!map_flag) {
 +            if (first_pass) {
-<<<<<<< HEAD
 +                IOLog("vtd: space isn't allocated for 0x%x", start);
-=======
-+                IOLog("space isn't mapped for: 0x%xpg", start);
->>>>>>> 5fb0f5da3d5c969dc09c5959cbffd54c49f7de63
 +                first_pass = false;
 +            }
 +            end = start;
