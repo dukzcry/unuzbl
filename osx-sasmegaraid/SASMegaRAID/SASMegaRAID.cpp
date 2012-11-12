@@ -327,6 +327,16 @@ bool SASMegaRAID::Attach()
         return false;
     }
     
+    /* Init with all pointers */
+    if (!Initialize_Firmware()) {
+        IOPrint("Unable to init firmware\n");
+        return false;
+    }
+    
+    if (!GetInfo()) {
+        IOPrint("Unable to get controller info\n");
+    }
+    
     return true;
 }
 
@@ -387,6 +397,10 @@ void SASMegaRAID::FreeMem(struct mraid_mem *mm)
     mm->bmd->release();
     IODelete(mm, mraid_mem, 1);
     mm = NULL;
+}
+void SASMegaRAID::FreeDMAMap(struct mraid_ccb_mem *cm)
+{
+    cm->bmd->release();
 }
 
 bool SASMegaRAID::Initccb()
@@ -488,6 +502,52 @@ bool SASMegaRAID::Transition_Firmware()
     return TRUE;
 }
 
+void mraid_empty_done(mraid_ccbCommand *)
+{
+    __asm__ volatile("nop");
+}
+
+bool SASMegaRAID::Initialize_Firmware()
+{
+    bool res = true;
+    mraid_ccbCommand* ccb;
+    struct mraid_init_frame *init;
+    struct mraid_init_qinfo *qinfo;
+    
+    DnbgPrint(MRAID_D_MISC, "::%s\n", __FUNCTION__);
+    
+    ccb = (mraid_ccbCommand *) ccbCommandPool->getCommand(false);
+    
+    init = &ccb->ccb_frame->mrr_init;
+    qinfo = (struct mraid_init_qinfo *)((UInt8 *) init + MRAID_FRAME_SIZE);
+    
+    qinfo->miq_rq_entries = htole32(sc->sc_max_cmds + 1);
+    qinfo->miq_rq_addr = htole64(MRAID_DVA(sc->sc_pcq) + offsetof(struct mraid_prod_cons, mpc_reply_q));
+    
+	qinfo->miq_pi_addr = htole64(MRAID_DVA(sc->sc_pcq) + offsetof(struct mraid_prod_cons, mpc_producer));
+	qinfo->miq_ci_addr = htole64(MRAID_DVA(sc->sc_pcq) + offsetof(struct mraid_prod_cons, mpc_consumer));
+    
+    init->mif_header.mrh_cmd = MRAID_CMD_INIT;
+    init->mif_header.mrh_data_len = htole32(sizeof(*qinfo));
+    init->mif_qinfo_new_addr = htole64(ccb->ccb_pframe + MRAID_FRAME_SIZE);
+    
+    sc->sc_pcq->cmd->synchronize(kIODirectionOutIn);
+    
+    ccb->setDone(mraid_empty_done);
+    MRAID_Poll(ccb);
+    if (init->mif_header.mrh_cmd_status != MRAID_STAT_OK)
+        res = false;
+    
+    ccbCommandPool->returnCommand(ccb);
+    
+    return res;
+}
+
+bool SASMegaRAID::GetInfo()
+{
+    return true;
+}
+
 UInt32 SASMegaRAID::MRAID_Read(UInt8 offset)
 {
     UInt32 data;
@@ -514,6 +574,52 @@ void SASMegaRAID::MRAID_Write(UInt8 offset, uint32_t data)
      
      return TRUE;*/
 }
+
+void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
+{
+    struct mraid_frame_header *hdr;
+    int to = 0;
+    
+    DnbgPrint(MRAID_D_CMD, "::%s\n", __FUNCTION__);
+    
+    hdr = &ccb->ccb_frame->mrr_header;
+    hdr->mrh_cmd_status = 0xff;
+    hdr->mrh_flags |= MRAID_FRAME_DONT_POST_IN_REPLY_QUEUE;
+    
+    MRAID_Start(ccb);
+    
+    while (1) {
+        IODelay(1000);
+        
+        sc->sc_frames->cmd->synchronize(kIODirectionOutIn);
+        
+        if (hdr->mrh_cmd_status != 0xff)
+            break;
+        
+        if (to++ > 5000) {
+            IOPrint("ccb timeout\n");
+            ccb->ccb_flags = MRAID_CCB_F_ERR;
+            break;
+        }
+        
+        sc->sc_frames->cmd->synchronize(kIODirectionOutIn);
+    }
+    
+    if (ccb->getLen() > 0) {
+        ccb->ccb_dmamap.cmd->synchronize((ccb->getDirection() & MRAID_DATA_IN) ?
+                                         kIODirectionIn : kIODirectionOut);
+        FreeDMAMap(&ccb->ccb_dmamap);
+    }
+    
+    ccb->ccb_done(ccb);
+}
+void SASMegaRAID::MRAID_Start(mraid_ccbCommand *ccb)
+{
+    sc->sc_frames->cmd->synchronize(kIODirectionOutIn);
+    
+    mraid_post(ccb);
+}
+
 bool SASMegaRAID::mraid_xscale_intr()
 {
     UInt32 Status;
@@ -533,6 +639,10 @@ UInt32 SASMegaRAID::mraid_xscale_fw_state()
 {
     return(MRAID_Read(MRAID_OMSG0));
 }
+void SASMegaRAID::mraid_xscale_post(mraid_ccbCommand *ccb)
+{
+    MRAID_Write(MRAID_IQP, (ccb->ccb_pframe >> 3) | ccb->getExtraFrames());
+}
 bool SASMegaRAID::mraid_ppc_intr()
 {
     UInt32 Status;
@@ -551,6 +661,10 @@ bool SASMegaRAID::mraid_ppc_intr()
 UInt32 SASMegaRAID::mraid_ppc_fw_state()
 {
     return(MRAID_Read(MRAID_OSP));
+}
+void SASMegaRAID::mraid_ppc_post(mraid_ccbCommand *ccb)
+{
+    MRAID_Write(MRAID_IQP, 0x1 | ccb->ccb_pframe | (ccb->getExtraFrames() << 1));
 }
 bool SASMegaRAID::mraid_gen2_intr()
 {
@@ -589,4 +703,9 @@ bool SASMegaRAID::mraid_skinny_intr()
 UInt32 SASMegaRAID::mraid_skinny_fw_state()
 {
     return(MRAID_Read(MRAID_OSP));
+}
+void SASMegaRAID::mraid_skinny_post(mraid_ccbCommand *ccb)
+{
+    MRAID_Write(MRAID_IQPL, 0x1 | ccb->ccb_pframe | (ccb->getExtraFrames() << 1));
+    MRAID_Write(MRAID_IQPH, 0x00000000);
 }

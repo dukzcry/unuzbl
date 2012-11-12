@@ -36,8 +36,12 @@
 #define MRAID_INIT_CLEAR_HANDSHAKE              0x00000008
 
 /* Frame flags */
+#define MRAID_FRAME_DONT_POST_IN_REPLY_QUEUE	0x0001
 #define MRAID_FRAME_SGL32                       0x0000
 #define MRAID_FRAME_SGL64                       0x0002
+
+/* Command opcodes */
+#define MRAID_CMD_INIT                          0x00
 
 #define MRAID_PCI_MEMSIZE                       0x2000      /* 8k */
 
@@ -57,6 +61,10 @@
 /* Mailbox bytes in direct command */
 #define MRAID_MBOX_SIZE                         12
 
+typedef enum {
+	MRAID_STAT_OK =                 0x00,
+} mraid_status_t;
+
 /* Sense buffer */
 struct mraid_sense {
     UInt8                           mse_data[MRAID_SENSE_SIZE];
@@ -75,12 +83,6 @@ union mraid_sgl {
     struct mraid_sg64               sg64[1];
 } __attribute__((packed));
 
-/* Message frame */
-struct mraid_iokitframe_header {
-    UInt8                           mrh_cmd;
-    UInt8                           mrh_cmd_status;
-    UInt64                          mrh_data_len;
-};
 struct mraid_frame_header {
     UInt8                           mrh_cmd;
     UInt8                           mrh_sense_len;
@@ -98,11 +100,17 @@ struct mraid_frame_header {
 } __attribute__((packed));
 struct mraid_init_frame {
     struct mraid_frame_header       mif_header;
-    UInt32                          mif_qinfo_new_addr_lo;
-    UInt32                          mif_qinfo_new_addr_hi;
-    UInt32                          mif_qinfo_old_addr_lo;
-    UInt32                          mif_qinfo_old_addr_hi;
+    UInt64                          mif_qinfo_new_addr;
+    UInt64                          mif_qinfo_old_addr;
     UInt32                          mif_reserved[6];
+} __attribute__((packed));
+/* Queue init */
+struct mraid_init_qinfo {
+    UInt32                          miq_flags;
+    UInt32                          miq_rq_entries;
+	UInt64                          miq_rq_addr;
+	UInt64                          miq_pi_addr;
+	UInt64                          miq_ci_addr;
 } __attribute__((packed));
 struct mraid_io_frame {
     struct mraid_frame_header       mif_header;
@@ -174,6 +182,7 @@ struct mraid_mem {
 };
 struct mraid_ccb_mem {
     IOBufferMemoryDescriptor *bmd;
+    IODMACommand *cmd;
 };
 
 #define MRAID_DVA(_am) ((_am)->segments[0].fIOVMAddr)

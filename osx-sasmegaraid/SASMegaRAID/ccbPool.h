@@ -11,7 +11,7 @@ class mraid_ccbCommand: public IOCommand {
     OSDeclareDefaultStructors(mraid_ccbCommand);
     
     struct mraid_softc              *ccb_sc;
-    mraid_iokitframe_header         ccb_frame_header;
+    mraid_frame_header              ccb_frame_header;
 public:
     union mraid_frame               *ccb_frame;
     u_long                          ccb_pframe;
@@ -21,6 +21,7 @@ public:
     u_long                          ccb_psense;
     
     struct mraid_ccb_mem            ccb_dmamap;
+    UInt32                          ccb_flags;
 private:
     UInt32                          ccb_frame_size;
     UInt32                          ccb_extra_frames;
@@ -37,17 +38,18 @@ private:
 #define MRAID_DATA_OUT  2
     
     void                            *ccb_cookie;
-    typedef void                    (*ccb_done_ptr)(struct mraid_ccb *);
+    typedef void                    (*ccb_done_ptr)(mraid_ccbCommand *);
 public:
     ccb_done_ptr                    ccb_done;
 private:
     /* Do not optimize */
     volatile state                  ccb_state;
-    UInt32                          ccb_flags;
 #define MRAID_CCB_F_ERR   (1 << 0)
 public:    
     void initCommand() {
         ccb_frame_header.mrh_cmd_status = 0x0;
+        ccb_frame_header.mrh_flags = 0x0;
+        
         ccb_state = MRAID_CCB_FREE;
         ccb_done = NULL;
         ccb_direction = 0;

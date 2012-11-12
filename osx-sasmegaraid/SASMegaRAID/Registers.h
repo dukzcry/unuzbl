@@ -7,5 +7,10 @@
 #define MRAID_OMSG0     0x18    /* Outbound message 0 */
 #define MRAID_IDB       0x20    /* Inbound doorbell */
 #define MRAID_OSTS      0x30    /* Outbound interrupt status */
+#define MRAID_IQP		0x40    /* Inbound queue port */
 #define MRAID_ODC       0xa0    /* Outbound doorbell clear */
 #define MRAID_OSP       0xb0    /* Outbound scratch-pad */
+
+/* Adjusts for Skinny */
+#define MRAID_IQPL      0x000000c0
+#define MRAID_IQPH		0x000000c4
