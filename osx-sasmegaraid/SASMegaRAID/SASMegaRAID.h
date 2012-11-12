@@ -5,6 +5,7 @@
 
 #include "Various.h"
 #include "HelperLib.h"
+#include "ccbPool.h"
 
 //#define BaseClass IOService
 #define BaseClass IOSCSIParallelInterfaceController
@@ -21,10 +22,12 @@ private:
     IOWorkLoop *MyWorkLoop;
     IOInterruptEventSource *fInterruptSrc;
     OSDictionary *conf;
+    IOCommandPool *ccbCommandPool;
     
     bool fMSIEnabled;
     const struct mraid_pci_device *mpd;
     struct mraid_softc *sc;
+    bool ccb_inited;
 
     friend struct mraid_iop_ops;
     /* Helper Library is allowed to touch private methods */
@@ -41,6 +44,7 @@ private:
     bool Transition_Firmware();
     struct mraid_mem *AllocMem(size_t size);
     void FreeMem(struct mraid_mem *);
+    bool Initccb();
     UInt32 MRAID_Read(UInt8 offset);
     /*bool*/ void MRAID_Write(UInt8 offset, UInt32 data);
     bool mraid_xscale_intr();
@@ -129,6 +133,7 @@ struct mraid_softc {
     /* Sense memory */
     struct mraid_mem                *sc_sense;
 
+    IOSimpleLock                    *sc_ccb_spin;
     /* Management lock */
     IORWLock                        *sc_lock;
 };

@@ -13,6 +13,7 @@
 		21BD6EC0164FD2DD00433C9B /* Various.h in Headers */ = {isa = PBXBuildFile; fileRef = 21BD6EBF164FD2DD00433C9B /* Various.h */; };
 		21BD6EC2164FD6ED00433C9B /* Registers.h in Headers */ = {isa = PBXBuildFile; fileRef = 21BD6EC1164FD6ED00433C9B /* Registers.h */; };
 		21BD6EC8164FD7F000433C9B /* HelperLib.h in Headers */ = {isa = PBXBuildFile; fileRef = 21BD6EC7164FD7EF00433C9B /* HelperLib.h */; };
+		21F5890E1651274C006332A8 /* ccbPool.h in Headers */ = {isa = PBXBuildFile; fileRef = 21F5890D1651274C006332A8 /* ccbPool.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		21BD6EBF164FD2DD00433C9B /* Various.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Various.h; sourceTree = "<group>"; };
 		21BD6EC1164FD6ED00433C9B /* Registers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Registers.h; sourceTree = "<group>"; };
 		21BD6EC7164FD7EF00433C9B /* HelperLib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HelperLib.h; sourceTree = "<group>"; };
+		21F5890D1651274C006332A8 /* ccbPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ccbPool.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +95,7 @@
 				2187409A164FC3830060F761 /* SASMegaRAID-Info.plist */,
 				2187409B164FC3830060F761 /* InfoPlist.strings */,
 				218740A1164FC3830060F761 /* SASMegaRAID-Prefix.pch */,
+				21F5890D1651274C006332A8 /* ccbPool.h */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -108,6 +111,7 @@
 				21BD6EC0164FD2DD00433C9B /* Various.h in Headers */,
 				21BD6EC2164FD6ED00433C9B /* Registers.h in Headers */,
 				21BD6EC8164FD7F000433C9B /* HelperLib.h in Headers */,
+				21F5890E1651274C006332A8 /* ccbPool.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

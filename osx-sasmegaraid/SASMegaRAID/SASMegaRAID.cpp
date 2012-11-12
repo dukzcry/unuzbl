@@ -2,6 +2,7 @@
 #include "Registers.h"
 
 OSDefineMetaClassAndStructors(SASMegaRAID, IOSCSIParallelInterfaceController)
+OSDefineMetaClassAndStructors(mraid_ccbCommand, IOCommand)
 
 bool SASMegaRAID::init (OSDictionary* dict)
 {
@@ -19,9 +20,10 @@ bool SASMegaRAID::init (OSDictionary* dict)
     
     this->sc = IONew(mraid_softc, 1);
     sc->sc_iop = IONew(mraid_iop_ops, 1);
-    sc->sc_lock = NULL;
+    sc->sc_ccb_spin = NULL; sc->sc_lock = NULL;
     
     sc->sc_pcq = sc->sc_frames = sc->sc_sense = NULL;
+    ccb_inited = false;
     
     return true;
 }
@@ -150,6 +152,8 @@ void SASMegaRAID::TerminateController(void)
 
 void SASMegaRAID::free(void)
 {
+    mraid_ccbCommand *command;
+    
     DbgPrint("free\n");
     
     if (fPCIDevice) {
@@ -161,11 +165,22 @@ void SASMegaRAID::free(void)
     if (fInterruptSrc && MyWorkLoop)
         MyWorkLoop->removeEventSource(fInterruptSrc);
     if (fInterruptSrc) fInterruptSrc->release();
+    if (ccb_inited)
+        for (int i = 0; i < sc->sc_max_cmds; i++)
+        {
+            command = (mraid_ccbCommand *) ccbCommandPool->getCommand(false);
+            if (command)
+                command->release();
+        }
+    if (ccbCommandPool) ccbCommandPool->release();
     
     /* Helper Library is not inherited from OSObject */
     /*PCIHelperP->release();*/
     delete PCIHelperP;
     if (sc->sc_iop) IODelete(sc->sc_iop, mraid_iop_ops, 1);
+    if(sc->sc_ccb_spin) {
+        /*IOSimpleLockUnlock(sc->sc_ccb_spin);*/ IOSimpleLockFree(sc->sc_ccb_spin);
+    }
     if (sc->sc_lock) {
         /*IORWLockUnlock(I2C_Lock);*/ IORWLockFree(sc->sc_lock);
     }
@@ -252,7 +267,13 @@ bool SASMegaRAID::Attach()
     if(!Transition_Firmware())
         return false;
     
-    sc->sc_lock = IORWLockAlloc();
+    ccbCommandPool = IOCommandPool::withWorkLoop(MyWorkLoop);
+    if(ccbCommandPool == NULL) {
+        DbgPrint("Can't init ccb pool.\n");
+        return false;
+    }
+    
+    sc->sc_ccb_spin = IOSimpleLockAlloc(); sc->sc_lock = IORWLockAlloc();
     
     /* Get constraints forming frame pool contiguous memory */
     status = mraid_fw_state();
@@ -272,7 +293,7 @@ bool SASMegaRAID::Attach()
     DnbgPrint(MRAID_D_MISC, "DMA: %d-bit, max commands: %u, max SGL segment count: %u.\n", IOPhysSize, sc->sc_max_cmds,
               sc->sc_max_sgl);
     
-    /* Consumer/producer + reply queue memory */
+    /* Comms queues memory */
     sc->sc_pcq = AllocMem( (sizeof(UInt32) * sc->sc_max_cmds) + sizeof(struct mraid_prod_cons));
     if (!sc->sc_pcq) {
         IOPrint("Unable to allocate reply queue memory\n");
@@ -300,6 +321,12 @@ bool SASMegaRAID::Attach()
         return false;
     }
     
+    /* Init ccbs */
+    if (!Initccb()) {
+        IOPrint("Unable to init ccb pool\n");
+        return false;
+    }
+    
     return true;
 }
 
@@ -317,8 +344,9 @@ struct mraid_mem *SASMegaRAID::AllocMem(size_t size)
     mm->bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task, kIOMemoryPhysicallyContiguous
                                                                | kIOMemoryMapperNone
             , size, 0x00000000FFFFF000ULL);
-    if (!mm->bmd)
+    if (!mm->bmd) {
         goto free;
+    }
     
     //mm->cmd = IODMACommand::withSpecification(kIODMACommandOutputHost32, 32, 0, IODMACommand::kMapped, 0, 1);
     mm->cmd = IODMACommand::withSpecification(kIODMACommandOutputHost32, 32, 0);
@@ -359,6 +387,53 @@ void SASMegaRAID::FreeMem(struct mraid_mem *mm)
     mm->bmd->release();
     IODelete(mm, mraid_mem, 1);
     mm = NULL;
+}
+
+bool SASMegaRAID::Initccb()
+{
+    mraid_ccbCommand *ccb;
+    int i, j = 0;
+    
+    DnbgPrint(MRAID_D_CCB, "::%s\n", __FUNCTION__);
+    
+    for (i = 0; i < sc->sc_max_cmds; i++) {
+        ccb = mraid_ccbCommand::NewCommand();
+
+        /* Pick i'th frame & i'th sense */
+        
+        ccb->ccb_frame = (union mraid_frame *) (MRAID_KVA(sc->sc_frames) + sc->sc_frames_size * i);
+        ccb->ccb_pframe = MRAID_DVA(sc->sc_frames) + sc->sc_frames_size * i;
+        ccb->ccb_pframe_offset = sc->sc_frames_size * i;
+        
+        ccb->ccb_sense = (struct mraid_sense *) (MRAID_KVA(sc->sc_sense) + MRAID_SENSE_SIZE * i);
+        ccb->ccb_psense = MRAID_DVA(sc->sc_sense) + MRAID_SENSE_SIZE * i;
+        ccb->ccb_dmamap.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
+                                                                    kIOMemoryPhysicallyContiguous
+                                                                   | kIOMemoryMapperNone
+                                                                   , MAXPHYS, 0x00000000FFFFF000ULL);
+        if (!ccb->ccb_dmamap.bmd) {
+            IOPrint("Can't create ccb dmamap\n");
+            goto free;
+        }
+
+        /*DnbgPrint(MRAID_D_CCB, "ccb(%p) frame: %p (%lx) sense: %p (%lx)\n",
+                  ccb, ccb->ccb_frame, ccb->ccb_pframe, ccb->ccb_sense, ccb->ccb_psense);*/
+        
+        ccbCommandPool->returnCommand(ccb);
+    }
+    
+    ccb_inited = true;
+    return true;
+free:
+    while (j < i)
+    {
+        ccb = (mraid_ccbCommand *) ccbCommandPool->getCommand(false);
+        if (ccb)
+            ccb->release();
+        j++;
+    }
+    
+    return false;
 }
 
 bool SASMegaRAID::Transition_Firmware()

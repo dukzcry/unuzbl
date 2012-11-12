@@ -12,3 +12,4 @@
 #define nitems(_a)      (sizeof((_a)) / sizeof((_a)[0]))
 #define ISSET(t, f)     ((t) & (f))
 #define eqmin(a,b)      ((a) <= (b) ? (a) : (b))
+#define MAXPHYS         (64 * 1024)
