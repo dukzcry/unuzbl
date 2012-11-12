@@ -44,6 +44,7 @@ private:
     bool Transition_Firmware();
     bool Initialize_Firmware();
     bool GetInfo();
+    bool Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
     struct mraid_mem *AllocMem(size_t size);
     void FreeMem(struct mraid_mem *);
     void FreeDMAMap(struct mraid_ccb_mem *);
@@ -131,6 +132,8 @@ struct mraid_softc {
     UInt32                          sc_sgl_size;
     
     UInt16                          sc_sgl_flags;
+    
+    struct mraid_ctrl_info          sc_info;
     
     /* Producer/consumer pointers and reply queue */
     struct mraid_mem                *sc_pcq;

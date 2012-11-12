@@ -545,6 +545,25 @@ bool SASMegaRAID::Initialize_Firmware()
 
 bool SASMegaRAID::GetInfo()
 {
+    if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN, sizeof(sc->sc_info), &sc->sc_info, NULL))
+        return false;
+    
+    return true;
+}
+
+bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
+{
+    mraid_ccbCommand* ccb;
+    struct mraid_dcmd_frame *dcmd;
+    
+    DnbgPrint(MRAID_D_MISC, "::%s\n", __FUNCTION__);
+    
+    ccb = (mraid_ccbCommand *) ccbCommandPool->getCommand(false);
+    
+    
+    
+    ccbCommandPool->returnCommand(ccb);
+    
     return true;
 }
 
