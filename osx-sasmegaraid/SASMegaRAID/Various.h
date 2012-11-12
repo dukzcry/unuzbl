@@ -63,6 +63,23 @@ struct mraid_sg64 {
     UInt32                          len;
 } __attribute__((packed));
 
+struct mraid_mem {
+    IOBufferMemoryDescriptor *bmd;
+    IODMACommand *cmd;
+    
+    IOMemoryMap *map;
+    
+    IODMACommand::Segment32 segments[1];
+};
+
+#define MRAID_DVA(_am) ((_am)->segments[0].fIOVMAddr)
+
+struct mraid_prod_cons {
+    UInt32                          mpc_producer;
+    UInt32                          mpc_consumer;
+    UInt32                          mpc_reply_q[1]; /* Compensate for 1 extra reply per spec */
+};
+
 enum mraid_iop {
     MRAID_IOP_XSCALE,
     MRAID_IOP_PPC,

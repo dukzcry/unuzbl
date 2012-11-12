@@ -39,7 +39,8 @@ private:
     bool Attach();
     bool Probe();
     bool Transition_Firmware();
-    IOBufferMemoryDescriptor *AllocMem(size_t size);
+    struct mraid_mem *AllocMem(size_t size);
+    void FreeMem(struct mraid_mem *);
     UInt32 MRAID_Read(UInt8 offset);
     /*bool*/ void MRAID_Write(UInt8 offset, UInt32 data);
     bool mraid_xscale_intr();
@@ -117,6 +118,16 @@ struct mraid_softc {
     UInt32                          sc_sgl_size;
     
     UInt16                          sc_sgl_flags;
+    
+    /* Producer/consumer pointers and reply queue */
+    struct mraid_mem                *sc_pcq;
+    
+    /* Frame memory */
+    struct mraid_mem                *sc_frames;
+    UInt32                          sc_frames_size;
+    
+    /* Sense memory */
+    struct mraid_mem                *sc_sense;
 
     /* Management lock */
     IORWLock                        *sc_lock;
