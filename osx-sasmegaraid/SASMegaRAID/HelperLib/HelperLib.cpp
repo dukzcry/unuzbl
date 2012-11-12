@@ -1,1 +1,0 @@
-/* Move methods that use templates outside of there */

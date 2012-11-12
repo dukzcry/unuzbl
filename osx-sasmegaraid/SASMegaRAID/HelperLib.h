@@ -1,6 +1,3 @@
-#include <IOKit/IOLib.h>                /* IOLog */
-#include "OSDepend.h"
-
 #define PCI_MAPREG_MEM_ADDR_MASK        0xfffffff0
 
 #define	PCI_MAPREG_TYPE_MASK            0x00000001
@@ -27,16 +24,8 @@ template <typename UserClass>
 UInt32 PCIHelper<UserClass>::MappingType(UserClass* CPtr, UInt8 regbar, UInt32 *barval)
 {
     UInt32 bar, iobar, result;
-
-    if(!CPtr->fPCIDevice) {
-        DbgPrint("fPCIDevice field of \"caller class\" is not initialized.\n");
-        return(NULL);
-    }
     
-    /* XXX: Mapping method should probably already mask address value, or
-     * device firmware (if the device have it) should init BARs. 
-     * bar = CPtr->fPCIDevice->configRead32(regbar & PCI_MAPREG_MEM_ADDR_MASK); */
-    bar = CPtr->fPCIDevice->configRead32(regbar);
+    bar = CPtr->fPCIDevice->configRead32(regbar) & PCI_MAPREG_MEM_ADDR_MASK;
     if(barval != NULL)
         *barval = bar;
     DbgPrint("MMR address %x\n", bar);
