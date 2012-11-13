@@ -3,18 +3,9 @@
 /* Driver definitions */
 #define MRAID_MAX_LD                            64
 
-/* Debug purpose stuff */
-#define MRAID_D_CMD                             0x0001
-#define MRAID_D_INTR                            0x0002
-#define MRAID_D_MISC                            0x0004
-#define MRAID_D_RW                              0x0020
-#define MRAID_D_MEM                             0x0040
-#define MRAID_D_CCB                             0x0080
-
 /* Generic purpose constants */
 #define MRAID_FRAME_SIZE                        64
 #define MRAID_SENSE_SIZE                        128
-#define MRAID_INVALID_CTX                       0xffffffff
 #define MRAID_OSTS_INTR_VALID                   0x00000002
 #define MRAID_OSTS_PPC_INTR_VALID               0x80000000
 #define MRAID_OSTS_GEN2_INTR_VALID              (0x00000001 | 0x00000004)
@@ -71,10 +62,6 @@ typedef enum {
 	MRAID_STAT_OK =                 0x00,
 } mraid_status_t;
 
-/* Sense buffer */
-struct mraid_sense {
-    UInt8                           mse_data[MRAID_SENSE_SIZE];
-} __attribute__((packed));
 /* Scatter gather access elements */
 struct mraid_sg32 {
     UInt32                          addr;
@@ -126,7 +113,6 @@ struct mraid_io_frame {
     UInt32                          mif_lba_hi;
     union mraid_sgl                 mif_sgl;
 } __attribute__((packed));
-#define MRAID_PASS_FRAME_SIZE       48
 struct mraid_pass_frame {
     struct mraid_frame_header       mpf_header;
     UInt32                          mpf_sense_addr_lo;
@@ -178,22 +164,6 @@ union mraid_frame {
     UInt8                           mrr_bytes[MRAID_FRAME_SIZE];
 };
 
-struct mraid_mem {
-    IOBufferMemoryDescriptor *bmd;
-    IODMACommand *cmd;
-    
-    IOMemoryMap *map;
-    
-    IODMACommand::Segment32 segments[1];
-};
-struct mraid_ccb_mem {
-    IOBufferMemoryDescriptor *bmd;
-    IODMACommand *cmd;
-};
-
-#define MRAID_DVA(_am) ((_am)->segments[0].fIOVMAddr)
-#define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
-
 struct mraid_prod_cons {
     UInt32                          mpc_producer;
     UInt32                          mpc_consumer;
@@ -235,10 +205,6 @@ struct mraid_info_pci {
 /* Host interface info */
 struct mraid_info_host {
 	UInt8		mih_type;
-#define MRAID_INFO_HOST_PCIX	0x01
-#define MRAID_INFO_HOST_PCIE	0x02
-#define MRAID_INFO_HOST_ISCSI	0x04
-#define MRAID_INFO_HOST_SAS3G	0x08
 	UInt8		mih_reserved[6];
 	UInt8		mih_port_count;
 	UInt64      mih_port_addr[8];
@@ -246,10 +212,6 @@ struct mraid_info_host {
 /* Device interface info */
 struct mraid_info_device {
 	UInt8		mid_type;
-#define MRAID_INFO_DEV_SPI	0x01
-#define MRAID_INFO_DEV_SAS3G	0x02
-#define MRAID_INFO_DEV_SATA1	0x04
-#define MRAID_INFO_DEV_SATA3G	0x08
 	UInt8		mid_reserved[6];
 	UInt8		mid_port_count;
 	UInt8		mid_port_addr[8];
@@ -284,10 +246,6 @@ struct mraid_ctrl_info {
 	char			mci_product_name[80];
 	char			mci_serial_number[32];
 	UInt32		mci_hw_present;
-#define MRAID_INFO_HW_BBU		0x01
-#define MRAID_INFO_HW_ALARM	0x02
-#define MRAID_INFO_HW_NVRAM	0x04
-#define MRAID_INFO_HW_UART	0x08
 	UInt32		mci_current_fw_time;
 	UInt16		mci_max_cmds;
 	UInt16		mci_max_sg_elements;
@@ -309,35 +267,10 @@ struct mraid_ctrl_info {
 	UInt16		mci_max_strips_per_io;
     
 	UInt32		mci_raid_levels;
-#define MRAID_INFO_RAID_0		0x01
-#define MRAID_INFO_RAID_1		0x02
-#define MRAID_INFO_RAID_5		0x04
-#define MRAID_INFO_RAID_1E	0x08
-#define MRAID_INFO_RAID_6		0x10
     
 	UInt32		mci_adapter_ops;
-#define MRAID_INFO_AOPS_RBLD_RATE		0x0001
-#define MRAID_INFO_AOPS_CC_RATE		0x0002
-#define MRAID_INFO_AOPS_BGI_RATE		0x0004
-#define MRAID_INFO_AOPS_RECON_RATE	0x0008
-#define MRAID_INFO_AOPS_PATROL_RATE	0x0010
-#define MRAID_INFO_AOPS_ALARM_CONTROL	0x0020
-#define MRAID_INFO_AOPS_CLUSTER_SUPPORTED	0x0040
-#define MRAID_INFO_AOPS_BBU		0x0080
-#define MRAID_INFO_AOPS_SPANNING_ALLOWED	0x0100
-#define MRAID_INFO_AOPS_DEDICATED_SPARES	0x0200
-#define MRAID_INFO_AOPS_REVERTIBLE_SPARES	0x0400
-#define MRAID_INFO_AOPS_FOREIGN_IMPORT	0x0800
-#define MRAID_INFO_AOPS_SELF_DIAGNOSTIC	0x1000
-#define MRAID_INFO_AOPS_MIXED_ARRAY	0x2000
-#define MRAID_INFO_AOPS_GLOBAL_SPARES	0x4000
     
 	UInt32		mci_ld_ops;
-#define MRAID_INFO_LDOPS_READ_POLICY	0x01
-#define MRAID_INFO_LDOPS_WRITE_POLICY	0x02
-#define MRAID_INFO_LDOPS_IO_POLICY	0x04
-#define MRAID_INFO_LDOPS_ACCESS_POLICY	0x08
-#define MRAID_INFO_LDOPS_DISK_CACHE_POLICY 0x10
     
 	struct {
 		UInt8		min;
@@ -346,16 +279,8 @@ struct mraid_ctrl_info {
 	} __attribute__((packed))		mci_stripe_sz_ops;
     
 	UInt32		mci_pd_ops;
-#define MRAID_INFO_PDOPS_FORCE_ONLINE	0x01
-#define MRAID_INFO_PDOPS_FORCE_OFFLINE	0x02
-#define MRAID_INFO_PDOPS_FORCE_REBUILD	0x04
     
 	UInt32		mci_pd_mix_support;
-#define MRAID_INFO_PDMIX_SAS		0x01
-#define MRAID_INFO_PDMIX_SATA		0x02
-#define MRAID_INFO_PDMIX_ENCL		0x04
-#define MRAID_INFO_PDMIX_LD		0x08
-#define MRAID_INFO_PDMIX_SATA_CLUSTER	0x10
     
 	UInt8			mci_ecc_bucket_count;
 	UInt8			mci_reserved2[11];
@@ -364,28 +289,11 @@ struct mraid_ctrl_info {
 	UInt8			mci_pad[0x800 - 0x6a0];
 } __attribute__((packed));
 
-/* logical disk info from MR_DCMD_LD_GET_LIST */
+/* MR_DCMD_LD_GET_LIST */
 struct mraid_ld {
 	UInt8			mld_target;
 	UInt8			mld_res;
 	UInt16		mld_seq;
-} __attribute__((packed));
-
-struct mraid_ld_list {
-	UInt32		mll_no_ld;
-	UInt32		mll_res;
-	struct {
-		struct mraid_ld	mll_ld;
-		UInt8		mll_state;
-#define MRAID_LD_OFFLINE			0x00
-#define MRAID_LD_PART_DEGRADED		0x01
-#define MRAID_LD_DEGRADED			0x02
-#define MRAID_LD_ONLINE			0x03
-		UInt8		mll_res2;
-		UInt8		mll_res3;
-		UInt8		mll_res4;
-		u_quad_t	mll_size;
-	} mll_list[MRAID_MAX_LD];
 } __attribute__((packed));
 
 enum mraid_iop {
@@ -398,7 +306,6 @@ struct	mraid_pci_device {
 	UInt16							mpd_vendor;
 	UInt16							mpd_product;
 	enum mraid_iop					mpd_iop;
-	const struct mraid_pci_subtype	*mpd_subtype;
 };
 namespace mraid_structs {
     static const struct mraid_pci_device mraid_pci_devices[] = {

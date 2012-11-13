@@ -1,28 +1,14 @@
 #define super IOCommand
 
-//#include "Various.h"
-
 enum state {
+#define MRAID_CCB_F_ERR   (1 << 0)
     MRAID_CCB_FREE,
-    MRAID_CCB_READY,
-    MRAID_CCB_DONE
 };
 class mraid_ccbCommand: public IOCommand {
     OSDeclareDefaultStructors(mraid_ccbCommand);
-    
-    struct mraid_softc              *ccb_sc;
-    mraid_frame_header              ccb_frame_header;
-public:
-    union mraid_frame               *ccb_frame;
-    u_long                          ccb_pframe;
-    u_long                          ccb_pframe_offset;
-    
-    struct mraid_sense              *ccb_sense;
-    u_long                          ccb_psense;
-    
-    struct mraid_ccb_mem            ccb_dmamap;
-    UInt32                          ccb_flags;
 private:
+    mraid_frame_header              ccb_frame_header;
+    typedef void                    (*ccb_done_ptr)(mraid_ccbCommand *);
     UInt32                          ccb_frame_size;
     UInt32                          ccb_extra_frames;
     
@@ -33,24 +19,32 @@ private:
     UInt64                           ccb_len;
     
     UInt8                           ccb_direction;
-#define MRAID_DATA_NONE 0
 #define MRAID_DATA_IN   1
-#define MRAID_DATA_OUT  2
     
     void                            *ccb_cookie;
-    typedef void                    (*ccb_done_ptr)(mraid_ccbCommand *);
-public:
-    ccb_done_ptr                    ccb_done;
-private:
     /* Do not optimize */
     volatile state                  ccb_state;
-#define MRAID_CCB_F_ERR   (1 << 0)
-public:    
+public:
+    int                             ccb_num; /* Debug */
+    
+    union mraid_frame               *ccb_frame;
+    u_long                          ccb_pframe;
+    u_long                          ccb_pframe_offset;
+    
+    struct mraid_sense              *ccb_sense;
+    u_long                          ccb_psense;
+    
+    struct mraid_ccb_mem            ccb_dmamap;
+    UInt32                          ccb_flags;
+    ccb_done_ptr                    ccb_done;
+
     void initCommand() {
         ccb_frame_header.mrh_cmd_status = 0x0;
         ccb_frame_header.mrh_flags = 0x0;
         
         ccb_state = MRAID_CCB_FREE;
+        ccb_cookie = NULL;
+        ccb_flags = 0;
         ccb_done = NULL;
         ccb_direction = 0;
         ccb_frame_size = 0;

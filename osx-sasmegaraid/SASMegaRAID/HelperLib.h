@@ -28,7 +28,7 @@ UInt32 PCIHelper<UserClass>::MappingType(UserClass* CPtr, UInt8 regbar, UInt32 *
     bar = CPtr->fPCIDevice->configRead32(regbar) & PCI_MAPREG_MEM_ADDR_MASK;
     if(barval != NULL)
         *barval = bar;
-    DbgPrint("MMR address %x\n", bar);
+    DbgPrint("MMR address %#x\n", bar);
     iobar = bar & PCI_MAPREG_TYPE_MASK;
     
     /* I/O or MMR? */
@@ -66,7 +66,7 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
     IOReturn intr_ret;
     
     if(CPtr->fPCIDevice->findPCICapability(kIOPCIMSICapability)) /* MCR */
-        DbgPrint("Looks like MSI interrupts are supported.\n");
+        DbgPrint("Looks like MSI interrupts are supported\n");
 
     /* Search for the indexes for legacy and MSI interrupts */
     /* From http://lists.apple.com/archives/darwin-drivers/2011/Mar/msg00024.html */
@@ -91,13 +91,14 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
     if(intr_index == msi_index)
         CPtr->fMSIEnabled = TRUE;
 
+    CPtr->MyWorkLoop = IOWorkLoop::workLoop();
     if(!CPtr->MyWorkLoop) {
-        DbgPrint("My Workloop creation failed.\n");
+        DbgPrint("My Workloop creation failed\n");
         return FALSE;
     }
     
     if(CPtr->fMSIEnabled) {
-        DbgPrint("MSI interrupt index: %d.\n", msi_index);
+        DbgPrint("MSI interrupt index: %d\n", msi_index);
         /* MSI interrupts can't be shared, so we don't use a filter. */
         CPtr->fInterruptSrc = IOInterruptEventSource::interruptEventSource(CPtr, 
             OSMemberFunctionCast(IOInterruptEventSource::Action, CPtr, InterruptHandler), 
@@ -118,8 +119,8 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
     }
     if(!CPtr->fInterruptSrc || CPtr->MyWorkLoop->addEventSource(CPtr->fInterruptSrc) != kIOReturnSuccess)
     {
-        if(!CPtr->fInterruptSrc) DbgPrint("Couldn't create interrupt source.\n");
-            else DbgPrint("Couldn't attach interrupt source.\n");
+        if(!CPtr->fInterruptSrc) DbgPrint("Couldn't create interrupt source\n");
+            else DbgPrint("Couldn't attach interrupt source\n");
         return FALSE;
     }
     

@@ -3,9 +3,23 @@
 #include <IOKit/IOKitKeys.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
 
-#include "Various.h"
+#include "Hardware.h"
 #include "HelperLib.h"
-#include "ccbPool.h"
+
+struct mraid_mem {
+    IODMACommand *cmd;
+    IOMemoryMap *map;
+    IODMACommand::Segment32 segments[1];
+};
+struct mraid_ccb_mem {
+    IOBufferMemoryDescriptor *bmd;
+    IODMACommand *cmd;
+};
+
+#define MRAID_DVA(_am) ((_am)->segments[0].fIOVMAddr)
+#define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
+
+#include "ccbCommand.h"
 
 //#define BaseClass IOService
 #define BaseClass IOSCSIParallelInterfaceController
@@ -16,7 +30,6 @@ private:
     class PCIHelper<SASMegaRAID>* PCIHelperP;
     
     IOPCIDevice *fPCIDevice;
-    IOMemoryDescriptor *MemDesc;
     IOMemoryMap *map;
     void *vAddr;
     IOWorkLoop *MyWorkLoop;
@@ -30,13 +43,17 @@ private:
     bool ccb_inited;
 
     friend struct mraid_iop_ops;
-    /* Helper Library is allowed to touch private methods */
+    
+    /* Helper Library */
 	template <typename UserClass> friend
     UInt32 PCIHelper<UserClass>::MappingType(UserClass*, UInt8, UInt32*);
     template <typename UserClass> friend
     bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *, IOService *, bool,
                                                      void(UserClass::*)(OSObject *, void *, IOService *, int),
                                                      bool(UserClass::*)(OSObject *, IOFilterInterruptEventSource *));
+    void interruptHandler(OSObject *owner, void *src, IOService *nub, int count);
+    bool interruptFilter(OSObject *owner, IOFilterInterruptEventSource *sender);
+    /* */
     
     const struct mraid_pci_device *MatchDevice();
     bool Attach();
@@ -53,7 +70,6 @@ private:
     /*bool*/ void MRAID_Write(UInt8 offset, UInt32 data);
     void MRAID_Poll(mraid_ccbCommand *ccb);
     
-    void MRAID_Start(mraid_ccbCommand *ccb);
     bool mraid_xscale_intr();
     UInt32 mraid_xscale_fw_state();
     void mraid_xscale_post(mraid_ccbCommand *);
@@ -65,11 +81,6 @@ private:
     bool mraid_skinny_intr();
     UInt32 mraid_skinny_fw_state();
     void mraid_skinny_post(mraid_ccbCommand *);
-    
-    virtual bool createWorkLoop(void);
-    virtual IOWorkLoop *getWorkLoop(void) const;
-    void interruptHandler(OSObject *owner, void *src, IOService *nub, int count);
-    bool interruptFilter(OSObject *owner, IOFilterInterruptEventSource *sender);
 protected:
     virtual bool init(OSDictionary *dict = NULL);
     
@@ -82,9 +93,12 @@ protected:
     virtual void TerminateController(void);
     virtual bool StartController() {return true;};
     virtual void StopController() {};
+    
+    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {
+        return MRAID_MAX_LD;
+    };
 private:
     /* Unimplemented */
-    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {};
     virtual bool	DoesHBASupportSCSIParallelFeature (
                                                        SCSIParallelFeature 		theFeature ) {};
     
@@ -152,7 +166,7 @@ struct mraid_softc {
 
 #define mraid_my_intr() ((this->*sc->sc_iop->mio_intr)())
 #define mraid_fw_state() ((this->*sc->sc_iop->mio_fw_state)())
-#define mraid_post(_c) ((this->*sc->sc_iop->mio_post)(_c))
+#define mraid_post(_c) { sc->sc_frames->cmd->synchronize(kIODirectionOutIn); (this->*sc->sc_iop->mio_post)(_c); }
 /* Different IOPs means different bunch of handling. Means: firmware, interrupts, POST. */
 struct mraid_iop_ops {
     mraid_iop_ops() : mio_intr(NULL) {}
