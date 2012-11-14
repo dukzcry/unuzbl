@@ -7,16 +7,44 @@
 #include "HelperLib.h"
 
 struct mraid_mem {
-    IODMACommand *cmd;
+    IOBufferMemoryDescriptor *bmd;
+
+    IODMACommand *cmd; /* synchronize() */
     IOMemoryMap *map;
-    IODMACommand::Segment32 segments[1];
+    IODMACommand::Segment32 segment;
 };
-struct mraid_ccb_mem {
+struct mraid_sgl_mem {
+    UInt32 numSeg; /* For FreeSGL() */
+    UInt64 len; /* For the safe */
+
     IOBufferMemoryDescriptor *bmd;
     IODMACommand *cmd;
+    IOMemoryMap *map;
+    IODMACommand::Segment32 *segments;
 };
+void FreeSGL(struct mraid_sgl_mem *mm)
+{
+    if (mm->map) {
+        mm->map->release();
+        mm->map = NULL;
+    }
+    if (mm->cmd) {
+        mm->cmd->clearMemoryDescriptor();
+        mm->cmd->release();
+        mm->cmd = NULL;
+    }
+    if (mm->bmd) {
+        //mm->bmd->complete();
+        mm->bmd->release();
+        mm->bmd = NULL;
+    }
+    if (mm->segments) {
+        IODelete(mm->segments, IODMACommand::Segment32, mm->numSeg);
+        mm->segments = NULL;
+    }
+}
 
-#define MRAID_DVA(_am) ((_am)->segments[0].fIOVMAddr)
+#define MRAID_DVA(_am) ((_am)->segment.fIOVMAddr)
 #define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
 
 #include "ccbCommand.h"
@@ -62,13 +90,16 @@ private:
     bool Initialize_Firmware();
     bool GetInfo();
     bool Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
+    bool Do_Management(mraid_ccbCommand *, UInt32, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
     struct mraid_mem *AllocMem(size_t size);
     void FreeMem(struct mraid_mem *);
-    void FreeDMAMap(struct mraid_ccb_mem *);
+    bool CreateSGL(struct mraid_ccbCommand *);
+    bool GenerateSegments(struct mraid_ccbCommand *ccb);
     bool Initccb();
     UInt32 MRAID_Read(UInt8 offset);
     /*bool*/ void MRAID_Write(UInt8 offset, UInt32 data);
     void MRAID_Poll(mraid_ccbCommand *ccb);
+    void MRAID_Exec(mraid_ccbCommand *);
     
     bool mraid_xscale_intr();
     UInt32 mraid_xscale_fw_state();
@@ -93,12 +124,9 @@ protected:
     virtual void TerminateController(void);
     virtual bool StartController() {return true;};
     virtual void StopController() {};
-    
-    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {
-        return MRAID_MAX_LD;
-    };
 private:
     /* Unimplemented */
+    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {};
     virtual bool	DoesHBASupportSCSIParallelFeature (
                                                        SCSIParallelFeature 		theFeature ) {};
     

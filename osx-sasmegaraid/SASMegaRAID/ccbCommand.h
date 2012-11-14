@@ -6,7 +6,7 @@ enum state {
 };
 class mraid_ccbCommand: public IOCommand {
     OSDeclareDefaultStructors(mraid_ccbCommand);
-private:
+public:
     mraid_frame_header              ccb_frame_header;
     typedef void                    (*ccb_done_ptr)(mraid_ccbCommand *);
     UInt32                          ccb_frame_size;
@@ -14,17 +14,16 @@ private:
     
     union mraid_sgl                 *ccb_sgl;
     
-    /* Data for sgl */
-    IOMemoryDescriptor              *ccb_data;
-    UInt64                           ccb_len;
-    
     UInt8                           ccb_direction;
-#define MRAID_DATA_IN   1
+#define MRAID_DATA_NONE	(1<<0)
+#define MRAID_DATA_IN   (1<<1)
+#define MRAID_DATA_OUT	(1<<2)
+#define MRAID_CMD_POLL  (1<<3)
     
     void                            *ccb_cookie;
     /* Do not optimize */
     volatile state                  ccb_state;
-public:
+
     int                             ccb_num; /* Debug */
     
     union mraid_frame               *ccb_frame;
@@ -34,9 +33,10 @@ public:
     struct mraid_sense              *ccb_sense;
     u_long                          ccb_psense;
     
-    struct mraid_ccb_mem            ccb_dmamap;
     UInt32                          ccb_flags;
     ccb_done_ptr                    ccb_done;
+    
+    struct mraid_sgl_mem            ccb_sglmem;
 
     void initCommand() {
         ccb_frame_header.mrh_cmd_status = 0x0;
@@ -50,8 +50,8 @@ public:
         ccb_frame_size = 0;
         ccb_extra_frames = 0;
         ccb_sgl = NULL;
-        ccb_data = NULL;
-        ccb_len = 0;
+        
+        memset(&ccb_sglmem, '\0', sizeof(struct mraid_sgl_mem));
     }
 protected:
     virtual bool init() {
@@ -62,71 +62,15 @@ protected:
         
         return true;
     }
-    virtual void free() { if (ccb_data) ccb_data->release(); super::free(); }
+    virtual void free() {
+        FreeSGL(&ccb_sglmem);
+        
+        super::free();
+    }
 public:
     static mraid_ccbCommand *NewCommand() {
         mraid_ccbCommand *me = new mraid_ccbCommand;
         
         return me;
-    }
-    
-    UInt8 getCmdStatus(void) {
-        return ccb_frame_header.mrh_cmd_status;
-    }
-    void setCmdStatus(UInt8 in_cmd_status) {
-        ccb_frame_header.mrh_cmd_status = in_cmd_status;
-    }
-    
-    state getState(void) {
-        return ccb_state;
-    }
-    void setState(state in_ccb_state) {
-        ccb_state = in_ccb_state;
-    }
-    
-    void setDone(ccb_done_ptr ccb_done_func) {
-        ccb_done = ccb_done_func;
-    }
-    
-    UInt8 getDirection(void) {
-        return ccb_direction;
-    }
-    void setDirection(UInt8 in_ccb_direction) {
-        ccb_direction = in_ccb_direction;
-    }
-    
-    UInt32 getFrameSize(void) {
-        return ccb_frame_size;
-    }
-    void setFrameSize(UInt32 in_ccb_frame_size) {
-        ccb_frame_size = in_ccb_frame_size;
-    }
-    
-    UInt32 getExtraFrames(void) {
-        return ccb_extra_frames;
-    }
-    void setExtraFrames(UInt32 in_ccb_extra_frames) {
-        ccb_frame_size = in_ccb_extra_frames;
-    }
-    
-    mraid_sgl *getsgl(void) {
-        return ccb_sgl;
-    }
-    void setsgl(mraid_sgl *in_ccb_sgl) {
-        ccb_sgl = in_ccb_sgl;
-    }
-    
-    void setData(IOMemoryDescriptor *in_ccb_data) {
-        ccb_data = in_ccb_data;
-    }
-    IOMemoryDescriptor* getData(void) {
-        return ccb_data;
-    }
-    
-    void setLen(UInt64 in_ccb_len) {
-        ccb_len = in_ccb_len;
-    }
-    UInt64 getLen(void) {
-        return ccb_len;
     }
 };

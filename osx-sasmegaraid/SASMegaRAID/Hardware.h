@@ -1,8 +1,5 @@
 #include "OSDepend.h"
 
-/* Driver definitions */
-#define MRAID_MAX_LD                            64
-
 /* Generic purpose constants */
 #define MRAID_FRAME_SIZE                        64
 #define MRAID_SENSE_SIZE                        128
@@ -33,9 +30,12 @@
 #define MRAID_FRAME_DONT_POST_IN_REPLY_QUEUE	0x0001
 #define MRAID_FRAME_SGL32                       0x0000
 #define MRAID_FRAME_SGL64                       0x0002
+#define MRAID_FRAME_DIR_WRITE                   0x0008
+#define MRAID_FRAME_DIR_READ                    0x0010
 
 /* Command opcodes */
 #define MRAID_CMD_INIT                          0x00
+#define MRAID_CMD_DCMD                          0x05
 
 /* Direct commands */
 #define MRAID_DCMD_CTRL_GET_INFO                0x01010000
@@ -120,6 +120,7 @@ struct mraid_pass_frame {
     UInt8                           mpf_cdb[16];
     union mraid_sgl                 mpf_sgl;
 } __attribute__((packed));
+#define MRAID_DCMD_FRAME_SIZE	40
 struct mraid_dcmd_frame {
     struct mraid_frame_header       mdf_header;
     UInt32                          mdf_opcode;

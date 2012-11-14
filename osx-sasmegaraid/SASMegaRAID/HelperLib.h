@@ -28,7 +28,7 @@ UInt32 PCIHelper<UserClass>::MappingType(UserClass* CPtr, UInt8 regbar, UInt32 *
     bar = CPtr->fPCIDevice->configRead32(regbar) & PCI_MAPREG_MEM_ADDR_MASK;
     if(barval != NULL)
         *barval = bar;
-    DbgPrint("MMR address %#x\n", bar);
+    DbgPrint("Region starting at %#x\n", bar);
     iobar = bar & PCI_MAPREG_TYPE_MASK;
     
     /* I/O or MMR? */
