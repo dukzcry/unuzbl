@@ -8,15 +8,17 @@ public:
     struct st {
     union mraid_frame               *ccb_frame;
     
-    void                            *ccb_cookie;
+    struct {
+        IOLock                      *holder;
+        bool                        event;
+    } ccb_lock;
     
     ccb_done_ptr                    ccb_done;
     
     UInt8                           ccb_direction;
-#define MRAID_DATA_NONE	(1<<0)
-#define MRAID_DATA_IN   (1<<1)
-#define MRAID_DATA_OUT	(1<<2)
-#define MRAID_CMD_POLL  (1<<3)
+#define MRAID_DATA_NONE	0
+#define MRAID_DATA_IN   1
+#define MRAID_DATA_OUT	2
     
     UInt32                          ccb_frame_size;
     UInt32                          ccb_extra_frames;
@@ -35,7 +37,7 @@ public:
         s.ccb_frame->mrr_header.mrh_cmd_status = 0x0;
         s.ccb_frame->mrr_header.mrh_flags = 0x0;
         
-        s.ccb_cookie = NULL;
+        s.ccb_lock.event = false;
         s.ccb_done = NULL;
         s.ccb_direction = 0;
         s.ccb_frame_size = 0;

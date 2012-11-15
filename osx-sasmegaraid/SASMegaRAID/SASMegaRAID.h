@@ -66,6 +66,7 @@ private:
     IOCommandPool *ccbCommandPool;
     
     bool fMSIEnabled;
+    bool InterruptsActivated;
     const struct mraid_pci_device *mpd;
     struct mraid_softc *sc;
     bool ccb_inited;

@@ -13,6 +13,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     fPCIDevice = NULL;
     map = NULL;
     MyWorkLoop = NULL; fInterruptSrc = NULL;
+    InterruptsActivated = false;
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
     
 	/* Create an instance of PCI class from Helper Library */
@@ -580,7 +581,7 @@ bool SASMegaRAID::GetInfo()
 {
     DbgPrint("%s\n", __FUNCTION__);
     
-    if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN | MRAID_CMD_POLL, sizeof(sc->sc_info), &sc->sc_info, NULL))
+    if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN /*| MRAID_CMD_POLL*/, sizeof(sc->sc_info), &sc->sc_info, NULL))
         return false;
 
 #if defined(DEBUG)
@@ -597,7 +598,7 @@ bool SASMegaRAID::GetInfo()
     return true;
 }
 
-bool SASMegaRAID::Management(UInt32 opc, UInt32 flags, UInt32 len, void *buf, UInt8 *mbox)
+bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
 {
     mraid_ccbCommand* ccb;
     bool res;
@@ -605,13 +606,13 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 flags, UInt32 len, void *buf, UI
     ccb = Getccb();
     ccb->scrubCommand();
     
-    res = Do_Management(ccb, opc, flags, len, buf, mbox);
+    res = Do_Management(ccb, opc, dir, len, buf, mbox);
     
     Putccb(ccb);
     
     return res;
 }
-bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 flags, UInt32 len, void *buf, UInt8 *mbox)
+bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
 {
     struct mraid_dcmd_frame *dcmd;
     
@@ -641,7 +642,7 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 flags,
     dcmd->mdf_opcode = opc;
     dcmd->mdf_header.mrh_data_len = 0;
     
-    ccb->s.ccb_direction = flags & ~MRAID_CMD_POLL;
+    ccb->s.ccb_direction = dir;
     ccb->s.ccb_frame_size = MRAID_DCMD_FRAME_SIZE;
     
     /* Additional opcodes */
@@ -663,11 +664,13 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 flags,
             return false;
     }
 
-    if (flags & MRAID_CMD_POLL) {
+    if (!InterruptsActivated) {
         ccb->s.ccb_done = mraid_empty_done;
         MRAID_Poll(ccb);
     } else {
+        ccb->s.ccb_lock.holder = IOLockAlloc();
         MRAID_Exec(ccb);
+        IOLockFree(ccb->s.ccb_lock.holder);
     }
     if (dcmd->mdf_header.mrh_cmd_status != MRAID_STAT_OK)
         return false;
@@ -773,6 +776,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
         if (hdr->mrh_cmd_status != 0xff)
             break;
         
+        /* 5 sec */
         if (cycles++ > 5000) {
             IOPrint("ccb timeout\n");
             break;
@@ -788,10 +792,29 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
     ccb->s.ccb_done(ccb);
 }
 
+/* Interrupt driven */
+void mraid_exec_done(mraid_ccbCommand *ccb)
+{
+    IOLockLock(ccb->s.ccb_lock.holder);
+    ccb->s.ccb_lock.event = true;
+    IOLockWakeup(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, true);
+    IOLockUnlock(ccb->s.ccb_lock.holder);
+}
 void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 {
+#if defined(DEBUG)
+    if (ccb->s.ccb_lock.event || ccb->s.ccb_done)
+        DbgPrint("%s Warning: event or done set\n", __FUNCTION__);
+#endif
+    ccb->s.ccb_done = mraid_exec_done;
+    mraid_start(ccb);
     
+    IOLockLock(ccb->s.ccb_lock.holder);
+    IOLockSleep(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, THREAD_INTERRUPTIBLE);
+    ccb->s.ccb_lock.event = false;
+    IOLockUnlock(ccb->s.ccb_lock.holder);
 }
+/* */
 
 bool SASMegaRAID::mraid_xscale_intr()
 {
