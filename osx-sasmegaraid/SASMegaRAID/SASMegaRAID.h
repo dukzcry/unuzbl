@@ -96,6 +96,8 @@ private:
     bool CreateSGL(struct mraid_ccbCommand *);
     bool GenerateSegments(struct mraid_ccbCommand *ccb);
     bool Initccb();
+    mraid_ccbCommand *Getccb();
+    void Putccb(mraid_ccbCommand *);
     UInt32 MRAID_Read(UInt8 offset);
     /*bool*/ void MRAID_Write(UInt8 offset, UInt32 data);
     void MRAID_Poll(mraid_ccbCommand *ccb);
@@ -172,7 +174,6 @@ struct mraid_softc {
     UInt32                          sc_max_cmds;
     UInt32                          sc_max_sgl;
     UInt32                          sc_sgl_size;
-    
     UInt16                          sc_sgl_flags;
     
     struct mraid_ctrl_info          sc_info;
@@ -187,6 +188,7 @@ struct mraid_softc {
     /* Sense memory */
     struct mraid_mem                *sc_sense;
 
+    /* gated-get/returnCommand is protected */
     IOSimpleLock                    *sc_ccb_spin;
     /* Management lock */
     IORWLock                        *sc_lock;
@@ -194,7 +196,7 @@ struct mraid_softc {
 
 #define mraid_my_intr() ((this->*sc->sc_iop->mio_intr)())
 #define mraid_fw_state() ((this->*sc->sc_iop->mio_fw_state)())
-#define mraid_post(_c) { sc->sc_frames->cmd->synchronize(kIODirectionOutIn); (this->*sc->sc_iop->mio_post)(_c); }
+#define mraid_start(_c) { sc->sc_frames->cmd->synchronize(kIODirectionOutIn); (this->*sc->sc_iop->mio_post)(_c); }
 /* Different IOPs means different bunch of handling. Means: firmware, interrupts, POST. */
 struct mraid_iop_ops {
     mraid_iop_ops() : mio_intr(NULL) {}
