@@ -6,14 +6,13 @@
 #include "Hardware.h"
 #include "HelperLib.h"
 
-struct mraid_mem {
+typedef struct {
     IOBufferMemoryDescriptor *bmd;
-
     IODMACommand *cmd; /* synchronize() */
     IOMemoryMap *map;
     IODMACommand::Segment32 segment;
-};
-struct mraid_sgl_mem {
+} mraid_mem;
+typedef struct {
     UInt32 numSeg; /* For FreeSGL() */
     UInt64 len; /* For the safe */
 
@@ -21,8 +20,8 @@ struct mraid_sgl_mem {
     IODMACommand *cmd;
     IOMemoryMap *map;
     IODMACommand::Segment32 *segments;
-};
-void FreeSGL(struct mraid_sgl_mem *mm)
+} mraid_sgl_mem;
+void FreeSGL(mraid_sgl_mem *mm)
 {
     if (mm->map) {
         mm->map->release();
@@ -34,7 +33,7 @@ void FreeSGL(struct mraid_sgl_mem *mm)
         mm->cmd = NULL;
     }
     if (mm->bmd) {
-        //mm->bmd->complete();
+        mm->bmd->complete();
         mm->bmd->release();
         mm->bmd = NULL;
     }
@@ -46,6 +45,33 @@ void FreeSGL(struct mraid_sgl_mem *mm)
 
 #define MRAID_DVA(_am) ((_am)->segment.fIOVMAddr)
 #define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
+
+typedef struct {
+    struct mraid_iop_ops            *sc_iop;
+    
+    /* Firmware determined max, totals and other information */
+    UInt32                          sc_max_cmds;
+    UInt32                          sc_max_sgl;
+    UInt32                          sc_sgl_size;
+    UInt16                          sc_sgl_flags;
+    
+    mraid_ctrl_info                 sc_info;
+    
+    /* Producer/consumer pointers and reply queue */
+    mraid_mem                       *sc_pcq;
+    
+    /* Frame memory */
+    mraid_mem                       *sc_frames;
+    UInt32                          sc_frames_size;
+    
+    /* Sense memory */
+    mraid_mem                       *sc_sense;
+    
+    /* gated-get/returnCommand is protected */
+    IOSimpleLock                    *sc_ccb_spin;
+    /* Management lock */
+    IORWLock                        *sc_lock;
+} mraid_softc;
 
 #include "ccbCommand.h"
 
@@ -67,8 +93,8 @@ private:
     
     bool fMSIEnabled;
     bool InterruptsActivated;
-    const struct mraid_pci_device *mpd;
-    struct mraid_softc *sc;
+    const mraid_pci_device *mpd;
+    mraid_softc *sc;
     bool ccb_inited;
 
     friend struct mraid_iop_ops;
@@ -84,7 +110,7 @@ private:
     bool interruptFilter(OSObject *owner, IOFilterInterruptEventSource *sender);
     /* */
     
-    const struct mraid_pci_device *MatchDevice();
+    const mraid_pci_device *MatchDevice();
     bool Attach();
     bool Probe();
     bool Transition_Firmware();
@@ -92,10 +118,10 @@ private:
     bool GetInfo();
     bool Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
     bool Do_Management(mraid_ccbCommand *, UInt32, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
-    struct mraid_mem *AllocMem(size_t size);
-    void FreeMem(struct mraid_mem *);
-    bool CreateSGL(struct mraid_ccbCommand *);
-    bool GenerateSegments(struct mraid_ccbCommand *ccb);
+    mraid_mem *AllocMem(size_t size);
+    void FreeMem(mraid_mem *);
+    bool CreateSGL(mraid_ccbCommand *);
+    bool GenerateSegments(mraid_ccbCommand *ccb);
     bool Initccb();
     mraid_ccbCommand *Getccb();
     void Putccb(mraid_ccbCommand *);
@@ -168,41 +194,14 @@ private:
     /* */
 };
 
-struct mraid_softc {
-    struct mraid_iop_ops            *sc_iop;
-
-    /* Firmware determined max, totals and other information */
-    UInt32                          sc_max_cmds;
-    UInt32                          sc_max_sgl;
-    UInt32                          sc_sgl_size;
-    UInt16                          sc_sgl_flags;
-    
-    struct mraid_ctrl_info          sc_info;
-    
-    /* Producer/consumer pointers and reply queue */
-    struct mraid_mem                *sc_pcq;
-    
-    /* Frame memory */
-    struct mraid_mem                *sc_frames;
-    UInt32                          sc_frames_size;
-    
-    /* Sense memory */
-    struct mraid_mem                *sc_sense;
-
-    /* gated-get/returnCommand is protected */
-    IOSimpleLock                    *sc_ccb_spin;
-    /* Management lock */
-    IORWLock                        *sc_lock;
-};
-
 #define mraid_my_intr() ((this->*sc->sc_iop->mio_intr)())
 #define mraid_fw_state() ((this->*sc->sc_iop->mio_fw_state)())
 #define mraid_start(_c) { sc->sc_frames->cmd->synchronize(kIODirectionOutIn); (this->*sc->sc_iop->mio_post)(_c); }
 /* Different IOPs means different bunch of handling. Means: firmware, interrupts, POST. */
-struct mraid_iop_ops {
+typedef struct mraid_iop_ops {
     mraid_iop_ops() : mio_intr(NULL) {}
     bool is_set() { return (mio_intr == NULL ? FALSE : TRUE); } /* Enough */
-    void init(enum mraid_iop iop) {
+    void init(mraid_iop iop) {
         switch(iop) {
             case MRAID_IOP_XSCALE:
                 mio_intr = &SASMegaRAID::mraid_xscale_intr;
@@ -227,7 +226,7 @@ struct mraid_iop_ops {
         }
     }
     UInt32      (SASMegaRAID::*mio_fw_state)(void);
-    //void        (*mio_intr_ena)(struct mraid_softc *);
+    //void        (*mio_intr_ena)(mraid_softc *);
     bool         (SASMegaRAID::*mio_intr)(void);
     void        (SASMegaRAID::*mio_post)(mraid_ccbCommand *);
-};
+} mraid_iop_ops;
