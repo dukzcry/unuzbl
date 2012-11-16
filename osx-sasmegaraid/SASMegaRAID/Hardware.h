@@ -89,11 +89,16 @@ typedef struct {
     UInt8                           mrh_lun_id;
     UInt8                           mrh_cdb_len;
     UInt8                           mrh_sg_count;
-    UInt32                          mrh_context;
-    UInt32                          mrh_pad0;
-    UInt16                          mrh_flags;
-    UInt16                          mrh_timeout;
-    UInt32                          mrh_data_len;
+    UInt32 mrh_context;
+    //UInt8 mrh_context;
+    UInt32 mrh_pad0;
+    //UInt8 mrh_pad0;
+    UInt16 mrh_flags;
+    //UInt8 mrh_flags;
+    UInt16 mrh_timeout;
+    //UInt8 mrh_timeout;
+    UInt32 mrh_data_len;
+    //UInt8 mrh_data_len;
 } __attribute__((packed)) mraid_frame_header;
 typedef struct {
     mraid_frame_header       mif_header;
@@ -201,7 +206,7 @@ typedef struct {
 	UInt16		mip_device;
 	UInt16		mip_subvendor;
 	UInt16		mip_subdevice;
-	UInt8		mip_reserved[24];
+    UInt8 mip_reserved[24];
 } __attribute__((packed)) mraid_info_pci;
 /* Host interface info */
 typedef struct {
@@ -215,7 +220,7 @@ typedef struct {
 	UInt8		mid_type;
 	UInt8		mid_reserved[6];
 	UInt8		mid_port_count;
-	UInt64		mid_port_addr[8];
+    UInt64 mid_port_addr[8];
 } __attribute__((packed)) mraid_info_device;
 /* Firmware component info */
 typedef struct {

@@ -6,8 +6,6 @@ private:
     typedef void                    (*ccb_done_ptr)(mraid_ccbCommand *);    
 public:
     struct st {
-    mraid_frame               *ccb_frame;
-    
     struct {
         IOLock                      *holder;
         bool                        event;
@@ -20,17 +18,18 @@ public:
 #define MRAID_DATA_IN   1
 #define MRAID_DATA_OUT	2
     
+    mraid_frame               *ccb_frame;
     UInt32                          ccb_frame_size;
     UInt32                          ccb_extra_frames;
+        
+        UInt32                          ccb_pframe;
+        //UInt32                          ccb_pframe_offset;
+        
+        mraid_sense                     *ccb_sense;
+        UInt32                          ccb_psense;
     
     mraid_sgl                 *ccb_sgl;
     mraid_sgl_mem                   ccb_sglmem;
-public:
-    u_long                          ccb_pframe;
-    u_long                          ccb_pframe_offset;
-    
-    mraid_sense                     *ccb_sense;
-    u_long                          ccb_psense;
     } s;
 
     void scrubCommand() {
@@ -44,17 +43,14 @@ public:
         s.ccb_extra_frames = 0;
         s.ccb_sgl = NULL;
         
-        memset(&s.ccb_sglmem, '\0', sizeof(mraid_sgl_mem));
-    }
-    void initCommand() {
-        memset(&s, '\0', sizeof(struct st));
+        memset(&s.ccb_sglmem, 0, sizeof(mraid_sgl_mem));
     }
 protected:
     virtual bool init() {
         if(!super::init())
             return false;
         
-        initCommand();
+        memset(&s, 0, sizeof(struct st));
         
         return true;
     }

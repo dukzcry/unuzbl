@@ -55,8 +55,6 @@ typedef struct {
     UInt32                          sc_sgl_size;
     UInt16                          sc_sgl_flags;
     
-    mraid_ctrl_info                 sc_info;
-    
     /* Producer/consumer pointers and reply queue */
     mraid_mem                       *sc_pcq;
     
@@ -66,6 +64,8 @@ typedef struct {
     
     /* Sense memory */
     mraid_mem                       *sc_sense;
+    
+    mraid_ctrl_info                 sc_info;
     
     /* gated-get/returnCommand is protected */
     IOSimpleLock                    *sc_ccb_spin;
@@ -122,7 +122,7 @@ private:
     void FreeMem(mraid_mem *);
     bool CreateSGL(mraid_ccbCommand *);
     bool GenerateSegments(mraid_ccbCommand *ccb);
-    bool Initccb();
+    void Initccb();
     mraid_ccbCommand *Getccb();
     void Putccb(mraid_ccbCommand *);
     UInt32 MRAID_Read(UInt8 offset);
@@ -142,7 +142,7 @@ private:
     UInt32 mraid_skinny_fw_state();
     void mraid_skinny_post(mraid_ccbCommand *);
 protected:
-    virtual bool init(OSDictionary *dict = NULL);
+    virtual bool init(OSDictionary *);
     
     virtual IOService* probe (IOService* provider, SInt32* score);
     virtual void free(void);
@@ -196,7 +196,7 @@ private:
 
 #define mraid_my_intr() ((this->*sc->sc_iop->mio_intr)())
 #define mraid_fw_state() ((this->*sc->sc_iop->mio_fw_state)())
-#define mraid_start(_c) { sc->sc_frames->cmd->synchronize(kIODirectionOutIn); (this->*sc->sc_iop->mio_post)(_c); }
+#define mraid_post(_c) {/*sc->sc_frames->cmd->synchronize(kIODirectionInOut);*/ OSSynchronizeIO(); (this->*sc->sc_iop->mio_post)(_c);};
 /* Different IOPs means different bunch of handling. Means: firmware, interrupts, POST. */
 typedef struct mraid_iop_ops {
     mraid_iop_ops() : mio_intr(NULL) {}

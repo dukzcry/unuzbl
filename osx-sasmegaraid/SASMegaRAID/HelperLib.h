@@ -26,18 +26,17 @@ UInt32 PCIHelper<UserClass>::MappingType(UserClass* CPtr, UInt8 regbar, UInt32 *
     UInt32 bar, iobar, result;
     
     bar = CPtr->fPCIDevice->configRead32(regbar) & PCI_MAPREG_MEM_ADDR_MASK;
-    if(barval != NULL)
-        *barval = bar;
+    if(barval) *barval = bar;
     DbgPrint("Region starting at %#x\n", bar);
     iobar = bar & PCI_MAPREG_TYPE_MASK;
     
     /* I/O or MMR? */
-    iobar == PCI_MAPREG_TYPE_IO ? result = iobar :
+    result = (iobar == PCI_MAPREG_TYPE_IO) ? iobar :
     /* 0 00 0   32bit
      * 0 01 0   32bit < 1M
      * 0 10 0   64bit */
     /*              0111 */
-    result = bar & (PCI_MAPREG_TYPE_MASK|PCI_MAPREG_MEM_TYPE_MASK);
+    bar & (PCI_MAPREG_TYPE_MASK|PCI_MAPREG_MEM_TYPE_MASK);
     
     switch(result & PCI_MAPREG_MEM_TYPE_MASK) {
         case PCI_MAPREG_MEM_TYPE_32BIT_1M:
@@ -74,27 +73,21 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
     msi_index = legacy_index = -1;
 
     while(1) {
-        intr_ret = provider->getInterruptType(intr_index, &intr_type);
-        if(intr_ret != kIOReturnSuccess)
+        if ((intr_ret = provider->getInterruptType(intr_index, &intr_type)) != kIOReturnSuccess)
             break;
-        if(intr_type == kIOInterruptTypeLevel)
+        if (intr_type == kIOInterruptTypeLevel)
             legacy_index = intr_index;
-        else if(intr_type & kIOInterruptTypePCIMessaged)
+        else if (intr_type & kIOInterruptTypePCIMessaged)
             msi_index = intr_index;
-            intr_index++;
+        intr_index++;
     }
-    if(Prefer_MSI && msi_index != -1)
-        intr_index = msi_index;
-    else
-        intr_index = legacy_index;
+    intr_index = (Prefer_MSI && msi_index != -1) ? msi_index : intr_index = legacy_index;
+    if (intr_index == msi_index)
+        CPtr->fMSIEnabled = true;
 
-    if(intr_index == msi_index)
-        CPtr->fMSIEnabled = TRUE;
-
-    CPtr->MyWorkLoop = IOWorkLoop::workLoop();
-    if(!CPtr->MyWorkLoop) {
+    if(!(CPtr->MyWorkLoop = IOWorkLoop::workLoop())) {
         DbgPrint("My Workloop creation failed\n");
-        return FALSE;
+        return false;
     }
     
     if(CPtr->fMSIEnabled) {
@@ -105,7 +98,7 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
             provider, intr_index);
     }
     else {
-        if(!InterruptFilter)
+        if (!InterruptFilter)
             CPtr->fInterruptSrc = IOInterruptEventSource::interruptEventSource(CPtr, 
             OSMemberFunctionCast(IOInterruptEventSource::Action, CPtr, InterruptHandler), 
             provider);
@@ -117,17 +110,17 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
                 OSMemberFunctionCast(IOFilterInterruptEventSource::Filter, CPtr, InterruptFilter),
                 provider);
     }
-    if(!CPtr->fInterruptSrc || CPtr->MyWorkLoop->addEventSource(CPtr->fInterruptSrc) != kIOReturnSuccess)
+    if (!CPtr->fInterruptSrc || CPtr->MyWorkLoop->addEventSource(CPtr->fInterruptSrc) != kIOReturnSuccess)
     {
-        if(!CPtr->fInterruptSrc) DbgPrint("Couldn't create interrupt source\n");
+        if (!CPtr->fInterruptSrc) DbgPrint("Couldn't create interrupt source\n");
             else DbgPrint("Couldn't attach interrupt source\n");
-        return FALSE;
+        return false;
     }
     
-    if(!CPtr->fMSIEnabled)
+    if (!CPtr->fMSIEnabled)
         /* Avoiding of masking interrupts for other devices that are sharing the interrupt line 
          * by immediate enabling of the event source */
         CPtr->fInterruptSrc->enable();
     
-    return TRUE;
+    return true;
 }
