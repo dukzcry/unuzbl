@@ -37,26 +37,6 @@
  				OTHER_CFLAGS = "";
  				OTHER_LDFLAGS = "";
  				OTHER_REZFLAGS = "";
---- IOPCIBridge.cpp.orig	2012-10-24 23:32:23.000000000 +0400
-+++ IOPCIBridge.cpp	2012-10-26 04:33:01.000000000 +0400
-@@ -855,10 +855,17 @@ IOReturn IOPCIBridge::configOp(IOService
-         }
- 
- #if ACPI_SUPPORT
-+        /* Play safe for people with hackintoshes with enabled VT-d option */
-+        if (IOService::getPlatform()->getProperty(kIOPlatformMapperPresentKey))
-+        {
- 		IOACPIPlatformDevice * acpiDevice;
- 		if (!(acpiDevice = (typeof(acpiDevice)) device->getProvider()->metaCast("IOACPIPlatformDevice")))
-             panic("host!IOACPIPlatformDevice");
- 		AppleVTD::install(gIOPCIConfigWorkLoop, gIOPCIFlags, acpiDevice, acpiDevice->getACPITableData("DMAR", 0));
-+        }
-+        else {
-+            IOLog("Wanna try VT-d? Pass dart=1 parameter to kernel.\n");
-+        }
- #endif
-     }
- 
 --- dmar.h.orig	2012-10-28 11:19:43.000000000 +0400
 +++ dmar.h	2012-10-28 11:19:51.000000000 +0400
 @@ -103,6 +103,8 @@ typedef struct acpi_dmar_pci_path
@@ -68,8 +48,8 @@
  
  /*
   * DMAR Sub-tables, correspond to Type in ACPI_DMAR_HEADER 
---- vtd.c.old	2012-11-06 20:35:31.000000000 +0400
-+++ vtd.c	2012-11-07 16:18:26.000000000 +0400
+--- vtd.c.orig	2012-11-16 10:32:28.000000000 +0400
++++ vtd.c	2012-11-18 13:42:35.000000000 +0400
 @@ -24,6 +24,7 @@
  
  #include <IOKit/IOMapper.h>
@@ -274,15 +254,18 @@
  };
  
  
-@@ -808,14 +789,13 @@ AppleVTD::install(IOWorkLoop * wl, uint3
+@@ -807,8 +788,8 @@ AppleVTD::install(IOWorkLoop * wl, uint3
+ {
  	AppleVTD * mapper = 0;
  	bool ok = false;
- 
--	if (!IOService::getPlatform()->getProperty(kIOPlatformMapperPresentKey)) return;
 -
+-	if (!IOService::getPlatform()->getProperty(kIOPlatformMapperPresentKey)) return;
++    
++    if (!IOService::getPlatform()->getProperty(kIOPlatformMapperPresentKey)) return;
+ 
  	VTLOG("DMAR %p\n", data);
  	if (data) 
- 	{
+@@ -816,6 +797,7 @@ AppleVTD::install(IOWorkLoop * wl, uint3
  		mapper = new AppleVTD;
  		if (mapper)
  		{
@@ -290,7 +273,7 @@
  			if (mapper->init(wl, data) && mapper->attach(provider))
  			{
  				ok = mapper->start(provider);
-@@ -843,6 +823,7 @@ AppleVTD::init(IOWorkLoop * wl, const OS
+@@ -843,6 +825,7 @@ AppleVTD::init(IOWorkLoop * wl, const OS
  	wl->retain();
  	fWorkLoop = wl;
  	fCacheLineSize = cpuid_info()->cache_linesize;
@@ -298,7 +281,7 @@
  
  	ACPI_TABLE_DMAR *           dmar = (typeof(dmar))      data->getBytesNoCopy();
  	ACPI_DMAR_HEADER *          dmarEnd = (typeof(dmarEnd))(((uintptr_t) dmar) + data->getLength());
-@@ -862,6 +843,8 @@ AppleVTD::init(IOWorkLoop * wl, const OS
+@@ -862,6 +845,8 @@ AppleVTD::init(IOWorkLoop * wl, const OS
  				break;
  		}
  	}
@@ -307,7 +290,7 @@
  
  	return (unitIdx != 0);
  }
-@@ -1031,6 +1014,8 @@ AppleVTD::space_alloc(vtd_space_t * bf, 
+@@ -1031,6 +1016,8 @@ AppleVTD::space_alloc(vtd_space_t * bf, 
      vtd_vaddr_t align = 1;
      bool        uselarge;
  	uint32_t    list;
@@ -316,7 +299,7 @@
  
  	if ((kIODMAMapPagingPath & mapOptions) && (size > bf->stats.largest_paging))
  		bf->stats.largest_paging = size;
-@@ -1090,12 +1075,15 @@ AppleVTD::space_alloc(vtd_space_t * bf, 
+@@ -1090,12 +1077,15 @@ AppleVTD::space_alloc(vtd_space_t * bf, 
  			BUNLOCK(bf->block);
  		}
  		if (addr) break;
@@ -335,7 +318,7 @@
  	}
  	while (true);
  
-@@ -1208,6 +1196,8 @@ AppleVTD::initHardware(IOService *provid
+@@ -1208,6 +1198,8 @@ AppleVTD::initHardware(IOService *provid
  	space_alloc_fixed(fSpace, atop_64(0xfee00000), atop_64(0xfef00000-0xfee00000));
  	vtd_space_fault(fSpace, atop_64(0xfee00000), 1);
  	fSpace->tables[0][atop_64(0xfee00000)].bits = 0xfee00000 | kPageAccess;
@@ -344,7 +327,7 @@
  
  	ACPI_TABLE_DMAR *           dmar = (typeof(dmar))      fDMARData->getBytesNoCopy();
  	ACPI_DMAR_HEADER *          dmarEnd = (typeof(dmarEnd))(((uintptr_t) dmar) + fDMARData->getLength());
-@@ -1217,14 +1207,18 @@ AppleVTD::initHardware(IOService *provid
+@@ -1217,14 +1209,18 @@ AppleVTD::initHardware(IOService *provid
  	for (; hdr < dmarEnd;
  			hdr = (typeof(hdr))(((uintptr_t) hdr) + hdr->Length))
  	{
@@ -365,17 +348,7 @@
  
  				addr = mem->BaseAddress;
  				count = atop_32(mem->EndAddress - addr);
-@@ -1322,6 +1316,9 @@ AppleVTD::initHardware(IOService *provid
-     }
- 
- 	//
-+    
-+    /* XXX: broken */
-+    return false;
- 
- 	IOReturn  ret;
- 	uint64_t  msiAddress;
-@@ -1357,11 +1354,11 @@ AppleVTD::initHardware(IOService *provid
+@@ -1357,11 +1353,11 @@ AppleVTD::initHardware(IOService *provid
  	{
  		unit->msi_data    = msiData & 0xff;
  		unit->msi_address = msiAddress;
@@ -389,7 +362,7 @@
  //	fTimerES->setTimeoutMS(10);
  
  	setProperty(kIOPlatformQuiesceActionKey, INT32_MAX - 1000, 64);
-@@ -1428,7 +1425,7 @@ AppleVTD::callPlatformFunction(const OSS
+@@ -1428,7 +1424,7 @@ AppleVTD::callPlatformFunction(const OSS
  		{
  			for (idx = 0; (unit = units[idx]); idx++) 
  			{
@@ -398,7 +371,7 @@
  			}
  			return (kIOReturnSuccess);
  		}
-@@ -1552,14 +1549,14 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
+@@ -1552,14 +1548,14 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
  	bzero(&fSpace->tables[0][addr], pages * sizeof(vtd_table_entry_t));
  	table_flush(&fSpace->tables[0][addr], pages * sizeof(vtd_table_entry_t), fCacheLineSize);
  
@@ -415,7 +388,7 @@
  
  	leaf = true;
  	isLarge = (addr >= fSpace->rsize);
-@@ -1641,7 +1638,7 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
+@@ -1641,7 +1637,7 @@ AppleVTD::iovmFree(ppnum_t addr, IOItemC
  
  	IOSimpleLockUnlock(fHWLock);
  
@@ -424,7 +397,7 @@
  }
  
  #define stampPassed(a,b)	(((int32_t)((a)-(b))) >= 0)
-@@ -1769,5 +1766,130 @@ AppleVTD::iovmInsert(ppnum_t addr, IOIte
+@@ -1769,5 +1765,130 @@ AppleVTD::iovmInsert(ppnum_t addr, IOIte
  	STAT_ADD(fSpace, inserts, pageCount);
  }
  
