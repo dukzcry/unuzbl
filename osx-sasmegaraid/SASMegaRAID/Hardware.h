@@ -90,7 +90,7 @@ typedef struct {
     UInt8                           mrh_cdb_len;
     UInt8                           mrh_sg_count;
     UInt32 mrh_context;
-    //UInt8 mrh_context;
+    /* XXX: unsuccessfull */
     UInt32 mrh_pad0;
     //UInt8 mrh_pad0;
     UInt16 mrh_flags;

@@ -13,6 +13,8 @@ bool SASMegaRAID::init (OSDictionary* dict)
     map = NULL;
     MyWorkLoop = NULL; fInterruptSrc = NULL;
     InterruptsActivated = false;
+    fMSIEnabled = false;
+    ccb_inited = false;
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
     
 	/* Create an instance of PCI class from Helper Library */
@@ -23,7 +25,6 @@ bool SASMegaRAID::init (OSDictionary* dict)
     sc->sc_ccb_spin = NULL; sc->sc_lock = NULL;
     
     sc->sc_pcq = sc->sc_frames = sc->sc_sense = NULL;
-    ccb_inited = false;
     
     return true;
 }
@@ -238,7 +239,7 @@ bool SASMegaRAID::Probe()
 
 bool SASMegaRAID::Attach()
 {
-    UInt32 status, max_segm_count, frames;
+    UInt32 status, max_sgl, frames;
     
     sc->sc_iop->init(mpd->mpd_iop);
     if (!this->Probe())
@@ -259,19 +260,17 @@ bool SASMegaRAID::Attach()
     /* Get constraints forming frame pool contiguous memory */
     status = mraid_fw_state();
     sc->sc_max_cmds = status & MRAID_STATE_MAXCMD_MASK;
-    max_segm_count = (status & MRAID_STATE_MAXSGL_MASK) >> 16;
+    max_sgl = (status & MRAID_STATE_MAXSGL_MASK) >> 16;
     if(IOPhysSize == 64) {
-        OSNumber *byteCount = OSDynamicCast(OSNumber, getProperty(kIOMaximumSegmentByteCountReadKey));
-        sc->sc_max_sgl = byteCount? min(max_segm_count, UInt32(byteCount->unsigned32BitValue()) / PAGE_SIZE + 1) :
-        max_segm_count;
+        sc->sc_max_sgl = min(max_sgl, (128 * 1024) / PAGE_SIZE + 1);
         sc->sc_sgl_size = sizeof(mraid_sg64);
         sc->sc_sgl_flags = MRAID_FRAME_SGL64;
     } else {
-        sc->sc_max_sgl = max_segm_count;
+        sc->sc_max_sgl = max_sgl;
         sc->sc_sgl_size = sizeof(mraid_sg32);
         sc->sc_sgl_flags = MRAID_FRAME_SGL32;
     }
-    DbgPrint("DMA: %d-bit, max commands: %u, max SGL segment count: %u\n", IOPhysSize, sc->sc_max_cmds,
+    DbgPrint("DMA: %d-bit, max commands: %u, max SGL count: %u\n", IOPhysSize, sc->sc_max_cmds,
               sc->sc_max_sgl);
     
     /* Comms queues memory */
@@ -279,7 +278,7 @@ bool SASMegaRAID::Attach()
         IOPrint("Unable to allocate reply queue memory\n");
         return false;
     }
-    
+
     /* Command frames memory */
     frames = (sc->sc_sgl_size * sc->sc_max_sgl + MRAID_FRAME_SIZE - 1) / MRAID_FRAME_SIZE + 1;
     sc->sc_frames_size = frames * MRAID_FRAME_SIZE;
@@ -314,7 +313,7 @@ bool SASMegaRAID::Attach()
     return true;
 }
 
-mraid_mem *SASMegaRAID::AllocMem(size_t size)
+mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
 {
     IOReturn st = kIOReturnSuccess;
     UInt64 offset = 0;
@@ -325,16 +324,16 @@ mraid_mem *SASMegaRAID::AllocMem(size_t size)
         return NULL;
     
     if (!(mm->bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task, kIOMemoryPhysicallyContiguous |
-                                                               kIOMemoryMapperNone
+                                                                                    kIOMapInhibitCache
+                                                                            
             , size, 0x00000000FFFFF000ULL)))
         goto free;
-    mm->bmd->prepare();
     
     /* The last two options are excessive */
     if (!(mm->cmd = IODMACommand::withSpecification(kIODMACommandOutputHost32, 32, 0, IODMACommand::kMapped, size, PAGE_SIZE)))
         goto bmd_free;
     
-    if (mm->cmd->setMemoryDescriptor(mm->bmd) != kIOReturnSuccess)
+    if (mm->cmd->setMemoryDescriptor(mm->bmd /*, autoPrepare = true*/) != kIOReturnSuccess)
         goto cmd_free;
     
     while ((st == kIOReturnSuccess) && (offset < mm->bmd->getLength()))
@@ -352,10 +351,9 @@ mraid_mem *SASMegaRAID::AllocMem(size_t size)
     }
     
 cmd_free:
-    mm->cmd->clearMemoryDescriptor();
+    mm->cmd->clearMemoryDescriptor(/*autoComplete = true*/);
     mm->cmd->release();
 bmd_free:
-    mm->bmd->complete();
     mm->bmd->release();
 free:
     IODelete(mm, mraid_mem, 1);
@@ -365,9 +363,8 @@ free:
 void SASMegaRAID::FreeMem(mraid_mem *mm)
 {
     mm->map->release();
-    mm->cmd->clearMemoryDescriptor();
+    mm->cmd->clearMemoryDescriptor(/*autoComplete = true*/);
     mm->cmd->release();
-    mm->bmd->complete();
     mm->bmd->release();
     IODelete(mm, mraid_mem, 1);
     mm = NULL;
@@ -386,9 +383,11 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
         return false;
     
     /* XXX: Set kIOMemoryMapperNone or ~kIOMemoryMapperNone */
-    if (ccb->s.ccb_sglmem.cmd->setMemoryDescriptor(ccb->s.ccb_sglmem.bmd) != kIOReturnSuccess)
+    if (ccb->s.ccb_sglmem.cmd->setMemoryDescriptor(ccb->s.ccb_sglmem.bmd, /* autoPrepare */ false) != kIOReturnSuccess)
         return false;
+    ccb->s.ccb_sglmem.cmd->prepare(0, 0, false, /*synchronize*/ false);
     
+    ccb->s.ccb_sglmem.numSeg = sc->sc_max_sgl;
     while ((st == kIOReturnSuccess) && (offset < ccb->s.ccb_sglmem.bmd->getLength()))
     {
         ccb->s.ccb_sglmem.segments = IONew(IODMACommand::Segment32, sc->sc_max_sgl);
@@ -535,7 +534,7 @@ bool SASMegaRAID::Initialize_Firmware()
     init->mif_header.mrh_data_len = htole32(sizeof(mraid_init_qinfo));
     init->mif_qinfo_new_addr = htole64(ccb->s.ccb_pframe + MRAID_FRAME_SIZE);
     
-    sc->sc_pcq->cmd->synchronize(kIODirectionInOut);
+    //sc->sc_pcq->cmd->synchronize(kIODirectionInOut);
     
     ccb->s.ccb_done = mraid_empty_done;
     MRAID_Poll(ccb);
@@ -590,12 +589,12 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
     
     DbgPrint("%s: ccb_num: %d\n", __FUNCTION__, ccb->s.ccb_frame->mrr_header.mrh_context);
     
-    if (!(bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task, kIOMemoryPhysicallyContiguous
-                                                                 , len, IOPhysSize == 64 ? 0 :
-                                                                 0x00000000FFFFF000ULL)))
+    if (!(bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task, kIOMemoryPhysicallyContiguous |
+                                                                                kIOMapInhibitCache
+                                                                 ,len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL
+                                                                 : 0x00000000FFFFF000ULL)))
         return false;
     
-    bmd->prepare();
     map = bmd->map();
     addr = (void *) map->getVirtualAddress();
     
@@ -737,7 +736,6 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
         IODelay(1000);
         
         //sc->sc_frames->cmd->synchronize(kIODirectionInOut);
-        OSSynchronizeIO();
         
         if (hdr->mrh_cmd_status != 0xff)
             break;
@@ -749,7 +747,6 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
         }
         
         //sc->sc_frames->cmd->synchronize(kIODirectionInOut);
-        OSSynchronizeIO();
     }
 
     if (ccb->s.ccb_sglmem.len > 0)

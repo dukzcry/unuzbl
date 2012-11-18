@@ -28,12 +28,12 @@ void FreeSGL(mraid_sgl_mem *mm)
         mm->map = NULL;
     }
     if (mm->cmd) {
-        mm->cmd->clearMemoryDescriptor();
+        mm->cmd->clearMemoryDescriptor(/*autoComplete*/false);
+        mm->cmd->complete(true, /*synchronize*/false);
         mm->cmd->release();
         mm->cmd = NULL;
     }
     if (mm->bmd) {
-        mm->bmd->complete();
         mm->bmd->release();
         mm->bmd = NULL;
     }
@@ -57,17 +57,15 @@ typedef struct {
     
     /* Producer/consumer pointers and reply queue */
     mraid_mem                       *sc_pcq;
-    
     /* Frame memory */
     mraid_mem                       *sc_frames;
     UInt32                          sc_frames_size;
-    
     /* Sense memory */
     mraid_mem                       *sc_sense;
     
     mraid_ctrl_info                 sc_info;
     
-    /* gated-get/returnCommand is protected */
+    /* gated-get/returnCommand are protected methods */
     IOSimpleLock                    *sc_ccb_spin;
     /* Management lock */
     IORWLock                        *sc_lock;
@@ -118,7 +116,7 @@ private:
     bool GetInfo();
     bool Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
     bool Do_Management(mraid_ccbCommand *, UInt32, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
-    mraid_mem *AllocMem(size_t size);
+    mraid_mem *AllocMem(vm_size_t size);
     void FreeMem(mraid_mem *);
     bool CreateSGL(mraid_ccbCommand *);
     bool GenerateSegments(mraid_ccbCommand *ccb);
@@ -196,11 +194,11 @@ private:
 
 #define mraid_my_intr() ((this->*sc->sc_iop->mio_intr)())
 #define mraid_fw_state() ((this->*sc->sc_iop->mio_fw_state)())
-#define mraid_post(_c) {/*sc->sc_frames->cmd->synchronize(kIODirectionInOut);*/ OSSynchronizeIO(); (this->*sc->sc_iop->mio_post)(_c);};
-/* Different IOPs means different bunch of handling. Means: firmware, interrupts, POST. */
+#define mraid_post(_c) {/*sc->sc_frames->cmd->synchronize(kIODirectionInOut);*/ (this->*sc->sc_iop->mio_post)(_c);};
+/* Different IOPs means different bunch of handling. Covered things: firmware, interrupts, POST. */
 typedef struct mraid_iop_ops {
     mraid_iop_ops() : mio_intr(NULL) {}
-    bool is_set() { return (mio_intr == NULL ? FALSE : TRUE); } /* Enough */
+    bool is_set() { return (mio_intr ? true : false); } /* Enough */
     void init(mraid_iop iop) {
         switch(iop) {
             case MRAID_IOP_XSCALE:
