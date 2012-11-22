@@ -491,7 +491,7 @@ bool SASMegaRAID::Transition_Firmware()
         for(int i = 0; i < (max_wait * 10); i++) {
             fw_state = mraid_fw_state() & MRAID_STATE_MASK;
             if(fw_state == cur_state)
-                IODelay(100000); /* 100 µsec */
+                IOSleep(100);
             else break;
         }
         if(fw_state == cur_state) {
@@ -733,7 +733,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
     mraid_post(ccb);
     
     while (1) {
-        IODelay(1000);
+        IOSleep(10);
         
         //sc->sc_frames->cmd->synchronize(kIODirectionInOut);
         
@@ -741,7 +741,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
             break;
         
         /* 5 sec */
-        if (cycles++ > 5000) {
+        if (cycles++ > 500) {
             IOPrint("ccb timeout\n");
             break;
         }
