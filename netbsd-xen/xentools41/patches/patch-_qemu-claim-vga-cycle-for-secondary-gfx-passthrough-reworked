@@ -1,5 +1,4 @@
 $NetBSD$
-Based on the code of Weidong Han <weidong.han@intel.com>
 
 --- pass-through.c.orig	2011-02-11 17:54:51.000000000 +0000
 +++ ioemu-qemu-xen/hw/pass-through.c
