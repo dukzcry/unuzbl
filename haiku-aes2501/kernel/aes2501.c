@@ -1,5 +1,3 @@
-/* Written by Artem Falcon <lomka@gero.in> */
-
 /* Dumb driver which does init */
 
 #include "aes2501_common.h"

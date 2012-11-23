@@ -1,5 +1,3 @@
-/* Written by Artem Falcon <lomka@gero.in> */
-
 /* Early stage of libfpaes */
 
 #include "aes2501_lib.h"

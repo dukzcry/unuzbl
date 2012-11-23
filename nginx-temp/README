@@ -1,4 +1,4 @@
-Copypaste (M-w, C-y) Artem Falcon <lomka@gero.in>
+Copypaste (M-w, C-y) <Author> 
 Written in hackish style, without styling, not for upstream tree for sure.
 Done against nginx-1.0.11 code from OpenBSD CVS.
 1. Allow hostnames in "Auth-Server" header. Useful, when auth_http mission rules by nginx itself
