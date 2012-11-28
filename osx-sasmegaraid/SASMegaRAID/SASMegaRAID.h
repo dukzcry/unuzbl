@@ -92,7 +92,7 @@ private:
     bool fMSIEnabled;
     bool InterruptsActivated;
     const mraid_pci_device *mpd;
-    mraid_softc *sc;
+    mraid_softc sc;
     bool ccb_inited;
 
     friend struct mraid_iop_ops;
@@ -192,9 +192,9 @@ private:
     /* */
 };
 
-#define mraid_my_intr() ((this->*sc->sc_iop->mio_intr)())
-#define mraid_fw_state() ((this->*sc->sc_iop->mio_fw_state)())
-#define mraid_post(_c) {/*sc->sc_frames->cmd->synchronize(kIODirectionInOut);*/ (this->*sc->sc_iop->mio_post)(_c);};
+#define mraid_my_intr() ((this->*sc.sc_iop->mio_intr)())
+#define mraid_fw_state() ((this->*sc.sc_iop->mio_fw_state)())
+#define mraid_post(_c) {/*sc->sc_frames->cmd->synchronize(kIODirectionInOut);*/ (this->*sc.sc_iop->mio_post)(_c);};
 /* Different IOPs means different bunch of handling. Covered things: firmware, interrupts, POST. */
 typedef struct mraid_iop_ops {
     mraid_iop_ops() : mio_intr(NULL) {}

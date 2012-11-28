@@ -13,7 +13,7 @@ public:
     
     ccb_done_ptr                    ccb_done;
     
-    UInt8                           ccb_direction;
+    UInt32                           ccb_direction;
 #define MRAID_DATA_NONE	0
 #define MRAID_DATA_IN   1
 #define MRAID_DATA_OUT	2
