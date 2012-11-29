@@ -80,6 +80,7 @@ typedef union {
 	mraid_sg64		sg64[1];
 } __attribute__((packed)) mraid_sgl;
 
+/* 13, 16, 20 != 24 */
 typedef struct {
 	uint8_t			mrh_cmd;
 	uint8_t			mrh_sense_len;
@@ -91,14 +92,11 @@ typedef struct {
 	uint8_t			mrh_sg_count;
 	uint32_t		mrh_context;
     /* XXX: broken */
-	/*uint32_t		mrh_pad0;
+	uint32_t		mrh_pad0;
+    /* */
 	uint16_t		mrh_flags;
 	uint16_t		mrh_timeout;
-	uint32_t		mrh_data_len;*/
-	uint8_t		mrh_pad0;
-	uint8_t		mrh_flags;
-	uint8_t		mrh_timeout;
-	uint8_t		mrh_data_len;
+	uint32_t		mrh_data_len;
 } __attribute__((packed)) mraid_frame_header;
 typedef struct {
 	mraid_frame_header	mif_header;

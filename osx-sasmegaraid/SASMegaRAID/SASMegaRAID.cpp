@@ -257,6 +257,7 @@ bool SASMegaRAID::Attach()
     status = mraid_fw_state();
     sc.sc_max_cmds = status & MRAID_STATE_MAXCMD_MASK;
     max_sgl = (status & MRAID_STATE_MAXSGL_MASK) >> 16;
+    /* Allow 64-bit frames */
     if(IOPhysSize == 64) {
         sc.sc_max_sgl = min(max_sgl, (128 * 1024) / PAGE_SIZE + 1);
         sc.sc_sgl_size = sizeof(mraid_sg64);
@@ -728,6 +729,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
     
     mraid_post(ccb);
     
+    /* XXX: 5 sec freeze */
     while (1) {
         IODelay(1000);
         
@@ -736,7 +738,6 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
         if (hdr->mrh_cmd_status != 0xff)
             break;
         
-        /* 5 sec */
         if (cycles++ > 5000) {
             IOPrint("ccb timeout\n");
             break;
