@@ -1,5 +1,19 @@
 #include "OSDepend.h"
 
+#define MRAID_PCI_MEMSIZE                       0x2000      /* 8k */
+
+#define	PCI_VENDOR_SYMBIOS						0x1000		/* Symbios Logic */
+#define	PCI_VENDOR_DELL							0x1028		/* Dell */
+
+#define	PCI_PRODUCT_SYMBIOS_MEGARAID_SAS		0x0411		/* MegaRAID SAS 1064R */
+#define	PCI_PRODUCT_SYMBIOS_MEGARAID_VERDE_ZCR	0x0413		/* MegaRAID Verde ZCR */
+#define	PCI_PRODUCT_SYMBIOS_SAS1078				0x0060		/* SAS1078 */
+#define PCI_PRODUCT_SYMBIOS_SAS1078DE           0x007c      /* SAS1078DE */
+#define	PCI_PRODUCT_DELL_PERC5					0x0015		/* PERC 5 */
+#define	PCI_PRODUCT_SYMBIOS_SAS2108_1			0x0078		/* MegaRAID SAS2108 CRYPTO GEN2 */
+#define	PCI_PRODUCT_SYMBIOS_SAS2108_2			0x0079		/* MegaRAID SAS2108 GEN2 */
+#define PCI_PRODUCT_SYMBIOS_SAS2008_1           0x0073      /* MegaRAID SAS2008 */
+
 /* Generic purpose constants */
 #define MRAID_FRAME_SIZE                        64
 #define MRAID_SENSE_SIZE                        128
@@ -22,8 +36,8 @@
 #define MRAID_STATE_MAXSGL_MASK                 0x00ff0000
 #define MRAID_STATE_MAXCMD_MASK                 0x0000ffff
 
-/* Command resets */
-#define MRAID_INIT_READY                        0x00000002
+/* FW init, clear cmds queue, state resets */
+#define MRAID_INIT_READY                        0x00000002 /* Discard queue info on this */
 #define MRAID_INIT_CLEAR_HANDSHAKE              0x00000008
 
 /* Frame flags */
@@ -40,28 +54,47 @@
 /* Direct commands */
 #define MRAID_DCMD_CTRL_GET_INFO                0x01010000
 
-#define MRAID_PCI_MEMSIZE                       0x2000      /* 8k */
-
-/* Vendor list */
-#define	PCI_VENDOR_SYMBIOS						0x1000		/* Symbios Logic */
-#define	PCI_VENDOR_DELL							0x1028		/* Dell */
-/* Product list */
-#define	PCI_PRODUCT_SYMBIOS_MEGARAID_SAS		0x0411		/* MegaRAID SAS 1064R */
-#define	PCI_PRODUCT_SYMBIOS_MEGARAID_VERDE_ZCR	0x0413		/* MegaRAID Verde ZCR */
-#define	PCI_PRODUCT_SYMBIOS_SAS1078				0x0060		/* SAS1078 */
-#define PCI_PRODUCT_SYMBIOS_SAS1078DE           0x007c      /* SAS1078DE */
-#define	PCI_PRODUCT_DELL_PERC5					0x0015		/* PERC 5 */
-#define	PCI_PRODUCT_SYMBIOS_SAS2108_1			0x0078		/* MegaRAID SAS2108 CRYPTO GEN2 */
-#define	PCI_PRODUCT_SYMBIOS_SAS2108_2			0x0079		/* MegaRAID SAS2108 GEN2 */
-#define PCI_PRODUCT_SYMBIOS_SAS2008_1           0x0073      /* MegaRAID SAS2008 */
-
 /* Mailbox bytes in direct command */
 #define MRAID_MBOX_SIZE                         12
 
 typedef enum {
-	MRAID_STAT_OK =                 0x00,
+    MRAID_IOP_XSCALE,
+    MRAID_IOP_PPC,
+    MRAID_IOP_GEN2,
+    MRAID_IOP_SKINNY
+} mraid_iop;
+typedef struct {
+	UInt16							mpd_vendor;
+	UInt16							mpd_product;
+	mraid_iop                       mpd_iop;
+} mraid_pci_device;
+namespace mraid_structs {
+    static const mraid_pci_device mraid_pci_devices[] = {
+        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_MEGARAID_SAS,
+            MRAID_IOP_XSCALE	},
+        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_MEGARAID_VERDE_ZCR,
+            MRAID_IOP_XSCALE },
+        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_SAS1078,
+            MRAID_IOP_PPC },
+        { PCI_VENDOR_SYMBIOS,   PCI_PRODUCT_SYMBIOS_SAS1078DE,
+            MRAID_IOP_PPC },
+        { PCI_VENDOR_DELL,		PCI_PRODUCT_DELL_PERC5,
+            MRAID_IOP_XSCALE },
+        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_SAS2108_1,
+            MRAID_IOP_GEN2 },
+        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_SAS2108_2,
+            MRAID_IOP_GEN2 },
+        { PCI_VENDOR_SYMBIOS,   PCI_PRODUCT_SYMBIOS_SAS2008_1,
+            MRAID_IOP_SKINNY }
+    };
+}
+
+/* Command completion codes */
+typedef enum {
+	MRAID_STAT_OK = 0x00,
 } mraid_status_t;
 
+/* Sense buffer */
 typedef struct {
 	uint8_t			mse_data[MRAID_SENSE_SIZE];
 } __attribute__((packed)) mraid_sense;
@@ -80,29 +113,26 @@ typedef union {
 	mraid_sg64		sg64[1];
 } __attribute__((packed)) mraid_sgl;
 
-/* 13, 16, 20 != 24 */
 typedef struct {
 	uint8_t			mrh_cmd;
 	uint8_t			mrh_sense_len;
-	uint8_t			mrh_cmd_status;
+	uint8_t         mrh_cmd_status;
 	uint8_t			mrh_scsi_status;
 	uint8_t			mrh_target_id;
 	uint8_t			mrh_lun_id;
 	uint8_t			mrh_cdb_len;
 	uint8_t			mrh_sg_count;
 	uint32_t		mrh_context;
-    /* XXX: broken */
 	uint32_t		mrh_pad0;
-    /* */
 	uint16_t		mrh_flags;
 	uint16_t		mrh_timeout;
 	uint32_t		mrh_data_len;
 } __attribute__((packed)) mraid_frame_header;
 typedef struct {
 	mraid_frame_header	mif_header;
-	uint64_t		mif_qinfo_new_addr;
-	uint64_t		mif_qinfo_old_addr;
-	uint32_t		mif_reserved[6];
+	uint64_t            mif_qinfo_new_addr;
+	uint64_t            mif_qinfo_old_addr;
+	uint32_t            mif_reserved[6];
 } __attribute__((packed)) mraid_init_frame;
 /* Queue init */
 typedef struct {
@@ -113,59 +143,59 @@ typedef struct {
 	uint64_t		miq_ci_addr;
 } __attribute__((packed)) mraid_init_qinfo;
 typedef struct {
-    mraid_frame_header       mif_header;
-	uint64_t		mif_sense_addr;
-	uint64_t		mif_lba;
-    mraid_sgl                 mif_sgl;
+    mraid_frame_header  mif_header;
+	uint64_t            mif_sense_addr;
+	uint64_t            mif_lba;
+    mraid_sgl           mif_sgl;
 } __attribute__((packed)) mraid_io_frame;
 typedef struct {
-    mraid_frame_header       mpf_header;
-	uint64_t		mpf_sense_addr;
-	uint8_t			mpf_cdb[16];
-    mraid_sgl                 mpf_sgl;
+    mraid_frame_header  mpf_header;
+	uint64_t            mpf_sense_addr;
+	uint8_t             mpf_cdb[16];
+    mraid_sgl           mpf_sgl;
 } __attribute__((packed)) mraid_pass_frame;
-#define MRAID_DCMD_FRAME_SIZE	40
+#define MRAID_DCMD_FRAME_SIZE 40
 typedef struct {
-	mraid_frame_header mdf_header;
-	uint32_t		mdf_opcode;
-	uint8_t			mdf_mbox[MRAID_DCMD_FRAME_SIZE];
-	mraid_sgl		mdf_sgl;
+	mraid_frame_header  mdf_header;
+	uint32_t            mdf_opcode;
+	uint8_t             mdf_mbox[MRAID_DCMD_FRAME_SIZE];
+	mraid_sgl           mdf_sgl;
 } __attribute__((packed)) mraid_dcmd_frame;
 typedef struct {
-    mraid_frame_header       maf_header;
-	uint32_t		maf_abort_context;
-	uint32_t		maf_pad;
-	uint64_t		maf_abort_mfi_addr;
-	uint32_t		maf_reserved[6];
+    mraid_frame_header  maf_header;
+	uint32_t            maf_abort_context;
+	uint32_t            maf_pad;
+	uint64_t            maf_abort_mfi_addr;
+	uint32_t            maf_reserved[6];
 } __attribute__((packed)) mraid_abort_frame;
 typedef struct {
-    mraid_frame_header       msf_header;
-    uint64_t		msf_sas_addr;
+    mraid_frame_header  msf_header;
+    uint64_t            msf_sas_addr;
     union {
-        mraid_sg32           sg32[2];
-        mraid_sg64           sg64[2];
+        mraid_sg32      sg32[2];
+        mraid_sg64      sg64[2];
     } msf_sgl;
 } __attribute__((packed)) mraid_smp_frame;
 typedef struct {
-    mraid_frame_header       msf_header;
-	uint16_t		msf_fis[10];
-	uint32_t		msf_stp_flags;
+    mraid_frame_header  msf_header;
+	uint16_t            msf_fis[10];
+	uint32_t            msf_stp_flags;
     union {
-        mraid_sg32           sg32[2];
-        mraid_sg64           sg64[2];
+        mraid_sg32      sg32[2];
+        mraid_sg64      sg64[2];
     } msf_sgl;
 } __attribute__((packed)) mraid_stp_frame;
 
 typedef union {
-	mraid_frame_header mrr_header;
+	mraid_frame_header  mrr_header;
 	mraid_init_frame	mrr_init;
-	mraid_io_frame	mrr_io;
+	mraid_io_frame      mrr_io;
 	mraid_pass_frame	mrr_pass;
 	mraid_dcmd_frame	mrr_dcmd;
 	mraid_abort_frame	mrr_abort;
-	mraid_smp_frame	mrr_smp;
-	mraid_stp_frame	mrr_stp;
-	uint8_t			mrr_bytes[MRAID_FRAME_SIZE];
+	mraid_smp_frame     mrr_smp;
+	mraid_stp_frame     mrr_stp;
+	uint8_t             mrr_bytes[MRAID_FRAME_SIZE];
 } mraid_frame;
 
 typedef struct {
@@ -230,97 +260,65 @@ typedef struct {
 
 /* MRAID_DCMD_CTRL_GETINFO */
 typedef struct {
-	mraid_info_pci       mci_pci;
-	mraid_info_host      mci_host;
-	mraid_info_device	mci_device;
+	mraid_info_pci          mci_pci;
+	mraid_info_host         mci_host;
+	mraid_info_device       mci_device;
     
-	/* Firmware components that are present and active. */
-	uint32_t		mci_image_check_word;
-	uint32_t		mci_image_component_count;
-	mraid_info_component mci_image_component[8];
+	/* Active firmware components */
+	uint32_t                mci_image_check_word;
+	uint32_t                mci_image_component_count;
+	mraid_info_component    mci_image_component[8];
     
-	/* Firmware components that have been flashed but are inactive */
-	uint32_t		mci_pending_image_component_count;
-	mraid_info_component mci_pending_image_component[8];
+	/* Inactive firmware components */
+	uint32_t                mci_pending_image_component_count;
+	mraid_info_component    mci_pending_image_component[8];
     
-	uint8_t			mci_max_arms;
-	uint8_t			mci_max_spans;
-	uint8_t			mci_max_arrays;
-	uint8_t			mci_max_lds;
-	char			mci_product_name[80];
-	char			mci_serial_number[32];
-	uint32_t		mci_hw_present;
-	uint32_t		mci_current_fw_time;
-	uint16_t		mci_max_cmds;
-	uint16_t		mci_max_sg_elements;
-	uint32_t		mci_max_request_size;
-	uint16_t		mci_lds_present;
-	uint16_t		mci_lds_degraded;
-	uint16_t		mci_lds_offline;
-	uint16_t		mci_pd_present;
-	uint16_t		mci_pd_disks_present;
-	uint16_t		mci_pd_disks_pred_failure;
-	uint16_t		mci_pd_disks_failed;
-	uint16_t		mci_nvram_size;
-	uint16_t		mci_memory_size;
-	uint16_t		mci_flash_size;
-	uint16_t		mci_ram_correctable_errors;
-	uint16_t		mci_ram_uncorrectable_errors;
-	uint8_t			mci_cluster_allowed;
-	uint8_t			mci_cluster_active;
-	uint16_t		mci_max_strips_per_io;
+	uint8_t                 mci_max_arms;
+	uint8_t                 mci_max_spans;
+	uint8_t                 mci_max_arrays;
+	uint8_t                 mci_max_lds;
+	char                    mci_product_name[80];
+	char                    mci_serial_number[32];
+	uint32_t                mci_hw_present;
+	uint32_t                mci_current_fw_time;
+	uint16_t                mci_max_cmds;
+	uint16_t                mci_max_sg_elements;
+	uint32_t                mci_max_request_size;
+	uint16_t                mci_lds_present;
+	uint16_t                mci_lds_degraded;
+	uint16_t                mci_lds_offline;
+	uint16_t                mci_pd_present;
+	uint16_t                mci_pd_disks_present;
+	uint16_t                mci_pd_disks_pred_failure;
+	uint16_t                mci_pd_disks_failed;
+	uint16_t                mci_nvram_size;
+	uint16_t                mci_memory_size;
+	uint16_t                mci_flash_size;
+	uint16_t                mci_ram_correctable_errors;
+	uint16_t                mci_ram_uncorrectable_errors;
+	uint8_t                 mci_cluster_allowed;
+	uint8_t                 mci_cluster_active;
+	uint16_t                mci_max_strips_per_io;
     
-	uint32_t		mci_raid_levels;
+	uint32_t                mci_raid_levels;
     
-	uint32_t		mci_adapter_ops;
+	uint32_t                mci_adapter_ops;
     
-	uint32_t		mci_ld_ops;
+	uint32_t                mci_ld_ops;
     
 	struct {
-		uint8_t		min;
-		uint8_t		max;
-		uint8_t		reserved[2];
-	} __attribute__((packed))		mci_stripe_sz_ops;
+		uint8_t             min;
+		uint8_t             max;
+		uint8_t             reserved[2];
+	} __attribute__((packed)) mci_stripe_sz_ops;
     
-	uint32_t		mci_pd_ops;
+	uint32_t                mci_pd_ops;
     
-	uint32_t		mci_pd_mix_support;
+	uint32_t                mci_pd_mix_support;
     
-	uint8_t			mci_ecc_bucket_count;
-	uint8_t			mci_reserved2[11];
-	mraid_ctrl_props	mci_properties;
-	char			mci_package_version[0x60];
-	uint8_t			mci_pad[0x800 - 0x6a0];
+	uint8_t                 mci_ecc_bucket_count;
+	uint8_t                 mci_reserved2[11];
+	mraid_ctrl_props        mci_properties;
+	char                    mci_package_version[0x60];
+	uint8_t                 mci_pad[0x800 - 0x6a0];
 } __attribute__((packed)) mraid_ctrl_info;
-
-typedef enum {
-    MRAID_IOP_XSCALE,
-    MRAID_IOP_PPC,
-    MRAID_IOP_GEN2,
-    MRAID_IOP_SKINNY
-} mraid_iop;
-typedef struct {
-	UInt16							mpd_vendor;
-	UInt16							mpd_product;
-	mraid_iop					mpd_iop;
-} mraid_pci_device;
-namespace mraid_structs {
-    static const mraid_pci_device mraid_pci_devices[] = {
-        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_MEGARAID_SAS,
-            MRAID_IOP_XSCALE	},
-        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_MEGARAID_VERDE_ZCR,
-            MRAID_IOP_XSCALE },
-        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_SAS1078,
-            MRAID_IOP_PPC },
-        { PCI_VENDOR_SYMBIOS,   PCI_PRODUCT_SYMBIOS_SAS1078DE,
-            MRAID_IOP_PPC },
-        { PCI_VENDOR_DELL,		PCI_PRODUCT_DELL_PERC5,
-            MRAID_IOP_XSCALE },
-        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_SAS2108_1,
-            MRAID_IOP_GEN2 },
-        { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_SAS2108_2,
-            MRAID_IOP_GEN2 },
-        { PCI_VENDOR_SYMBIOS,   PCI_PRODUCT_SYMBIOS_SAS2008_1,
-            MRAID_IOP_SKINNY }
-    };
-}

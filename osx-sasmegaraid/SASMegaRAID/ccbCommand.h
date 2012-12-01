@@ -3,33 +3,33 @@
 class mraid_ccbCommand: public IOCommand {
     OSDeclareDefaultStructors(mraid_ccbCommand);
 private:
-    typedef void                    (*ccb_done_ptr)(mraid_ccbCommand *);    
+    typedef void        (*ccb_done_ptr)(mraid_ccbCommand *);    
 public:
     struct st {
-    struct {
-        IOLock                      *holder;
-        bool                        event;
-    } ccb_lock;
+        struct {
+            IOLock      *holder;
+            bool        event;
+        } ccb_lock;
     
-    ccb_done_ptr                    ccb_done;
+        ccb_done_ptr    ccb_done;
     
-    UInt32                           ccb_direction;
+        UInt32          ccb_direction;
 #define MRAID_DATA_NONE	0
 #define MRAID_DATA_IN   1
 #define MRAID_DATA_OUT	2
     
-    mraid_frame               *ccb_frame;
-    UInt32                          ccb_frame_size;
-    UInt32                          ccb_extra_frames;
+        mraid_frame     *ccb_frame;
+        UInt32          ccb_frame_size;
+        UInt32          ccb_extra_frames;
         
-        UInt32                          ccb_pframe;
-        //UInt32                          ccb_pframe_offset;
+        addr64_t        ccb_pframe;
+        //UInt32        ccb_pframe_offset;
         
-        mraid_sense                     *ccb_sense;
-        UInt32                          ccb_psense;
+        mraid_sense     *ccb_sense;
+        addr64_t        ccb_psense;
     
-    mraid_sgl                 *ccb_sgl;
-    mraid_sgl_mem                   ccb_sglmem;
+        mraid_sgl       *ccb_sgl;
+        mraid_sgl_mem   ccb_sglmem;
     } s;
 
     void scrubCommand() {

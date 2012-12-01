@@ -8,21 +8,29 @@
 
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
+    IOVirtualAddress vaddr;
+    IOPhysicalAddress paddr;
+#if 0
     IODMACommand *cmd; /* synchronize() */
     IOMemoryMap *map;
     IODMACommand::Segment32 segment;
+#endif
 } mraid_mem;
 typedef struct {
-    UInt32 numSeg; /* For FreeSGL() */
-    UInt64 len; /* For the safe */
-
+    //UInt32 numSeg; /* For FreeSGL() */
+    UInt32 len;
+    
     IOBufferMemoryDescriptor *bmd;
+    IOPhysicalAddress paddr;
+#if 0
     IODMACommand *cmd;
     IOMemoryMap *map;
     IODMACommand::Segment32 *segments;
+#endif
 } mraid_sgl_mem;
 void FreeSGL(mraid_sgl_mem *mm)
 {
+#if 0
     if (mm->map) {
         mm->map->release();
         mm->map = NULL;
@@ -33,23 +41,31 @@ void FreeSGL(mraid_sgl_mem *mm)
         mm->cmd->release();
         mm->cmd = NULL;
     }
+#endif
     if (mm->bmd) {
+        mm->bmd->complete();
         mm->bmd->release();
         mm->bmd = NULL;
     }
+#if 0
     if (mm->segments) {
         IODelete(mm->segments, IODMACommand::Segment32, mm->numSeg);
         mm->segments = NULL;
     }
+#endif
 }
 
+#if 0
 #define MRAID_DVA(_am) ((_am)->segment.fIOVMAddr)
 #define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
+#endif
+
+#define MRAID_DVA(_am) ((_am)->paddr)
+#define MRAID_KVA(_am) ((_am)->vaddr)
 
 typedef struct {
     struct mraid_iop_ops            *sc_iop;
     
-    /* Firmware determined max, totals and other information */
     UInt32                          sc_max_cmds;
     UInt32                          sc_max_sgl;
     UInt32                          sc_sgl_size;
@@ -57,7 +73,7 @@ typedef struct {
     
     /* Producer/consumer pointers and reply queue */
     mraid_mem                       *sc_pcq;
-    /* Frame memory */
+    /* Frames memory */
     mraid_mem                       *sc_frames;
     UInt32                          sc_frames_size;
     /* Sense memory */
@@ -65,7 +81,7 @@ typedef struct {
     
     mraid_ctrl_info                 sc_info;
     
-    /* gated-get/returnCommand are protected methods */
+    /* Because gated-get/returnCommand are protected methods */
     IOSimpleLock                    *sc_ccb_spin;
     /* Management lock */
     IORWLock                        *sc_lock;
@@ -96,7 +112,6 @@ private:
     bool ccb_inited;
 
     friend struct mraid_iop_ops;
-    
     /* Helper Library */
 	template <typename UserClass> friend
     UInt32 PCIHelper<UserClass>::MappingType(UserClass*, UInt8, UInt32*);
@@ -114,18 +129,18 @@ private:
     bool Transition_Firmware();
     bool Initialize_Firmware();
     bool GetInfo();
-    bool Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
-    bool Do_Management(mraid_ccbCommand *, UInt32, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox);
-    mraid_mem *AllocMem(vm_size_t size);
+    bool Management(UInt32, UInt32, UInt32, void *, UInt8 *);
+    bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, void *, UInt8 *);
+    mraid_mem *AllocMem(vm_size_t);
     void FreeMem(mraid_mem *);
     bool CreateSGL(mraid_ccbCommand *);
-    bool GenerateSegments(mraid_ccbCommand *ccb);
+    //bool GenerateSegments(mraid_ccbCommand *);
     void Initccb();
     mraid_ccbCommand *Getccb();
     void Putccb(mraid_ccbCommand *);
-    UInt32 MRAID_Read(UInt8 offset);
-    /*bool*/ void MRAID_Write(UInt8 offset, UInt32 data);
-    void MRAID_Poll(mraid_ccbCommand *ccb);
+    UInt32 MRAID_Read(UInt8);
+    /*bool*/ void MRAID_Write(UInt8, UInt32);
+    void MRAID_Poll(mraid_ccbCommand *);
     void MRAID_Exec(mraid_ccbCommand *);
     
     bool mraid_xscale_intr();
@@ -142,7 +157,7 @@ private:
 protected:
     virtual bool init(OSDictionary *);
     
-    virtual IOService* probe (IOService* provider, SInt32* score);
+    virtual IOService* probe (IOService*, SInt32*);
     virtual void free(void);
     
     /*virtual bool start(IOService *provider);
