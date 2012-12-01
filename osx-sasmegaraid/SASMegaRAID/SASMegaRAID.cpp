@@ -555,7 +555,7 @@ bool SASMegaRAID::Initialize_Firmware()
 	qinfo->miq_ci_addr = htole64(MRAID_DVA(sc.sc_pcq) + offsetof(mraid_prod_cons, mpc_consumer));
     
     init->mif_header.mrh_cmd = MRAID_CMD_INIT;
-    init->mif_header.mrh_data_len = htole32(sizeof(mraid_init_qinfo));
+    init->mif_header.mrh_data_len = sizeof(mraid_init_qinfo);
     init->mif_qinfo_new_addr = htole64(ccb->s.ccb_pframe + MRAID_FRAME_SIZE);
     
     /*DbgPrint("Entries: %#x, rq: %#llx, pi: %#llx, ci: %#llx\n", qinfo->miq_rq_entries,
