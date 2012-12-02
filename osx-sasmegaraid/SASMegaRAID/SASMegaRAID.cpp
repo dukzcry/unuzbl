@@ -338,7 +338,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     if (!(mm->bmd = IOBufferMemoryDescriptor::inTaskWithOptions(kernel_task, kIOMemoryPhysicallyContiguous, size, PAGE_SIZE))) {
         goto free;
     }
-    
+#if 1
     mm->bmd->prepare();
     mm->vaddr = (IOVirtualAddress) mm->bmd->getBytesNoCopy();
     mm->paddr = mm->bmd->getPhysicalSegment(0, &length);
@@ -346,7 +346,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     memset((void *) mm->vaddr, 0, size);
     
     return mm;
-#if 0
+#else
     if (!(mm->cmd = IODMACommand::withSpecification(kIODMACommandOutputHost32, 32, 0, IODMACommand::kMapped, size, PAGE_SIZE)))
         goto bmd_free;
     
@@ -363,6 +363,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     }
     if (st == kIOReturnSuccess) {
         mm->map = mm->bmd->map();
+        memset((void *) mm->map->getVirtualAddress(), 0, size);
         return mm;
     }
     
@@ -569,7 +570,6 @@ bool SASMegaRAID::Initialize_Firmware()
     if (init->mif_header.mrh_cmd_status != MRAID_STAT_OK)
         res = false;
     
-done:
     Putccb(ccb);
     
     return res;
@@ -582,8 +582,7 @@ bool SASMegaRAID::GetInfo()
     if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN, sizeof(sc.sc_info), &sc.sc_info, NULL))
         return false;
 
-    IOPrint("%d\n", sc.sc_info.mci_image_component_count);
-#if 0
+#if defined(DEBUG)
     int i;
 	for (i = 0; i < sc.sc_info.mci_image_component_count; i++) {
 		IOPrint("Active FW %s Version %s date %s time %s\n",
@@ -625,9 +624,13 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
                                                                  : 0x00000000FFFFF000ULL)))
         return false;
     
+#if 1
     bmd->prepare();
     addr = (IOVirtualAddress) bmd->getBytesNoCopy();
-    memset((void *) addr, 0, len);
+#else
+    map = bmd->map();
+    addr = map->getVirtualAddress();
+#endif
     
     dcmd = &ccb->s.ccb_frame->mrr_dcmd;
     memset(dcmd->mdf_mbox, 0, MRAID_MBOX_SIZE);
@@ -701,6 +704,7 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     for (int i = 0; i < ccb->s.ccb_sglmem.numSeg; i++) {
 #endif
         if (IOPhysSize == 64) {
+#if 1
             sgl->sg64[0].addr = htole64(ccb->s.ccb_sglmem.paddr);
             sgl->sg64[0].len = htole32(ccb->s.ccb_sglmem.len);
         } else {
@@ -708,8 +712,16 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
             sgl->sg32[0].len = htole32(ccb->s.ccb_sglmem.len);
         }
         DbgPrint("SGL paddr: %#llx\n", ccb->s.ccb_sglmem.paddr);
-    //}
-    
+#else
+        sgl->sg64[0].addr = htole64(sgd[i].fIOVMAddr);
+        sgl->sg64[0].len = htole32(sgd[i].fLength);
+    } else {
+        sgl->sg32[0].addr = htole32(sgd[i].fIOVMAddr);
+        sgl->sg32[0].len = htole32(sgd[i].fLength);
+    }
+    }
+#endif
+
     if (ccb->s.ccb_direction == MRAID_DATA_IN) {
         hdr->mrh_flags |= MRAID_FRAME_DIR_READ;
         //ccb->s.ccb_sglmem.cmd->synchronize(kIODirectionIn);
@@ -719,8 +731,8 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     }
     
     hdr->mrh_flags |= sc.sc_sgl_flags;
-    hdr->mrh_sg_count = 1; //ccb->s.ccb_sglmem.numSeg
-    ccb->s.ccb_frame_size += sc.sc_sgl_size; //* ccb->s.ccb_sglmem.numSeg
+    hdr->mrh_sg_count = 1; //ccb->s.ccb_sglmem.numSeg;
+    ccb->s.ccb_frame_size += sc.sc_sgl_size; //* ccb->s.ccb_sglmem.numSeg;
     ccb->s.ccb_extra_frames = (ccb->s.ccb_frame_size - 1) / MRAID_FRAME_SIZE;
     
     DbgPrint("frame_size: %d extra_frames: %d\n",
@@ -785,9 +797,11 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
         //sc.sc_frames->cmd->synchronize(kIODirectionInOut);
     }
 
-    /*if (ccb->s.ccb_sglmem.len > 0)
+#if 0
+    if (ccb->s.ccb_sglmem.len > 0)
         ccb->s.ccb_sglmem.cmd->synchronize((ccb->s.ccb_direction & MRAID_DATA_IN) ?
-                                         kIODirectionIn : kIODirectionOut);*/
+                                         kIODirectionIn : kIODirectionOut);
+#endif
     
     ccb->s.ccb_done(ccb);
 }

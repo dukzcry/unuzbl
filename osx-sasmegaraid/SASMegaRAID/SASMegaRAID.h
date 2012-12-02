@@ -8,9 +8,10 @@
 
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
+#if 1
     IOVirtualAddress vaddr;
     IOPhysicalAddress paddr;
-#if 0
+#else
     IODMACommand *cmd; /* synchronize() */
     IOMemoryMap *map;
     IODMACommand::Segment32 segment;
@@ -19,7 +20,7 @@ typedef struct {
 typedef struct {
     //UInt32 numSeg; /* For FreeSGL() */
     UInt32 len;
-    
+
     IOBufferMemoryDescriptor *bmd;
     IOPhysicalAddress paddr;
 #if 0
@@ -58,10 +59,10 @@ void FreeSGL(mraid_sgl_mem *mm)
 #if 0
 #define MRAID_DVA(_am) ((_am)->segment.fIOVMAddr)
 #define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
-#endif
-
+#else
 #define MRAID_DVA(_am) ((_am)->paddr)
 #define MRAID_KVA(_am) ((_am)->vaddr)
+#endif
 
 typedef struct {
     struct mraid_iop_ops            *sc_iop;

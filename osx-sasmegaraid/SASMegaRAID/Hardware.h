@@ -158,7 +158,7 @@ typedef struct {
 typedef struct {
 	mraid_frame_header  mdf_header;
 	uint32_t            mdf_opcode;
-	uint8_t             mdf_mbox[MRAID_DCMD_FRAME_SIZE];
+	uint8_t             mdf_mbox[MRAID_MBOX_SIZE];
 	mraid_sgl           mdf_sgl;
 } __attribute__((packed)) mraid_dcmd_frame;
 typedef struct {
