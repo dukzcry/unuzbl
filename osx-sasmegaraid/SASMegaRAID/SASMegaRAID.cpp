@@ -1,8 +1,6 @@
 #include "SASMegaRAID.h"
 #include "Registers.h"
 
-//#define IOPhysSize 32
-
 OSDefineMetaClassAndStructors(SASMegaRAID, IOSCSIParallelInterfaceController)
 OSDefineMetaClassAndStructors(mraid_ccbCommand, IOCommand)
 
@@ -317,6 +315,9 @@ bool SASMegaRAID::Attach()
         return false;
     }
     
+    IOPrint("Attached \"%s\" with %dMB RAM, FW: %s\n", sc.sc_info.mci_product_name, sc.sc_info.mci_memory_size,
+            sc.sc_info.mci_package_version);
+    
     return true;
 }
 
@@ -591,6 +592,97 @@ bool SASMegaRAID::GetInfo()
                sc.sc_info.mci_image_component[i].mic_build_date,
                sc.sc_info.mci_image_component[i].mic_build_time);
 	}
+    for (i = 0; i < sc.sc_info.mci_pending_image_component_count; i++) {
+		IOPrint("Pending FW %s Version %s date %s time %s\n",
+               sc.sc_info.mci_pending_image_component[i].mic_name,
+               sc.sc_info.mci_pending_image_component[i].mic_version,
+               sc.sc_info.mci_pending_image_component[i].mic_build_date,
+               sc.sc_info.mci_pending_image_component[i].mic_build_time);
+	}
+    IOPrint("max_arms %d max_spans %d max_arrs %d max_lds %d\n",
+           sc.sc_info.mci_max_arms,
+           sc.sc_info.mci_max_spans,
+           sc.sc_info.mci_max_arrays,
+           sc.sc_info.mci_max_lds);
+    IOPrint("Serial %s present %#x fw time %d max_cmds %d max_sg %d\n",
+           sc.sc_info.mci_serial_number,
+           sc.sc_info.mci_hw_present,
+           sc.sc_info.mci_current_fw_time,
+           sc.sc_info.mci_max_cmds,
+           sc.sc_info.mci_max_sg_elements);
+    IOPrint("max_rq %d lds_pres %d lds_deg %d lds_off %d pd_pres %d\n",
+           sc.sc_info.mci_max_request_size,
+           sc.sc_info.mci_lds_present,
+           sc.sc_info.mci_lds_degraded,
+           sc.sc_info.mci_lds_offline,
+           sc.sc_info.mci_pd_present);
+	IOPrint("pd_dsk_prs %d pd_dsk_pred_fail %d pd_dsk_fail %d\n",
+           sc.sc_info.mci_pd_disks_present,
+           sc.sc_info.mci_pd_disks_pred_failure,
+           sc.sc_info.mci_pd_disks_failed);
+    IOPrint("nvram %d flash %d\n",
+           sc.sc_info.mci_nvram_size,
+           sc.sc_info.mci_flash_size);
+	IOPrint("ram_cor %d ram_uncor %d clus_all %d clus_act %d\n",
+           sc.sc_info.mci_ram_correctable_errors,
+           sc.sc_info.mci_ram_uncorrectable_errors,
+           sc.sc_info.mci_cluster_allowed,
+           sc.sc_info.mci_cluster_active);
+	IOPrint("max_strps_io %d raid_lvl %#x adapt_ops %#x ld_ops %#x\n",
+           sc.sc_info.mci_max_strips_per_io,
+           sc.sc_info.mci_raid_levels,
+           sc.sc_info.mci_adapter_ops,
+           sc.sc_info.mci_ld_ops);
+	IOPrint("strp_sz_min %d strp_sz_max %d pd_ops %#x pd_mix %#x\n",
+           sc.sc_info.mci_stripe_sz_ops.min,
+           sc.sc_info.mci_stripe_sz_ops.max,
+           sc.sc_info.mci_pd_ops,
+           sc.sc_info.mci_pd_mix_support);
+	IOPrint("ecc_bucket %d\n",
+           sc.sc_info.mci_ecc_bucket_count);
+	IOPrint("sq_nm %d prd_fail_poll %d intr_thrtl %d intr_thrtl_to %d\n",
+           sc.sc_info.mci_properties.mcp_seq_num,
+           sc.sc_info.mci_properties.mcp_pred_fail_poll_interval,
+           sc.sc_info.mci_properties.mcp_intr_throttle_cnt,
+           sc.sc_info.mci_properties.mcp_intr_throttle_timeout);
+	IOPrint("rbld_rate %d patr_rd_rate %d bgi_rate %d cc_rate %d\n",
+           sc.sc_info.mci_properties.mcp_rebuild_rate,
+           sc.sc_info.mci_properties.mcp_patrol_read_rate,
+           sc.sc_info.mci_properties.mcp_bgi_rate,
+           sc.sc_info.mci_properties.mcp_cc_rate);
+	IOPrint("rc_rate %d ch_flsh %d spin_cnt %d spin_dly %d clus_en %d\n",
+           sc.sc_info.mci_properties.mcp_recon_rate,
+           sc.sc_info.mci_properties.mcp_cache_flush_interval,
+           sc.sc_info.mci_properties.mcp_spinup_drv_cnt,
+           sc.sc_info.mci_properties.mcp_spinup_delay,
+           sc.sc_info.mci_properties.mcp_cluster_enable);
+	IOPrint("coerc %d alarm %d dis_auto_rbld %d dis_bat_wrn %d ecc %d\n",
+           sc.sc_info.mci_properties.mcp_coercion_mode,
+           sc.sc_info.mci_properties.mcp_alarm_enable,
+           sc.sc_info.mci_properties.mcp_disable_auto_rebuild,
+           sc.sc_info.mci_properties.mcp_disable_battery_warn,
+           sc.sc_info.mci_properties.mcp_ecc_bucket_size);
+	IOPrint("ecc_leak %d rest_hs %d exp_encl_dev %d\n",
+           sc.sc_info.mci_properties.mcp_ecc_bucket_leak_rate,
+           sc.sc_info.mci_properties.mcp_restore_hotspare_on_insertion,
+           sc.sc_info.mci_properties.mcp_expose_encl_devices);
+	IOPrint("Vendor %#x device %#x subvendor %#x subdevice %#x\n",
+           sc.sc_info.mci_pci.mip_vendor,
+           sc.sc_info.mci_pci.mip_device,
+           sc.sc_info.mci_pci.mip_subvendor,
+           sc.sc_info.mci_pci.mip_subdevice);
+	IOPrint("Type %#x port_count %d port_addr ",
+           sc.sc_info.mci_host.mih_type,
+           sc.sc_info.mci_host.mih_port_count);
+	for (i = 0; i < 8; i++)
+		IOLog("%.0llx ", sc.sc_info.mci_host.mih_port_addr[i]);
+	IOLog("\n");
+	IOPrint("Type %.x port_count %d port_addr ",
+           sc.sc_info.mci_device.mid_type,
+           sc.sc_info.mci_device.mid_port_count);
+	for (i = 0; i < 8; i++)
+		IOLog("%.0llx ", sc.sc_info.mci_device.mid_port_addr[i]);
+	IOLog("\n");
 #endif
     
     return true;
