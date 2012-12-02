@@ -314,6 +314,7 @@ bool SASMegaRAID::Attach()
     
     if (!GetInfo()) {
         IOPrint("Unable to get controller info\n");
+        return false;
     }
     
     return true;
