@@ -81,6 +81,11 @@ typedef struct {
     mraid_mem                       *sc_sense;
     
     mraid_ctrl_info                 sc_info;
+
+#define MRAID_BBU_GOOD              0
+#define MRAID_BBU_BAD               1
+#define MRAID_BBU_UNKNOWN           2
+    bool                            sc_bbuok;
     
     /* Because gated-get/returnCommand are protected methods */
     IOSimpleLock                    *sc_ccb_spin;
@@ -130,6 +135,7 @@ private:
     bool Transition_Firmware();
     bool Initialize_Firmware();
     bool GetInfo();
+    int GetBBUInfo(mraid_bbu_status *);
     bool Management(UInt32, UInt32, UInt32, void *, UInt8 *);
     bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, void *, UInt8 *);
     mraid_mem *AllocMem(vm_size_t);

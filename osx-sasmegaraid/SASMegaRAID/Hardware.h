@@ -53,6 +53,7 @@
 
 /* Direct commands */
 #define MRAID_DCMD_CTRL_GET_INFO                0x01010000
+#define MRAID_DCMD_BBU_GET_INFO                 0x05010000
 
 /* Mailbox bytes in direct command */
 #define MRAID_MBOX_SIZE                         12
@@ -280,6 +281,7 @@ typedef struct {
 	char                    mci_product_name[80];
 	char                    mci_serial_number[32];
 	uint32_t                mci_hw_present;
+#define MRAID_INFO_HW_BBU	0x01
 	uint32_t                mci_current_fw_time;
 	uint16_t                mci_max_cmds;
 	uint16_t                mci_max_sg_elements;
@@ -322,3 +324,47 @@ typedef struct {
 	char                    mci_package_version[0x60];
 	uint8_t                 mci_pad[0x800 - 0x6a0];
 } __attribute__((packed)) mraid_ctrl_info;
+
+typedef struct {
+	uint16_t		gas_guage_status;
+	uint16_t		relative_charge;
+	uint16_t		charger_system_state;
+	uint16_t		charger_system_ctrl;
+	uint16_t		charging_current;
+	uint16_t		absolute_charge;
+	uint16_t		max_error;
+	uint8_t			reserved[18];
+} __attribute__((packed)) mraid_ibbu_state;
+typedef struct {
+	uint16_t		gas_guage_status;
+	uint16_t		relative_charge;
+	uint16_t		charger_status;
+	uint16_t		remaining_capacity;
+	uint16_t		full_charge_capacity;
+	uint8_t			is_SOH_good;
+	uint8_t			reserved[21];
+} __attribute__((packed)) mraid_bbu_state;
+typedef union {
+	mraid_ibbu_state	ibbu;
+	mraid_bbu_state	bbu;
+} mraid_bbu_status_detail;
+/* MRAID_DCMD_BBU_GET_STATUS */
+typedef struct {
+	uint8_t			battery_type;
+#define MRAID_BBU_TYPE_NONE                 0
+#define MRAID_BBU_TYPE_IBBU                 1
+#define MRAID_BBU_TYPE_BBU                  2
+	uint8_t			reserved;
+	uint16_t		voltage;
+	int16_t			current;
+	uint16_t		temperature;
+	uint32_t		fw_status;
+#define MRAID_BBU_STATE_PACK_MISSING        (1 << 0)
+#define MRAID_BBU_STATE_VOLTAGE_LOW         (1 << 1)
+#define MRAID_BBU_STATE_TEMPERATURE_HIGH    (1 << 2)
+#define MRAID_BBU_STATE_LEARN_CYC_FAIL      (1 << 7)
+#define MRAID_BBU_STATE_LEARN_CYC_TIMEOUT   (1 << 8)
+#define MRAID_BBU_STATE_I2C_ERR_DETECT      (1 << 9)
+	uint8_t			pad[20];
+	mraid_bbu_status_detail detail;
+} __attribute__((packed)) mraid_bbu_status;

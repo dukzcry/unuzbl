@@ -24,6 +24,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     sc.sc_ccb_spin = NULL; sc.sc_lock = NULL;
     
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
+    sc.sc_bbuok = false;
     
     return true;
 }
@@ -282,7 +283,7 @@ bool SASMegaRAID::Attach()
 
     /* Command frames memory */
     frames = (sc.sc_sgl_size * sc.sc_max_sgl + MRAID_FRAME_SIZE - 1) / MRAID_FRAME_SIZE;
-    /* Extra frame for MFI_CMD */
+    /* Extra frame for MRAID_CMD */
     frames++;
     sc.sc_frames_size = frames * MRAID_FRAME_SIZE;
     if (!(sc.sc_frames = AllocMem(sc.sc_frames_size * sc.sc_max_cmds))) {
@@ -315,8 +316,42 @@ bool SASMegaRAID::Attach()
         return false;
     }
     
-    IOPrint("Attached \"%s\" with %dMB RAM, FW: %s\n", sc.sc_info.mci_product_name, sc.sc_info.mci_memory_size,
-            sc.sc_info.mci_package_version);
+    IOPrint("Attached \"%s\"", sc.sc_info.mci_product_name);
+    if (sc.sc_info.mci_memory_size > 0)
+        IOLog(" with %dMB RAM cache", sc.sc_info.mci_memory_size);
+    IOLog(", FW: %s\n", sc.sc_info.mci_package_version);
+    IOPrint("Logical devices found: %d\n", sc.sc_info.mci_lds_present);
+    
+    if (sc.sc_info.mci_hw_present & MRAID_INFO_HW_BBU) {
+        mraid_bbu_status bbu_stat;
+        int mraid_bbu_status = GetBBUInfo(&bbu_stat);
+        IOPrint("BBU type: ");
+		switch (bbu_stat.battery_type) {
+            case MRAID_BBU_TYPE_BBU:
+                IOLog("BBU");
+                break;
+            case MRAID_BBU_TYPE_IBBU:
+                IOLog("IBBU");
+                break;
+            default:
+                IOLog("unknown type %d", bbu_stat.battery_type);
+		}
+        IOLog(", status ");
+		switch(mraid_bbu_status) {
+            case MRAID_BBU_GOOD:
+                IOLog("good");
+                sc.sc_bbuok = true;
+                break;
+            case MRAID_BBU_BAD:
+                IOLog("bad");
+                break;
+            case MRAID_BBU_UNKNOWN:
+                IOLog("unknown");
+                break;
+		}
+    } else
+        IOPrint("BBU not present");
+    IOLog("\n");
     
     return true;
 }
@@ -610,9 +645,8 @@ bool SASMegaRAID::GetInfo()
            sc.sc_info.mci_current_fw_time,
            sc.sc_info.mci_max_cmds,
            sc.sc_info.mci_max_sg_elements);
-    IOPrint("max_rq %d lds_pres %d lds_deg %d lds_off %d pd_pres %d\n",
+    IOPrint("max_rq %d lds_deg %d lds_off %d pd_pres %d\n",
            sc.sc_info.mci_max_request_size,
-           sc.sc_info.mci_lds_present,
            sc.sc_info.mci_lds_degraded,
            sc.sc_info.mci_lds_offline,
            sc.sc_info.mci_pd_present);
@@ -686,6 +720,62 @@ bool SASMegaRAID::GetInfo()
 #endif
     
     return true;
+}
+
+int SASMegaRAID::GetBBUInfo(mraid_bbu_status *info)
+{
+    DbgPrint("%s\n", __FUNCTION__);
+    
+    if (!Management(MRAID_DCMD_BBU_GET_INFO, MRAID_DATA_IN, sizeof(*info), info, NULL))
+        return MRAID_BBU_UNKNOWN;
+    
+#if defined(DEBUG)
+	IOPrint("BBU voltage %d, current %d, temperature %d, "
+           "status 0x%x\n", info->voltage, info->current,
+           info->temperature, info->fw_status);
+	IOPrint("Details: ");
+	switch(info->battery_type) {
+        case MRAID_BBU_TYPE_IBBU:
+            IOLog("guage %d relative charge %d charger state %d "
+                   "charger ctrl %d\n", info->detail.ibbu.gas_guage_status,
+                   info->detail.ibbu.relative_charge ,
+                   info->detail.ibbu.charger_system_state ,
+                   info->detail.ibbu.charger_system_ctrl);
+            IOLog("\tcurrent %d abs charge %d max error %d\n",
+                   info->detail.ibbu.charging_current ,
+                   info->detail.ibbu.absolute_charge ,
+                   info->detail.ibbu.max_error);
+            break;
+        case MRAID_BBU_TYPE_BBU:
+            IOLog("guage %d relative charge %d charger state %d\n",
+                   info->detail.ibbu.gas_guage_status,
+                   info->detail.bbu.relative_charge ,
+                   info->detail.bbu.charger_status );
+            IOLog("\trem capacity %d full capacity %d\n",
+                   info->detail.bbu.remaining_capacity ,
+                   info->detail.bbu.full_charge_capacity);
+            break;
+        default:
+            IOPrint("\n");
+	}
+#endif
+	switch(info->battery_type) {
+        case MRAID_BBU_TYPE_BBU:
+            return (info->detail.bbu.is_SOH_good ?
+                    MRAID_BBU_GOOD : MRAID_BBU_BAD);
+        case MRAID_BBU_TYPE_NONE:
+            return MRAID_BBU_UNKNOWN;
+        default:
+            if (info->fw_status &
+                (MRAID_BBU_STATE_PACK_MISSING |
+                 MRAID_BBU_STATE_VOLTAGE_LOW |
+                 MRAID_BBU_STATE_TEMPERATURE_HIGH |
+                 MRAID_BBU_STATE_LEARN_CYC_FAIL |
+                 MRAID_BBU_STATE_LEARN_CYC_TIMEOUT |
+                 MRAID_BBU_STATE_I2C_ERR_DETECT))
+                return MRAID_BBU_BAD;
+            return MRAID_BBU_GOOD;
+	}
 }
 
 bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
