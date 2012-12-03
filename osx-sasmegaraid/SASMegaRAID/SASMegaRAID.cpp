@@ -203,6 +203,44 @@ bool SASMegaRAID::interruptFilter(OSObject *owner, IOFilterInterruptEventSource 
 }
 void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, int count)
 {
+    mraid_prod_cons *pcq = (mraid_prod_cons *) MRAID_KVA(sc.sc_pcq);
+    mraid_ccbCommand *ccb;
+    UInt32 Producer, Consumer, Context;
+    
+    DbgPrint("%s: pcq vaddr %p\n", __FUNCTION__, pcq);
+    
+    //sc.sc_pcq->cmd->synchronize(kIODirectionInOut);
+    
+    Producer = pcq->mpc_producer;
+    Consumer = pcq->mpc_consumer;
+    
+    while (Consumer != Producer) {
+        DbgPrint("pi: %#x ci: %#x\n", Producer, Consumer);
+        
+        Context = pcq->mpc_reply_q[Consumer];
+        pcq->mpc_reply_q[Consumer] = MRAID_INVALID_CTX;
+        if(Context == MRAID_INVALID_CTX)
+            IOPrint("Invalid context, Prod: %d Cons: %d\n", Producer, Consumer);
+        else {
+            /* TO-DO: Remove from queue */
+            ccb = (mraid_ccbCommand *) &sc.sc_ccb[Context];
+            DbgPrint("Context: %#x\n", Context);
+#if 0
+            if (ccb->s.ccb_sglmem.len > 0)
+                ccb->s.ccb_sglmem.cmd->synchronize((ccb->s.ccb_direction & MRAID_DATA_IN) ?
+                                                   kIODirectionIn : kIODirectionOut);
+#endif
+            ccb->s.ccb_done(ccb);
+        }
+        Consumer++;
+        if(Consumer == (sc.sc_max_cmds + 1))
+            Consumer = 0;
+    }
+    
+    pcq->mpc_consumer = htole32(Consumer);
+    
+    //sc.sc_pcq->cmd->synchronize(kIODirectionInOut);
+
     return;
 }
 
@@ -486,9 +524,12 @@ void SASMegaRAID::Initccb()
     
     DbgPrint("%s\n", __FUNCTION__);
     
+    sc.sc_ccb = IONew(addr64_t, sc.sc_max_cmds);
+    
     /* Reverse init since IOCommandPool is LIFO */
     for (int i = sc.sc_max_cmds - 1; i >= 0; i--) {
         ccb = mraid_ccbCommand::NewCommand();
+        sc.sc_ccb[i] = (addr64_t) ccb;
 
         /* Pick i'th frame & i'th sense */
         

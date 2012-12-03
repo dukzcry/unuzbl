@@ -21,6 +21,7 @@
 #define MRAID_OSTS_PPC_INTR_VALID               0x80000000
 #define MRAID_OSTS_GEN2_INTR_VALID              (0x00000001 | 0x00000004)
 #define MRAID_OSTS_SKINNY_INTR_VALID            0x00000001
+#define MRAID_INVALID_CTX                       0xffffffff
 #define MRAID_ENABLE_INTR                       0x01
 
 /* PPC-specific */

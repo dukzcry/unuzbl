@@ -82,6 +82,8 @@ typedef struct {
     UInt32                          sc_frames_size;
     /* Sense memory */
     mraid_mem                       *sc_sense;
+    /* For access by index */
+    addr64_t                        *sc_ccb;
     
     mraid_ctrl_info                 sc_info;
 
