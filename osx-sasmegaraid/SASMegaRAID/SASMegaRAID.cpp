@@ -161,19 +161,21 @@ void SASMegaRAID::free(void)
             MyWorkLoop->removeEventSource(fInterruptSrc);
         if (fInterruptSrc) fInterruptSrc->release();
     }
-    if (ccb_inited)
+    if (ccb_inited) {
+        IODelete(sc.sc_ccb, addr64_t, sc.sc_max_cmds);
         for (int i = 0; i < sc.sc_max_cmds; i++)
         {
             if ((command = (mraid_ccbCommand *) ccbCommandPool->getCommand(false)))
                 command->release();
         }
+    }
     if (ccbCommandPool) ccbCommandPool->release();
     
     /* Helper Library is not inherited from OSObject */
     /*PCIHelperP->release();*/
     delete PCIHelperP;
     if (sc.sc_iop) IODelete(sc.sc_iop, mraid_iop_ops, 1);
-    if(sc.sc_ccb_spin) {
+    if (sc.sc_ccb_spin) {
         /*IOSimpleLockUnlock(sc.sc_ccb_spin);*/ IOSimpleLockFree(sc.sc_ccb_spin);
     }
     if (sc.sc_lock) {
