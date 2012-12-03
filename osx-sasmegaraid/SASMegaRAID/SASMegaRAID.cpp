@@ -324,6 +324,7 @@ bool SASMegaRAID::Attach()
     
     if (sc.sc_info.mci_hw_present & MRAID_INFO_HW_BBU) {
         mraid_bbu_status bbu_stat;
+        /* Retrieve battery info */
         int mraid_bbu_status = GetBBUInfo(&bbu_stat);
         IOPrint("BBU type: ");
 		switch (bbu_stat.battery_type) {

@@ -58,6 +58,11 @@
 /* Mailbox bytes in direct command */
 #define MRAID_MBOX_SIZE                         12
 
+/* Driver defs */
+#define MRAID_MAX_LUN                           8
+#define MRAID_MAX_LD                            64
+
+
 typedef enum {
     MRAID_IOP_XSCALE,
     MRAID_IOP_PPC,

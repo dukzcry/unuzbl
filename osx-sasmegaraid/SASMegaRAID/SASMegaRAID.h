@@ -173,9 +173,11 @@ protected:
     virtual void TerminateController(void);
     virtual bool StartController() {return true;};
     virtual void StopController() {};
+    
+    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
+    virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
 private:
     /* Unimplemented */
-    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {};
     virtual bool	DoesHBASupportSCSIParallelFeature (
                                                        SCSIParallelFeature 		theFeature ) {};
     
@@ -203,7 +205,6 @@ private:
 	virtual	SCSIServiceResponse TargetResetRequest (
                                                     SCSITargetIdentifier 		theT ) {};
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {};
-    virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {};
     virtual UInt32		ReportMaximumTaskCount ( void ) {};
     virtual UInt32		ReportHBASpecificTaskDataSize ( void ) {};
     virtual UInt32		ReportHBASpecificDeviceDataSize ( void ) {};
