@@ -67,10 +67,13 @@ void FreeSGL(mraid_sgl_mem *mm)
 typedef struct {
     struct mraid_iop_ops            *sc_iop;
     
+    bool                            sc_ld_present[MRAID_MAX_LD];
+    
     UInt32                          sc_max_cmds;
     UInt32                          sc_max_sgl;
     UInt32                          sc_sgl_size;
     UInt16                          sc_sgl_flags;
+    UInt32                          sc_ld_cnt;
     
     /* Producer/consumer pointers and reply queue */
     mraid_mem                       *sc_pcq;
@@ -125,6 +128,10 @@ private:
     bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *, IOService *, bool,
                                                      void(UserClass::*)(OSObject *, void *, IOService *, int),
                                                      bool(UserClass::*)(OSObject *, IOFilterInterruptEventSource *));
+    virtual IOInterruptEventSource* CreateDeviceInterrupt(
+                                                          IOInterruptEventSource::Action,
+                                                          IOFilterInterruptEventSource::Filter,
+                                                          IOService *);
     void interruptHandler(OSObject *owner, void *src, IOService *nub, int count);
     bool interruptFilter(OSObject *owner, IOFilterInterruptEventSource *sender);
     /* */
@@ -151,14 +158,18 @@ private:
     void MRAID_Exec(mraid_ccbCommand *);
     
     bool mraid_xscale_intr();
+    void mraid_xscale_intr_ena();
     UInt32 mraid_xscale_fw_state();
     void mraid_xscale_post(mraid_ccbCommand *);
     bool mraid_ppc_intr();
+    void mraid_ppc_intr_ena();
     UInt32 mraid_ppc_fw_state();
     void mraid_ppc_post(mraid_ccbCommand *);
     bool mraid_gen2_intr();
+    void mraid_gen2_intr_ena();
     UInt32 mraid_gen2_fw_state();
     bool mraid_skinny_intr();
+    void mraid_skinny_intr_ena();
     UInt32 mraid_skinny_fw_state();
     void mraid_skinny_post(mraid_ccbCommand *);
 protected:
@@ -176,6 +187,9 @@ protected:
     
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
+    virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
+    virtual void                    HandleInterruptRequest ( void ) {};
+    virtual UInt32                  ReportMaximumTaskCount ( void ) {return sc.sc_max_cmds - 1;};
 private:
     /* Unimplemented */
     virtual bool	DoesHBASupportSCSIParallelFeature (
@@ -205,17 +219,15 @@ private:
 	virtual	SCSIServiceResponse TargetResetRequest (
                                                     SCSITargetIdentifier 		theT ) {};
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {};
-    virtual UInt32		ReportMaximumTaskCount ( void ) {};
     virtual UInt32		ReportHBASpecificTaskDataSize ( void ) {};
     virtual UInt32		ReportHBASpecificDeviceDataSize ( void ) {};
-    virtual bool		DoesHBAPerformDeviceManagement ( void ) {};
-    virtual void	HandleInterruptRequest ( void ) {};
     virtual SCSIServiceResponse ProcessParallelTask (
                                                      SCSIParallelTaskIdentifier parallelRequest ) {};
     /* */
 };
 
 #define mraid_my_intr() ((this->*sc.sc_iop->mio_intr)())
+#define mraid_intr_enable() ((this->*sc.sc_iop->mio_intr_ena)())
 #define mraid_fw_state() ((this->*sc.sc_iop->mio_fw_state)())
 #define mraid_post(_c) {/*sc->sc_frames->cmd->synchronize(kIODirectionInOut);*/ (this->*sc.sc_iop->mio_post)(_c);};
 /* Different IOPs means different bunch of handling. Covered things: firmware, interrupts, POST. */
@@ -226,28 +238,32 @@ typedef struct mraid_iop_ops {
         switch(iop) {
             case MRAID_IOP_XSCALE:
                 mio_intr = &SASMegaRAID::mraid_xscale_intr;
+                mio_intr_ena = &SASMegaRAID::mraid_xscale_intr_ena;
                 mio_fw_state = &SASMegaRAID::mraid_xscale_fw_state;
                 mio_post = &SASMegaRAID::mraid_xscale_post;
                 break;
             case MRAID_IOP_PPC:
                 mio_intr = &SASMegaRAID::mraid_ppc_intr;
+                mio_intr_ena = &SASMegaRAID::mraid_ppc_intr_ena;
                 mio_fw_state = &SASMegaRAID::mraid_ppc_fw_state;
                 mio_post = &SASMegaRAID::mraid_ppc_post;
                 break;
             case MRAID_IOP_GEN2:
                 mio_intr = &SASMegaRAID::mraid_gen2_intr;
+                mio_intr_ena = &SASMegaRAID::mraid_gen2_intr_ena;
                 mio_fw_state = &SASMegaRAID::mraid_gen2_fw_state;
                 mio_post = &SASMegaRAID::mraid_ppc_post; /* Same as for PPC */
                 break;
             case MRAID_IOP_SKINNY:
                 mio_intr = &SASMegaRAID::mraid_skinny_intr;
+                mio_intr_ena = &SASMegaRAID::mraid_skinny_intr_ena;
                 mio_fw_state = &SASMegaRAID::mraid_skinny_fw_state;
                 mio_post = &SASMegaRAID::mraid_skinny_post;
                 break;
         }
     }
     UInt32      (SASMegaRAID::*mio_fw_state)(void);
-    //void        (*mio_intr_ena)(mraid_softc *);
+    void        (SASMegaRAID::*mio_intr_ena)(void);
     bool         (SASMegaRAID::*mio_intr)(void);
     void        (SASMegaRAID::*mio_post)(mraid_ccbCommand *);
 } mraid_iop_ops;

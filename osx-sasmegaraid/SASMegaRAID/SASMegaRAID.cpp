@@ -25,6 +25,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
     sc.sc_bbuok = false;
+    memset(sc.sc_ld_present, 0, MRAID_MAX_LD);
     
     return true;
 }
@@ -187,6 +188,13 @@ void SASMegaRAID::free(void)
 }
 
 /* */
+
+IOInterruptEventSource *SASMegaRAID::CreateDeviceInterrupt(IOInterruptEventSource::Action action,
+                                                           IOFilterInterruptEventSource::Filter filter, IOService *provider)
+{
+    /* Tell superclass that interrupts are our sole proprietary */
+    return NULL;
+}
 
 bool SASMegaRAID::interruptFilter(OSObject *owner, IOFilterInterruptEventSource *sender)
 {
@@ -353,6 +361,12 @@ bool SASMegaRAID::Attach()
     } else
         IOPrint("BBU not present");
     IOLog("\n");
+    
+    sc.sc_ld_cnt = sc.sc_info.mci_lds_present;
+    for (int i = 0; i < sc.sc_ld_cnt; i++)
+        sc.sc_ld_present[i] = true;
+    
+    mraid_intr_enable();
     
     return true;
 }
@@ -891,10 +905,10 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
             sgl->sg64[0].addr = htole64(ccb->s.ccb_sglmem.paddr);
             sgl->sg64[0].len = htole32(ccb->s.ccb_sglmem.len);
         } else {
-            sgl->sg32[0].addr = htole32(ccb->s.ccb_sglmem.paddr);
+            sgl->sg32[0].addr = (UInt32)(htole32(ccb->s.ccb_sglmem.paddr) & 0x00000000ffffffff);
             sgl->sg32[0].len = htole32(ccb->s.ccb_sglmem.len);
         }
-        DbgPrint("SGL paddr: %#llx\n", ccb->s.ccb_sglmem.paddr);
+        DbgPrint("Paddr: %#llx\n", ccb->s.ccb_sglmem.paddr);
 #else
         sgl->sg64[0].addr = htole64(sgd[i].fIOVMAddr);
         sgl->sg64[0].len = htole32(sgd[i].fLength);
@@ -1028,6 +1042,10 @@ bool SASMegaRAID::mraid_xscale_intr()
     
     return true;
 }
+void SASMegaRAID::mraid_xscale_intr_ena()
+{
+    MRAID_Write(MRAID_OMSK, MRAID_ENABLE_INTR);
+}
 UInt32 SASMegaRAID::mraid_xscale_fw_state()
 {
     return MRAID_Read(MRAID_OMSG0);
@@ -1050,6 +1068,11 @@ bool SASMegaRAID::mraid_ppc_intr()
     MRAID_Write(MRAID_ODC, Status);
     
     return true;
+}
+void SASMegaRAID::mraid_ppc_intr_ena()
+{
+    MRAID_Write(MRAID_ODC, 0xffffffff);
+    MRAID_Write(MRAID_OMSK, ~MRAID_PPC_ENABLE_INTR_MASK);
 }
 UInt32 SASMegaRAID::mraid_ppc_fw_state()
 {
@@ -1074,6 +1097,11 @@ bool SASMegaRAID::mraid_gen2_intr()
     
     return true;
 }
+void SASMegaRAID::mraid_gen2_intr_ena()
+{
+    MRAID_Write(MRAID_ODC, 0xffffffff);
+    MRAID_Write(MRAID_OMSK, ~MRAID_OSTS_GEN2_INTR_VALID);
+}
 UInt32 SASMegaRAID::mraid_gen2_fw_state()
 {
     return(MRAID_Read(MRAID_OSP));
@@ -1092,6 +1120,10 @@ bool SASMegaRAID::mraid_skinny_intr()
     MRAID_Write(MRAID_ODC, Status);
     
     return true;
+}
+void SASMegaRAID::mraid_skinny_intr_ena()
+{
+    MRAID_Write(MRAID_OMSK, ~MRAID_SKINNY_ENABLE_INTR_MASK);
 }
 UInt32 SASMegaRAID::mraid_skinny_fw_state()
 {
