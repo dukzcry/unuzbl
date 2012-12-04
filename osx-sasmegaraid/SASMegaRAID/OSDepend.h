@@ -34,7 +34,9 @@ static inline UInt64 htole64(UInt64 x) {
         (x & 0xff00000000000000ULL) >> 56
     );
 }
+#define letoh32(x) htole32(x)
 #else
 #define htole32(x) (x)
 #define htole64(x) (x)
+#define letoh32(x) (x)
 #endif

@@ -192,6 +192,8 @@ protected:
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
     virtual void                    HandleInterruptRequest ( void ) {};
     virtual UInt32                  ReportMaximumTaskCount ( void ) {return sc.sc_max_cmds - 1;};
+    /* This one is a must for kext functioning */
+    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {return MRAID_MAXFER;};
 private:
     /* Unimplemented */
     virtual bool	DoesHBASupportSCSIParallelFeature (
@@ -221,7 +223,6 @@ private:
 	virtual	SCSIServiceResponse TargetResetRequest (
                                                     SCSITargetIdentifier 		theT ) {};
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {};
-    virtual UInt32		ReportHBASpecificTaskDataSize ( void ) {};
     virtual UInt32		ReportHBASpecificDeviceDataSize ( void ) {};
     virtual SCSIServiceResponse ProcessParallelTask (
                                                      SCSIParallelTaskIdentifier parallelRequest ) {};

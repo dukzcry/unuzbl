@@ -210,22 +210,22 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     UInt32 Producer, Consumer, Context;
     
     DbgPrint("%s: pcq vaddr %p\n", __FUNCTION__, pcq);
-    
+
     //sc.sc_pcq->cmd->synchronize(kIODirectionInOut);
     
-    Producer = pcq->mpc_producer;
-    Consumer = pcq->mpc_consumer;
+    Producer = letoh32(pcq->mpc_producer);
+    Consumer = letoh32(pcq->mpc_consumer);
     
     while (Consumer != Producer) {
         DbgPrint("pi: %#x ci: %#x\n", Producer, Consumer);
-        
+
         Context = pcq->mpc_reply_q[Consumer];
         pcq->mpc_reply_q[Consumer] = MRAID_INVALID_CTX;
         if(Context == MRAID_INVALID_CTX)
             IOPrint("Invalid context, Prod: %d Cons: %d\n", Producer, Consumer);
         else {
             /* TO-DO: Remove from queue */
-            ccb = (mraid_ccbCommand *) &sc.sc_ccb[Context];
+            ccb = (mraid_ccbCommand *) sc.sc_ccb[Context];
             DbgPrint("Context: %#x\n", Context);
 #if 0
             if (ccb->s.ccb_sglmem.len > 0)
@@ -279,6 +279,12 @@ bool SASMegaRAID::Probe()
     }
     
     return true;
+}
+
+void mraid_empty_done(mraid_ccbCommand *)
+{
+    /* ;) */
+    __asm__ volatile("nop");
 }
 
 bool SASMegaRAID::Attach()
@@ -407,6 +413,17 @@ bool SASMegaRAID::Attach()
         sc.sc_ld_present[i] = true;
     
     mraid_intr_enable();
+    /* XXX: Is it possible to get intrs enabled info from controller? */
+    InterruptsActivated = true;
+    
+    /* Ensure that interrupts work */
+#if 0
+    memset(&sc.sc_info, 0, sizeof(sc.sc_info));
+    if (!GetInfo()) {
+        IOPrint("Unable to get controller info\n");
+        return false;
+    }
+#endif
     
     return true;
 }
@@ -620,12 +637,6 @@ bool SASMegaRAID::Transition_Firmware()
     }
     
     return true;
-}
-
-void mraid_empty_done(mraid_ccbCommand *)
-{
-    /* ;) */
-    __asm__ volatile("nop");
 }
 
 bool SASMegaRAID::Initialize_Firmware()
@@ -1049,6 +1060,8 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
 /* Interrupt driven */
 void mraid_exec_done(mraid_ccbCommand *ccb)
 {
+    DbgPrint("%s\n", __FUNCTION__);
+    
     IOLockLock(ccb->s.ccb_lock.holder);
     ccb->s.ccb_lock.event = true;
     IOLockWakeup(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, true);
@@ -1056,15 +1069,22 @@ void mraid_exec_done(mraid_ccbCommand *ccb)
 }
 void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 {
+    AbsoluteTime deadline;
+    
+    DbgPrint("%s\n", __FUNCTION__);
+    
 #if defined(DEBUG)
     if (ccb->s.ccb_lock.event || ccb->s.ccb_done)
-        DbgPrint("%s Warning: event or done set\n", __FUNCTION__);
+        DbgPrint("Warning: event or done set\n");
 #endif
     ccb->s.ccb_done = mraid_exec_done;
     mraid_post(ccb);
     
+    /* Interrupt may not come */
+    clock_interval_to_deadline(1, kSecondScale, (UInt64 *) &deadline);
+    
     IOLockLock(ccb->s.ccb_lock.holder);
-    IOLockSleep(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, THREAD_INTERRUPTIBLE);
+    IOLockSleepDeadline(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, deadline, THREAD_INTERRUPTIBLE);
     ccb->s.ccb_lock.event = false;
     IOLockUnlock(ccb->s.ccb_lock.holder);
 }
