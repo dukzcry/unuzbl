@@ -371,7 +371,7 @@ bool SASMegaRAID::Attach()
         IOPrint("Unable to get controller info\n");
         return false;
     }
-    SetInfo();
+    ExportInfo();
     
     if (sc.sc_info.mci_hw_present & MRAID_INFO_HW_BBU) {
         mraid_bbu_status bbu_stat;
@@ -792,7 +792,7 @@ bool SASMegaRAID::GetInfo()
     return true;
 }
 
-void SASMegaRAID::SetInfo()
+void SASMegaRAID::ExportInfo()
 {
     OSString *string = NULL;
     char str[33];
