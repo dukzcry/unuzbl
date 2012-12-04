@@ -68,6 +68,7 @@
 
 /* Driver defs */
 #define MRAID_MAX_LD                            64
+#define MRAID_MAX_LUN				8
 
 
 typedef enum {
