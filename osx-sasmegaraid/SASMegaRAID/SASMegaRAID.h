@@ -191,16 +191,19 @@ protected:
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
     virtual void                    HandleInterruptRequest ( void ) {};
-    virtual UInt32                  ReportMaximumTaskCount ( void ) {return sc.sc_max_cmds - 1;};
+    virtual UInt32                  ReportMaximumTaskCount ( void ) {return 0;};
+    /* We're not an actual SCSI controller */
+    virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};
     /* This one is a must for kext functioning */
     virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {return MRAID_MAXFER;};
+    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
+    virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
+    virtual SCSIServiceResponse     ProcessParallelTask ( SCSIParallelTaskIdentifier parallelRequest );
 private:
     /* Unimplemented */
     virtual bool	DoesHBASupportSCSIParallelFeature (
                                                        SCSIParallelFeature 		theFeature ) {};
     
-    virtual bool	InitializeTargetForID (
-                                           SCSITargetIdentifier 		targetID ) {};
     virtual SCSIServiceResponse	AbortTaskRequest (
                                                   SCSITargetIdentifier 		theT,
                                                   SCSILogicalUnitNumber		theL,
@@ -222,10 +225,6 @@ private:
 	
 	virtual	SCSIServiceResponse TargetResetRequest (
                                                     SCSITargetIdentifier 		theT ) {};
-    virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {};
-    virtual UInt32		ReportHBASpecificDeviceDataSize ( void ) {};
-    virtual SCSIServiceResponse ProcessParallelTask (
-                                                     SCSIParallelTaskIdentifier parallelRequest ) {};
     /* */
 };
 

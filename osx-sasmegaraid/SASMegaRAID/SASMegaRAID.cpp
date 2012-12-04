@@ -148,6 +148,7 @@ void SASMegaRAID::TerminateController(void)
 void SASMegaRAID::free(void)
 {
     mraid_ccbCommand *command;
+    int i = 0;
     
     DbgPrint("IOService->free\n");
     
@@ -155,6 +156,7 @@ void SASMegaRAID::free(void)
         fPCIDevice->close(this);
         fPCIDevice->release();
     }
+    while (sc.sc_ld_present[i]) {DestroyTargetForID(i); i++;}
     if(map) map->release();
     if (fInterruptSrc) {
         if (MyWorkLoop)
@@ -374,7 +376,7 @@ bool SASMegaRAID::Attach()
     if (sc.sc_info.mci_memory_size > 0)
         IOLog(" with %dMB RAM cache", sc.sc_info.mci_memory_size);
     IOLog(", FW: %s\n", sc.sc_info.mci_package_version);
-    IOPrint("Logical devices found: %d\n", sc.sc_info.mci_lds_present);
+    IOPrint("Virtual drives found: %d\n", sc.sc_info.mci_lds_present);
     
     if (sc.sc_info.mci_hw_present & MRAID_INFO_HW_BBU) {
         mraid_bbu_status bbu_stat;
@@ -408,10 +410,6 @@ bool SASMegaRAID::Attach()
         IOPrint("BBU not present");
     IOLog("\n");
     
-    sc.sc_ld_cnt = sc.sc_info.mci_lds_present;
-    for (int i = 0; i < sc.sc_ld_cnt; i++)
-        sc.sc_ld_present[i] = true;
-    
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
@@ -424,6 +422,12 @@ bool SASMegaRAID::Attach()
         return false;
     }
 #endif
+    
+    sc.sc_ld_cnt = sc.sc_info.mci_lds_present;
+    for (int i = 0; i < sc.sc_ld_cnt; i++) {
+        sc.sc_ld_present[i] = true;
+        CreateTargetForID(i);
+    }
     
     return true;
 }
@@ -592,9 +596,11 @@ bool SASMegaRAID::Transition_Firmware()
     UInt32 fw_state, cur_state;
     int max_wait;
     
+    DbgPrint("%s\n", __FUNCTION__);
+    
     fw_state = mraid_fw_state() & MRAID_STATE_MASK;
     
-    DbgPrint("%s: Firmware state %#x\n", __FUNCTION__, fw_state);
+    DbgPrint("Firmware state %#x\n", fw_state);
     
     while(fw_state != MRAID_STATE_READY) {
         DbgPrint("Waiting for firmware to become ready\n");
@@ -1070,6 +1076,7 @@ void mraid_exec_done(mraid_ccbCommand *ccb)
 void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 {
     AbsoluteTime deadline;
+    int ret;
     
     DbgPrint("%s\n", __FUNCTION__);
     
@@ -1080,13 +1087,14 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
     ccb->s.ccb_done = mraid_exec_done;
     mraid_post(ccb);
     
-    /* Interrupt may not come */
     clock_interval_to_deadline(1, kSecondScale, (UInt64 *) &deadline);
     
     IOLockLock(ccb->s.ccb_lock.holder);
-    IOLockSleepDeadline(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, deadline, THREAD_INTERRUPTIBLE);
+    ret = IOLockSleepDeadline(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, deadline, THREAD_INTERRUPTIBLE);
     ccb->s.ccb_lock.event = false;
     IOLockUnlock(ccb->s.ccb_lock.holder);
+    if (ret != THREAD_AWAKENED)
+        DbgPrint("Warning: interrupt didn't come while expected\n");
 }
 /* */
 
@@ -1196,4 +1204,18 @@ void SASMegaRAID::mraid_skinny_post(mraid_ccbCommand *ccb)
 {
     MRAID_Write(MRAID_IQPL, 0x1 | ccb->s.ccb_pframe | (ccb->s.ccb_extra_frames << 1));
     MRAID_Write(MRAID_IQPH, 0x00000000);
+}
+
+/* */
+
+bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
+{
+    DbgPrint("%s\n", __FUNCTION__);
+    
+    return true;
+}
+
+SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier parallelRequest)
+{
+    DbgPrint("%s\n", __FUNCTION__);
 }
