@@ -371,12 +371,7 @@ bool SASMegaRAID::Attach()
         IOPrint("Unable to get controller info\n");
         return false;
     }
-    
-    IOPrint("Attached \"%s\"", sc.sc_info.mci_product_name);
-    if (sc.sc_info.mci_memory_size > 0)
-        IOLog(" with %dMB RAM cache", sc.sc_info.mci_memory_size);
-    IOLog(", FW: %s\n", sc.sc_info.mci_package_version);
-    IOPrint("Virtual drives found: %d\n", sc.sc_info.mci_lds_present);
+    SetInfo();
     
     if (sc.sc_info.mci_hw_present & MRAID_INFO_HW_BBU) {
         mraid_bbu_status bbu_stat;
@@ -797,6 +792,34 @@ bool SASMegaRAID::GetInfo()
     return true;
 }
 
+void SASMegaRAID::SetInfo()
+{
+    OSString *string = NULL;
+    char str[33];
+    
+    if ((string = OSString::withCString(sc.sc_info.mci_product_name)))
+	{
+		SetHBAProperty(kIOPropertyProductNameKey, string);
+		string->release();
+		string = NULL;
+	}
+    snprintf(str, sizeof(str), "Firmware %s", sc.sc_info.mci_package_version);
+    if ((string = OSString::withCString(str)))
+	{
+		SetHBAProperty(kIOPropertyProductRevisionLevelKey, string);
+		string->release();
+		string = NULL;
+	}
+    if (sc.sc_info.mci_memory_size > 0) {
+        snprintf(str, sizeof(str), "Cache %dMB RAM", sc.sc_info.mci_memory_size);
+        if ((string = OSString::withCString(str))) {
+            SetHBAProperty(kIOPropertyPortDescriptionKey, string);
+            string->release();
+            string = NULL;
+        }
+    }
+}
+
 int SASMegaRAID::GetBBUInfo(mraid_bbu_status *info)
 {
     DbgPrint("%s\n", __FUNCTION__);
@@ -1098,6 +1121,20 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 }
 /* */
 
+bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
+{
+    DbgPrint("%s\n", __FUNCTION__);
+    
+    return true;
+}
+
+SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier parallelRequest)
+{
+    DbgPrint("%s\n", __FUNCTION__);
+}
+
+/* */
+
 bool SASMegaRAID::mraid_xscale_intr()
 {
     UInt32 Status;
@@ -1204,18 +1241,4 @@ void SASMegaRAID::mraid_skinny_post(mraid_ccbCommand *ccb)
 {
     MRAID_Write(MRAID_IQPL, 0x1 | ccb->s.ccb_pframe | (ccb->s.ccb_extra_frames << 1));
     MRAID_Write(MRAID_IQPH, 0x00000000);
-}
-
-/* */
-
-bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
-{
-    DbgPrint("%s\n", __FUNCTION__);
-    
-    return true;
-}
-
-SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier parallelRequest)
-{
-    DbgPrint("%s\n", __FUNCTION__);
 }

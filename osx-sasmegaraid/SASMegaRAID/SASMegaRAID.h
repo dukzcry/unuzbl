@@ -2,6 +2,7 @@
 #include <IOKit/scsi/spi/IOSCSIParallelInterfaceController.h>
 #include <IOKit/IOKitKeys.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
+#include <IOKit/storage/IOStorageDeviceCharacteristics.h>
 
 #include "Hardware.h"
 #include "HelperLib.h"
@@ -144,6 +145,7 @@ private:
     bool Transition_Firmware();
     bool Initialize_Firmware();
     bool GetInfo();
+    void SetInfo();
     int GetBBUInfo(mraid_bbu_status *);
     bool Management(UInt32, UInt32, UInt32, void *, UInt8 *);
     bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, void *, UInt8 *);
@@ -184,19 +186,19 @@ protected:
 	virtual void stop(IOService *provider);*/
     virtual bool InitializeController(void);
     virtual void TerminateController(void);
-    virtual bool StartController() {return true;};
+    virtual bool StartController() {DbgPrint("%s\n", __FUNCTION__); return true;};
     virtual void StopController() {};
     
-    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
+    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return 0;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
     virtual void                    HandleInterruptRequest ( void ) {};
     virtual UInt32                  ReportMaximumTaskCount ( void ) {return 0;};
+    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {DbgPrint("%s\n", __FUNCTION__); return 0;};
     /* We're not an actual SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};
-    /* This one is a must for kext functioning */
+    /* This one is a must for starting */
     virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {return MRAID_MAXFER;};
-    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
     virtual SCSIServiceResponse     ProcessParallelTask ( SCSIParallelTaskIdentifier parallelRequest );
 private:
