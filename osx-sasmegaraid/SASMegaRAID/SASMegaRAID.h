@@ -145,7 +145,7 @@ private:
     bool Transition_Firmware();
     bool Initialize_Firmware();
     bool GetInfo();
-    void SetInfo();
+    void ExportInfo();
     int GetBBUInfo(mraid_bbu_status *);
     bool Management(UInt32, UInt32, UInt32, void *, UInt8 *);
     bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, void *, UInt8 *);
@@ -189,7 +189,7 @@ protected:
     virtual bool StartController() {DbgPrint("%s\n", __FUNCTION__); return true;};
     virtual void StopController() {};
     
-    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return 0;};
+    virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
     virtual void                    HandleInterruptRequest ( void ) {};
