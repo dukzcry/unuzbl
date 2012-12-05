@@ -19,12 +19,13 @@ typedef struct {
 #endif
 } mraid_mem;
 typedef struct {
-    //UInt32 numSeg; /* For FreeSGL() */
     UInt32 len;
 
     IOBufferMemoryDescriptor *bmd;
     IOPhysicalAddress paddr;
 #if segmem
+    UInt32 numSeg; /* For FreeSGL() */
+    
     IODMACommand *cmd;
     IOMemoryMap *map;
     IODMACommand::Segment32 *segments;
@@ -183,7 +184,6 @@ private:
     UInt32 mraid_gen2_fw_state();
     bool mraid_skinny_intr();
     void mraid_skinny_intr_ena();
-    void mraid_skinny_intr_dis();
     UInt32 mraid_skinny_fw_state();
     void mraid_skinny_post(mraid_ccbCommand *);
 protected:
@@ -196,7 +196,7 @@ protected:
 	virtual void stop(IOService *provider);*/
     virtual bool InitializeController(void);
     virtual void TerminateController(void);
-    virtual bool StartController() {DbgPrint("%s\n", __FUNCTION__); return true;};
+    virtual bool StartController() {DbgPrint("super->StartController\n");return true;}
     virtual void StopController() {};
     virtual void systemWillShutdown(IOOptionBits);
     
@@ -271,7 +271,7 @@ typedef struct mraid_iop_ops {
             case MRAID_IOP_SKINNY:
                 mio_intr = &SASMegaRAID::mraid_skinny_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_skinny_intr_ena;
-                mio_intr_dis = &SASMegaRAID::mraid_skinny_intr_dis;
+                mio_intr_dis = &SASMegaRAID::mraid_xscale_intr_dis; /* Same as for ARM */
                 mio_fw_state = &SASMegaRAID::mraid_skinny_fw_state;
                 mio_post = &SASMegaRAID::mraid_skinny_post;
                 break;
@@ -280,6 +280,6 @@ typedef struct mraid_iop_ops {
     UInt32      (SASMegaRAID::*mio_fw_state)(void);
     void        (SASMegaRAID::*mio_intr_ena)(void);
     void        (SASMegaRAID::*mio_intr_dis)(void);
-    bool         (SASMegaRAID::*mio_intr)(void);
+    bool        (SASMegaRAID::*mio_intr)(void);
     void        (SASMegaRAID::*mio_post)(mraid_ccbCommand *);
 } mraid_iop_ops;

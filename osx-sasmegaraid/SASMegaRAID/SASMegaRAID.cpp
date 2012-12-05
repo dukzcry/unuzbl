@@ -139,8 +139,26 @@ bool SASMegaRAID::InitializeController(void)
 //void SASMegaRAID::stop(IOService *provider)
 void SASMegaRAID::TerminateController(void)
 {
-    /*DbgPrint("super->TerminateController\n");
-    BaseClass::stop(provider);*/
+    DbgPrint("super->TerminateController\n");
+    
+    if (InterruptsActivated) {
+        /* XXX: Doesn't work at least on ARM */
+        mraid_intr_disable();
+        InterruptsActivated = false;
+    }
+    if (fInterruptSrc) {
+        if (MyWorkLoop)
+            MyWorkLoop->removeEventSource(fInterruptSrc);
+        if (fInterruptSrc) fInterruptSrc->release();
+    }
+    MRAID_Shutdown();
+    if (fPCIDevice) {
+        fPCIDevice->close(this);
+        fPCIDevice->release();
+    }
+    PMstop();
+    
+    //BaseClass::stop(provider);
 }
 
 void SASMegaRAID::free(void)
@@ -150,21 +168,8 @@ void SASMegaRAID::free(void)
     
     DbgPrint("IOService->free\n");
     
-    if (InterruptsActivated) mraid_intr_disable();
-    MRAID_Shutdown();
-    if (fPCIDevice) {
-        fPCIDevice->close(this);
-        fPCIDevice->release();
-    }
-    PMstop();
-    
     while (sc.sc_ld_present[i]) {DestroyTargetForID(i); i++;}
     if(map) map->release();
-    if (fInterruptSrc) {
-        if (MyWorkLoop)
-            MyWorkLoop->removeEventSource(fInterruptSrc);
-        if (fInterruptSrc) fInterruptSrc->release();
-    }
     if (ccb_inited) {
         IODelete(sc.sc_ccb, addr64_t, sc.sc_max_cmds);
         for (int i = 0; i < sc.sc_max_cmds; i++)
@@ -369,9 +374,6 @@ bool SASMegaRAID::Attach()
         return false;
     }
     FirmwareInitialized = true;
-    PMinit();
-    getProvider()->joinPMtree(this);
-    registerPowerDriver(this, PowerStates, 1);
     
     if (!GetInfo()) {
         IOPrint("Unable to get controller info\n");
@@ -414,6 +416,9 @@ bool SASMegaRAID::Attach()
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
+    PMinit();
+    getProvider()->joinPMtree(this);
+    registerPowerDriver(this, PowerStates, 1);
     
 #if 1
     /* Ensure that interrupts work */
@@ -896,28 +901,10 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt
 bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
 {
     mraid_dcmd_frame *dcmd;
-    
-    IOBufferMemoryDescriptor *bmd;
-    //IOMemoryMap *map;
     IOVirtualAddress addr;
     
     DbgPrint("%s: ccb_num: %d, opcode: %#x\n", __FUNCTION__, ccb->s.ccb_frame->mrr_header.mrh_context, opc);
-    
-    /* Support 64-bit DMA */
-    if (!(bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task, kIOMemoryPhysicallyContiguous |
-                                                                                kIOMapInhibitCache /* Disable caching */
-                                                                 ,len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL
-                                                                 : 0x00000000FFFFF000ULL)))
-        return false;
-    
-#ifdef segmem
-    map = bmd->map();
-    addr = map->getVirtualAddress();
-#else
-    bmd->prepare();
-    addr = (IOVirtualAddress) bmd->getBytesNoCopy();
-#endif
-    
+        
     dcmd = &ccb->s.ccb_frame->mrr_dcmd;
     memset(dcmd->mdf_mbox, 0, MRAID_MBOX_SIZE);
     dcmd->mdf_header.mrh_cmd = MRAID_CMD_DCMD;
@@ -934,18 +921,30 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
         memcpy(dcmd->mdf_mbox, mbox, MRAID_MBOX_SIZE);
     
     if (dir != MRAID_DATA_NONE) {
+        /* Support 64-bit DMA */
+        if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
+            kIOMemoryPhysicallyContiguous | kIOMapInhibitCache /* Disable caching */
+            ,len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
+            return false;
+        
+#ifdef segmem
+        ccb->s.ccb_sglmem.map = ccb->s.ccb_sglmem.bmd->map();
+        addr = ccb->s.ccb_sglmem.map->getVirtualAddress();
+#else
+        ccb->s.ccb_sglmem.bmd->prepare();
+        addr = (IOVirtualAddress) ccb->s.ccb_sglmem.bmd->getBytesNoCopy();
+#endif
+        
         if (dir == MRAID_DATA_OUT)
             bcopy(buf, (void *) addr, len);
         dcmd->mdf_header.mrh_data_len = len;
         
-        ccb->s.ccb_sglmem.bmd = bmd;
-        //ccb->s.ccb_sglmem.map = map;
         ccb->s.ccb_sglmem.len = len;
         
         ccb->s.ccb_sgl = &dcmd->mdf_sgl;
         
         if (!CreateSGL(ccb))
-            return false;
+            goto fail;
     }
 
     if (!InterruptsActivated) {
@@ -957,14 +956,16 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
         IOLockFree(ccb->s.ccb_lock.holder);
     }
     if (dcmd->mdf_header.mrh_cmd_status != MRAID_STAT_OK)
-        return false;
+        goto fail;
 
     if (ccb->s.ccb_direction == MRAID_DATA_IN)
         bcopy((void *) addr, buf, len);
     
     FreeSGL(&ccb->s.ccb_sglmem);
-    
     return true;
+fail:
+    FreeSGL(&ccb->s.ccb_sglmem);
+    return false;
 }
 
 bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
@@ -1036,12 +1037,12 @@ void SASMegaRAID::MRAID_Shutdown()
     if (FirmwareInitialized) {
         mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
         if (!Management(MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox)) {
-            IOPrint("Warning: Failed to flush cache\n");
+            DbgPrint("Warning: failed to flush cache\n");
             return;
         }
         mbox[0] = 0;
         if (!Management(MRAID_DCMD_CTRL_SHUTDOWN, MRAID_DATA_NONE, 0, NULL, mbox)) {
-            IOPrint("Warning: Failed to shutdown firmware\n");
+            DbgPrint("Warning: failed to shutdown firmware\n");
             return;
         }
         FirmwareInitialized = false;
@@ -1056,7 +1057,7 @@ void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
         case kIOMessageSystemWillRestart:
         case kIOMessageSystemWillPowerOff:
             MRAID_Shutdown();
-            break;
+        break;
     }
     
     BaseClass::systemWillShutdown(spec);
@@ -1070,14 +1071,14 @@ UInt32 SASMegaRAID::MRAID_Read(UInt8 offset)
      return(0);
      }*/
     data = OSReadLittleInt32(vAddr, offset);
-    DbgPrint("%s: offset %#x data 0x08%x\n", __FUNCTION__, offset, data);
+    DbgPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
     
     return data;
 }
 /*bool*/
 void SASMegaRAID::MRAID_Write(UInt8 offset, uint32_t data)
 {
-    DbgPrint("%s: offset %#x data 0x08%x\n", __FUNCTION__, offset, data);
+    DbgPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
     OSWriteLittleInt32(vAddr, offset, data);
     OSSynchronizeIO();
     
@@ -1309,10 +1310,6 @@ bool SASMegaRAID::mraid_skinny_intr()
 void SASMegaRAID::mraid_skinny_intr_ena()
 {
     MRAID_Write(MRAID_OMSK, ~MRAID_SKINNY_ENABLE_INTR_MASK);
-}
-void SASMegaRAID::mraid_skinny_intr_dis()
-{
-    MRAID_Write(MRAID_OMSK, 0);
 }
 UInt32 SASMegaRAID::mraid_skinny_fw_state()
 {
