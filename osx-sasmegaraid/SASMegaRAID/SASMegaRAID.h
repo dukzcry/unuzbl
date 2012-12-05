@@ -9,13 +9,13 @@
 
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
-#if 1
-    IOVirtualAddress vaddr;
-    IOPhysicalAddress paddr;
-#else
+#if segmem
     IODMACommand *cmd; /* synchronize() */
     IOMemoryMap *map;
     IODMACommand::Segment32 segment;
+#else
+    IOVirtualAddress vaddr;
+    IOPhysicalAddress paddr;
 #endif
 } mraid_mem;
 typedef struct {
@@ -24,7 +24,7 @@ typedef struct {
 
     IOBufferMemoryDescriptor *bmd;
     IOPhysicalAddress paddr;
-#if 0
+#if segmem
     IODMACommand *cmd;
     IOMemoryMap *map;
     IODMACommand::Segment32 *segments;
@@ -32,7 +32,7 @@ typedef struct {
 } mraid_sgl_mem;
 void FreeSGL(mraid_sgl_mem *mm)
 {
-#if 0
+#if segmem
     if (mm->map) {
         mm->map->release();
         mm->map = NULL;
@@ -49,7 +49,7 @@ void FreeSGL(mraid_sgl_mem *mm)
         mm->bmd->release();
         mm->bmd = NULL;
     }
-#if 0
+#if segmem
     if (mm->segments) {
         IODelete(mm->segments, IODMACommand::Segment32, mm->numSeg);
         mm->segments = NULL;
@@ -57,7 +57,7 @@ void FreeSGL(mraid_sgl_mem *mm)
 #endif
 }
 
-#if 0
+#if segmem
 #define MRAID_DVA(_am) ((_am)->segment.fIOVMAddr)
 #define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
 #else
@@ -99,6 +99,10 @@ typedef struct {
     IORWLock                        *sc_lock;
 } mraid_softc;
 
+static IOPMPowerState PowerStates[] = {
+    {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
+};
+
 #include "ccbCommand.h"
 
 //#define BaseClass IOService
@@ -119,6 +123,7 @@ private:
     
     bool fMSIEnabled;
     bool InterruptsActivated;
+    bool FirmwareInitialized;
     const mraid_pci_device *mpd;
     mraid_softc sc;
     bool ccb_inited;
@@ -160,20 +165,25 @@ private:
     /*bool*/ void MRAID_Write(UInt8, UInt32);
     void MRAID_Poll(mraid_ccbCommand *);
     void MRAID_Exec(mraid_ccbCommand *);
+    void MRAID_Shutdown();
     
     bool mraid_xscale_intr();
     void mraid_xscale_intr_ena();
+    void mraid_xscale_intr_dis();
     UInt32 mraid_xscale_fw_state();
     void mraid_xscale_post(mraid_ccbCommand *);
     bool mraid_ppc_intr();
     void mraid_ppc_intr_ena();
+    void mraid_ppc_intr_dis();
     UInt32 mraid_ppc_fw_state();
     void mraid_ppc_post(mraid_ccbCommand *);
     bool mraid_gen2_intr();
     void mraid_gen2_intr_ena();
+    void mraid_gen2_intr_dis();
     UInt32 mraid_gen2_fw_state();
     bool mraid_skinny_intr();
     void mraid_skinny_intr_ena();
+    void mraid_skinny_intr_dis();
     UInt32 mraid_skinny_fw_state();
     void mraid_skinny_post(mraid_ccbCommand *);
 protected:
@@ -188,6 +198,7 @@ protected:
     virtual void TerminateController(void);
     virtual bool StartController() {DbgPrint("%s\n", __FUNCTION__); return true;};
     virtual void StopController() {};
+    virtual void systemWillShutdown(IOOptionBits);
     
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
@@ -227,6 +238,7 @@ protected:
 
 #define mraid_my_intr() ((this->*sc.sc_iop->mio_intr)())
 #define mraid_intr_enable() ((this->*sc.sc_iop->mio_intr_ena)())
+#define mraid_intr_disable() ((this->*sc.sc_iop->mio_intr_dis)())
 #define mraid_fw_state() ((this->*sc.sc_iop->mio_fw_state)())
 #define mraid_post(_c) {/*sc->sc_frames->cmd->synchronize(kIODirectionInOut);*/ (this->*sc.sc_iop->mio_post)(_c);};
 /* Different IOPs means different bunch of handling. Covered things: firmware, interrupts, POST. */
@@ -238,24 +250,28 @@ typedef struct mraid_iop_ops {
             case MRAID_IOP_XSCALE:
                 mio_intr = &SASMegaRAID::mraid_xscale_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_xscale_intr_ena;
+                mio_intr_dis = &SASMegaRAID::mraid_xscale_intr_dis;
                 mio_fw_state = &SASMegaRAID::mraid_xscale_fw_state;
                 mio_post = &SASMegaRAID::mraid_xscale_post;
                 break;
             case MRAID_IOP_PPC:
                 mio_intr = &SASMegaRAID::mraid_ppc_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_ppc_intr_ena;
+                mio_intr_dis = &SASMegaRAID::mraid_ppc_intr_dis;
                 mio_fw_state = &SASMegaRAID::mraid_ppc_fw_state;
                 mio_post = &SASMegaRAID::mraid_ppc_post;
                 break;
             case MRAID_IOP_GEN2:
                 mio_intr = &SASMegaRAID::mraid_gen2_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_gen2_intr_ena;
+                mio_intr_dis = &SASMegaRAID::mraid_gen2_intr_dis;
                 mio_fw_state = &SASMegaRAID::mraid_gen2_fw_state;
                 mio_post = &SASMegaRAID::mraid_ppc_post; /* Same as for PPC */
                 break;
             case MRAID_IOP_SKINNY:
                 mio_intr = &SASMegaRAID::mraid_skinny_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_skinny_intr_ena;
+                mio_intr_dis = &SASMegaRAID::mraid_skinny_intr_dis;
                 mio_fw_state = &SASMegaRAID::mraid_skinny_fw_state;
                 mio_post = &SASMegaRAID::mraid_skinny_post;
                 break;
@@ -263,6 +279,7 @@ typedef struct mraid_iop_ops {
     }
     UInt32      (SASMegaRAID::*mio_fw_state)(void);
     void        (SASMegaRAID::*mio_intr_ena)(void);
+    void        (SASMegaRAID::*mio_intr_dis)(void);
     bool         (SASMegaRAID::*mio_intr)(void);
     void        (SASMegaRAID::*mio_post)(mraid_ccbCommand *);
 } mraid_iop_ops;
