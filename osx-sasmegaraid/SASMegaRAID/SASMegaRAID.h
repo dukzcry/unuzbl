@@ -202,10 +202,10 @@ protected:
     
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
-    virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
+    virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
     virtual void                    HandleInterruptRequest ( void ) {};
     virtual UInt32                  ReportMaximumTaskCount ( void ) {return 1;};
-    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {DbgPrint("%s\n", __FUNCTION__); return 0;};
+    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* We're not an actual SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};
     /* This one is a must for starting */

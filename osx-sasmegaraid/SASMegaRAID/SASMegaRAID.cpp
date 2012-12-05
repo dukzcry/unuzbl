@@ -164,11 +164,9 @@ void SASMegaRAID::TerminateController(void)
 void SASMegaRAID::free(void)
 {
     mraid_ccbCommand *command;
-    int i = 0;
     
     DbgPrint("IOService->free\n");
     
-    while (sc.sc_ld_present[i]) {DestroyTargetForID(i); i++;}
     if(map) map->release();
     if (ccb_inited) {
         IODelete(sc.sc_ccb, addr64_t, sc.sc_max_cmds);
@@ -413,6 +411,11 @@ bool SASMegaRAID::Attach()
         IOPrint("BBU not present");
     IOLog("\n");
     
+    sc.sc_ld_cnt = sc.sc_info.mci_lds_present;
+    for (int i = 0; i < sc.sc_ld_cnt; i++) {
+        sc.sc_ld_present[i] = true;
+    }
+    
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
@@ -420,7 +423,7 @@ bool SASMegaRAID::Attach()
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 1);
     
-#if 1
+#if test
     /* Ensure that interrupts work */
     memset(&sc.sc_info, 0, sizeof(sc.sc_info));
     if (!GetInfo()) {
@@ -428,12 +431,6 @@ bool SASMegaRAID::Attach()
         return false;
     }
 #endif
-    
-    sc.sc_ld_cnt = sc.sc_info.mci_lds_present;
-    for (int i = 0; i < sc.sc_ld_cnt; i++) {
-        sc.sc_ld_present[i] = true;
-        CreateTargetForID(i);
-    }
     
     return true;
 }
@@ -1165,7 +1162,10 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 
 bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
 {
-    DbgPrint("%s\n", __FUNCTION__);
+    //DbgPrint("%s\n", __FUNCTION__);
+    
+    if (!sc.sc_ld_present[targetID])
+        return false;
     
     return true;
 }
