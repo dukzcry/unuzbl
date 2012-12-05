@@ -193,7 +193,7 @@ protected:
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
     virtual void                    HandleInterruptRequest ( void ) {};
-    virtual UInt32                  ReportMaximumTaskCount ( void ) {return 0;};
+    virtual UInt32                  ReportMaximumTaskCount ( void ) {return 1;};
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {DbgPrint("%s\n", __FUNCTION__); return 0;};
     /* We're not an actual SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};
@@ -201,33 +201,28 @@ protected:
     virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {return MRAID_MAXFER;};
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
     virtual SCSIServiceResponse     ProcessParallelTask ( SCSIParallelTaskIdentifier parallelRequest );
-private:
-    /* Unimplemented */
-    virtual bool	DoesHBASupportSCSIParallelFeature (
-                                                       SCSIParallelFeature 		theFeature ) {};
+    virtual bool                    DoesHBASupportSCSIParallelFeature ( SCSIParallelFeature theFeature );
+    virtual SCSIServiceResponse     AbortTaskRequest ( SCSITargetIdentifier theT, SCSILogicalUnitNumber theL,
+                                                      SCSITaggedTaskIdentifier theQ ) {
+        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+    }
+    virtual	SCSIServiceResponse     AbortTaskSetRequest (SCSITargetIdentifier theT, SCSILogicalUnitNumber theL ) {
+        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+    }
+	virtual	SCSIServiceResponse ClearACARequest (SCSITargetIdentifier theT, SCSILogicalUnitNumber theL ) {
+        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+    };
+	virtual	SCSIServiceResponse ClearTaskSetRequest (SCSITargetIdentifier theT, SCSILogicalUnitNumber theL ) {
+        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+    };
+	virtual	SCSIServiceResponse LogicalUnitResetRequest (SCSITargetIdentifier theT, SCSILogicalUnitNumber theL ) {
+        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+    };
+	virtual	SCSIServiceResponse TargetResetRequest (SCSITargetIdentifier theT ) {
+        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+    };
     
-    virtual SCSIServiceResponse	AbortTaskRequest (
-                                                  SCSITargetIdentifier 		theT,
-                                                  SCSILogicalUnitNumber		theL,
-                                                  SCSITaggedTaskIdentifier	theQ ) {};
-    virtual	SCSIServiceResponse AbortTaskSetRequest (
-                                                     SCSITargetIdentifier 		theT,
-                                                     SCSILogicalUnitNumber		theL ) {};
-	virtual	SCSIServiceResponse ClearACARequest (
-                                                 SCSITargetIdentifier 		theT,
-                                                 SCSILogicalUnitNumber		theL ) {};
-	
-	virtual	SCSIServiceResponse ClearTaskSetRequest (
-                                                     SCSITargetIdentifier 		theT,
-                                                     SCSILogicalUnitNumber		theL ) {};
-	
-	virtual	SCSIServiceResponse LogicalUnitResetRequest (
-                                                         SCSITargetIdentifier 		theT,
-                                                         SCSILogicalUnitNumber		theL ) {};
-	
-	virtual	SCSIServiceResponse TargetResetRequest (
-                                                    SCSITargetIdentifier 		theT ) {};
-    /* */
+    void ReportHBAConstraints (OSDictionary *constraints );
 };
 
 #define mraid_my_intr() ((this->*sc.sc_iop->mio_intr)())

@@ -1133,6 +1133,27 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     DbgPrint("%s\n", __FUNCTION__);
 }
 
+bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeature)
+{
+    DbgPrint("%s\n", __FUNCTION__);
+    
+    switch (theFeature) {
+        case kSCSIParallelFeature_WideDataTransfer:
+        case kSCSIParallelFeature_SynchronousDataTransfer:
+        case kSCSIParallelFeature_QuickArbitrationAndSelection:
+        case kSCSIParallelFeature_DoubleTransitionDataTransfers:
+        case kSCSIParallelFeature_InformationUnitTransfers:
+        return true;
+    }
+    
+    return false;
+}
+
+void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints )
+{
+    BaseClass::ReportHBAConstraints(constraints);
+}
+
 /* */
 
 bool SASMegaRAID::mraid_xscale_intr()
