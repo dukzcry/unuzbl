@@ -6,10 +6,7 @@ private:
     typedef void        (*ccb_done_ptr)(mraid_ccbCommand *);    
 public:
     struct st {
-        struct {
-            IOLock      *holder;
-            bool        event;
-        } ccb_lock;
+        void            *ccb_cookie;
     
         ccb_done_ptr    ccb_done;
     
@@ -36,7 +33,7 @@ public:
         s.ccb_frame->mrr_header.mrh_cmd_status = 0x0;
         s.ccb_frame->mrr_header.mrh_flags = 0x0;
         
-        s.ccb_lock.event = false;
+        s.ccb_cookie = NULL;
         s.ccb_done = NULL;
         s.ccb_direction = 0;
         s.ccb_frame_size = 0;

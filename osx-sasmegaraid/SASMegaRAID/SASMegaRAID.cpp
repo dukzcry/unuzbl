@@ -281,7 +281,7 @@ bool SASMegaRAID::Probe()
     bool uiop = (mpd->mpd_iop == MRAID_IOP_XSCALE || mpd->mpd_iop == MRAID_IOP_PPC || mpd->mpd_iop == MRAID_IOP_GEN2
                  || mpd->mpd_iop == MRAID_IOP_SKINNY);
     if(sc.sc_iop->is_set() && !uiop) {
-        IOPrint("%s: Unknown IOP %d. The driver will unload.\n", __FUNCTION__, mpd->mpd_iop);
+        IOPrint("%s: Unknown IOP %d. The driver will unload\n", __FUNCTION__, mpd->mpd_iop);
         return false;
     }
     
@@ -309,7 +309,7 @@ bool SASMegaRAID::Attach()
         return false;
     
     if(!(ccbCommandPool = IOCommandPool::withWorkLoop(MyWorkLoop))) {
-        DbgPrint("Can't init command pool.\n");
+        DbgPrint("Can't init command pool\n");
         return false;
     }
     
@@ -947,11 +947,9 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
     if (!InterruptsActivated) {
         ccb->s.ccb_done = mraid_empty_done;
         MRAID_Poll(ccb);
-    } else {
-        ccb->s.ccb_lock.holder = IOLockAlloc();
+    } else
         MRAID_Exec(ccb);
-        IOLockFree(ccb->s.ccb_lock.holder);
-    }
+
     if (dcmd->mdf_header.mrh_cmd_status != MRAID_STAT_OK)
         goto fail;
 
@@ -1128,37 +1126,139 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
 /* Interrupt driven */
 void mraid_exec_done(mraid_ccbCommand *ccb)
 {
+    lock *ccb_lock;
+    
     DbgPrint("%s\n", __FUNCTION__);
     
-    IOLockLock(ccb->s.ccb_lock.holder);
-    ccb->s.ccb_lock.event = true;
-    IOLockWakeup(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, true);
-    IOLockUnlock(ccb->s.ccb_lock.holder);
+    ccb_lock = (lock *) ccb->s.ccb_cookie;
+    
+    IOLockLock(ccb_lock->holder);
+    ccb->s.ccb_cookie = NULL;
+    ccb_lock->event = true;
+    IOLockWakeup(ccb_lock->holder, &ccb_lock->event, true);
+    IOLockUnlock(ccb_lock->holder);
 }
 void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 {
     AbsoluteTime deadline;
     int ret;
+    lock ccb_lock;
     
     DbgPrint("%s\n", __FUNCTION__);
     
 #if defined(DEBUG)
-    if (ccb->s.ccb_lock.event || ccb->s.ccb_done)
+    if (ccb->s.ccb_cookie || ccb->s.ccb_done)
         DbgPrint("Warning: event or done set\n");
 #endif
+    ccb_lock.holder = IOLockAlloc();
+    ccb_lock.event = false;
+    ccb->s.ccb_cookie = &ccb_lock;
+    
     ccb->s.ccb_done = mraid_exec_done;
     mraid_post(ccb);
     
     clock_interval_to_deadline(1, kSecondScale, (UInt64 *) &deadline);
     
-    IOLockLock(ccb->s.ccb_lock.holder);
-    ret = IOLockSleepDeadline(ccb->s.ccb_lock.holder, &ccb->s.ccb_lock.event, deadline, THREAD_INTERRUPTIBLE);
-    ccb->s.ccb_lock.event = false;
-    IOLockUnlock(ccb->s.ccb_lock.holder);
+    IOLockLock(ccb_lock.holder);
+    ret = IOLockSleepDeadline(ccb_lock.holder, &ccb_lock.event, deadline, THREAD_INTERRUPTIBLE);
+    ccb_lock.event = false;
+    IOLockUnlock(ccb_lock.holder);
     if (ret != THREAD_AWAKENED)
         DbgPrint("Warning: interrupt didn't come while expected\n");
+    
+    IOLockFree(ccb_lock.holder);
 }
 /* */
+
+void mraid_cmd_done(mraid_ccbCommand *ccb)
+{
+    cmd_cookie *cmd;
+    mraid_frame_header *hdr = &ccb->s.ccb_frame->mrr_header;
+    
+    DbgPrint("%s: frame %p\n", __FUNCTION__, ccb->s.ccb_frame);
+    
+    cmd = (cmd_cookie *) ccb->s.ccb_cookie;
+    
+    switch (hdr->mrh_cmd_status) {
+        case MRAID_STAT_OK:
+            cmd->ts = kSCSITaskStatus_GOOD;
+        break;
+        case MRAID_STAT_SCSI_DONE_WITH_ERROR:
+            cmd->ts = kSCSITaskStatus_CHECK_CONDITION;
+            memset(&cmd->sense, 0, sizeof(SCSI_Sense_Data));
+            memcpy(&cmd->sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
+        break;
+        case MRAID_STAT_DEVICE_NOT_FOUND:
+            cmd->ts = kSCSITaskStatus_BUSY;
+        break;
+        default:
+            cmd->ts = kSCSITaskStatus_No_Status;
+#if defined(DEBUG)
+            IOPrint("kSCSITaskStatus_No_Status: %02x on %02x\n", hdr->mrh_cmd_status,
+                    cmd->opcode);
+#endif
+            if (hdr->mrh_scsi_status) {
+                DbgPrint("Sense %#x %p\n", hdr->mrh_scsi_status, ccb->s.ccb_sense);
+                cmd->ts = kSCSITaskStatus_CHECK_CONDITION;
+                memset(&cmd->sense, 0, sizeof(SCSI_Sense_Data));
+                memcpy(&cmd->sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
+            }
+        break;
+    }
+}
+
+bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr)
+{
+    SCSICommandDescriptorBlock cdbData = { 0 };
+    IOMemoryDescriptor* transferMemDesc;
+    
+    mraid_pass_frame *pf;
+    cmd_cookie cmd;
+    
+    DbgPrint("%s\n", __FUNCTION__);
+    
+    pf = &ccb->s.ccb_frame->mrr_pass;
+    pf->mpf_header.mrh_cmd = MRAID_CMD_LD_SCSI_IO;
+    pf->mpf_header.mrh_target_id = GetTargetIdentifier(pr);
+    pf->mpf_header.mrh_lun_id = 0;
+    pf->mpf_header.mrh_cdb_len = GetCommandDescriptorBlockSize(pr);
+    pf->mpf_header.mrh_timeout = 0;
+    pf->mpf_header.mrh_data_len = (UInt32)(GetRequestedDataTransferCount(pr) & 0x00000000ffffffff); /* XXX */
+    pf->mpf_header.mrh_sense_len = MRAID_SENSE_SIZE;
+    
+    pf->mpf_sense_addr = htole64(ccb->s.ccb_psense);
+    
+    memset(pf->mpf_cdb, 0, 16);
+    GetCommandDescriptorBlock(pr, &cdbData);
+	memcpy(pf->mpf_cdb, cdbData, pf->mpf_header.mrh_cdb_len);
+    
+    ccb->s.ccb_done = mraid_cmd_done;
+    memset(&cmd.sense, 0, sizeof(cmd.sense));
+#if defined(DEBUG)
+    cmd.opcode = cdbData[0];
+#endif
+    ccb->s.ccb_cookie = &cmd;
+    ccb->s.ccb_frame_size = MRAID_PASS_FRAME_SIZE;
+    ccb->s.ccb_sgl = &pf->mpf_sgl;
+    
+    switch (GetDataTransferDirection(pr)) {
+        case kSCSIDataTransfer_FromTargetToInitiator:
+            ccb->s.ccb_direction = MRAID_DATA_IN;
+        break;
+        case kSCSIDataTransfer_FromInitiatorToTarget:
+            ccb->s.ccb_direction = MRAID_DATA_OUT;
+        break;
+        default:
+            ccb->s.ccb_direction = MRAID_DATA_NONE;
+        break;
+    }
+    
+    if ((transferMemDesc = GetDataBuffer(pr))) {
+        ;
+    }
+    
+    return true;
+}
 
 bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
 {
@@ -1172,7 +1272,34 @@ bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
 
 SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier parallelRequest)
 {
-    DbgPrint("%s\n", __FUNCTION__);
+    SCSICommandDescriptorBlock cdbData = { 0 };
+    
+    mraid_ccbCommand *ccb;
+    
+    GetCommandDescriptorBlock(parallelRequest, &cdbData);
+    
+#if defined(DEBUG)
+    SCSITargetIdentifier targetID = GetTargetIdentifier(parallelRequest);
+    SCSILogicalUnitNumber logicalUnitNumber = GetLogicalUnitNumber(parallelRequest);
+    IOPrint("%s: Opcode 0x%x, Target %d, LUN %d\n", __FUNCTION__, cdbData[0],
+             int(targetID << 32), int(logicalUnitNumber << 32));
+#endif
+    
+    ccb = Getccb();
+    
+    switch (cdbData[0]) {
+            case kSCSICmd_TEST_UNIT_READY:
+                if (!LogicalDiskCmd(ccb, parallelRequest))
+                    return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+            break;
+            default:
+                return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+            break;
+    }
+    
+    Putccb(ccb);
+    
+    return kSCSIServiceResponse_TASK_COMPLETE;
 }
 
 bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeature)
@@ -1252,7 +1379,7 @@ void SASMegaRAID::mraid_ppc_intr_ena()
 void SASMegaRAID::mraid_ppc_intr_dis()
 {
     /* XXX: Unchecked */
-    MRAID_Write(MRAID_OMSK, ~(uint32_t)0x0);
+    MRAID_Write(MRAID_OMSK, ~(UInt32) 0x0);
     MRAID_Write(MRAID_ODC, 0xffffffff);
 }
 UInt32 SASMegaRAID::mraid_ppc_fw_state()

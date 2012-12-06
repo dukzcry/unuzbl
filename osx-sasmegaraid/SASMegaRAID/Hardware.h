@@ -57,6 +57,7 @@
 
 /* Command opcodes */
 #define MRAID_CMD_INIT                          0x00
+#define MRAID_CMD_LD_SCSI_IO                    0x03
 #define MRAID_CMD_DCMD                          0x05
 
 /* Direct commands */
@@ -109,6 +110,8 @@ namespace mraid_structs {
 /* Command completion codes */
 typedef enum {
 	MRAID_STAT_OK = 0x00,
+    MRAID_STAT_DEVICE_NOT_FOUND = 0x0c,
+    MRAID_STAT_SCSI_DONE_WITH_ERROR = 0x2d
 } mraid_status_t;
 
 /* Sense buffer */
@@ -165,6 +168,7 @@ typedef struct {
 	uint64_t            mif_lba;
     mraid_sgl           mif_sgl;
 } __attribute__((packed)) mraid_io_frame;
+#define MRAID_PASS_FRAME_SIZE 48
 typedef struct {
     mraid_frame_header  mpf_header;
 	uint64_t            mpf_sense_addr;
