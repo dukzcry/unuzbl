@@ -104,17 +104,22 @@ typedef struct {
     IOLock      *holder;
     bool        event;
 } lock;
-typedef struct {
-#if defined(DEBUG)
-    UInt8 opcode;
-#endif
-    SCSITaskStatus ts;
-    SCSI_Sense_Data sense;
-} cmd_cookie;
 
 static IOPMPowerState PowerStates[] = {
     {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
 };
+
+class SASMegaRAID;
+typedef struct {
+#if defined(DEBUG)
+    UInt8 opcode;
+#endif
+    SCSIParallelTaskIdentifier pr;
+    SCSITaskStatus ts;
+    SASMegaRAID *instance;
+    
+    SCSI_Sense_Data *sense;
+} cmd_context;
 
 #include "ccbCommand.h"
 
@@ -219,7 +224,7 @@ protected:
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
     virtual void                    HandleInterruptRequest ( void ) {};
     virtual UInt32                  ReportMaximumTaskCount ( void ) {return 1;};
-    /* We don't need it, we use our own cmds pool, and we start to use it much before service starting */
+    /* We don't need it, we use our own cmds pool, and we're rely on it much before service starting */
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* We're not an actual SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};
@@ -249,6 +254,8 @@ protected:
     };
     
     void ReportHBAConstraints (OSDictionary *constraints );
+public:
+    void CompleteTask(mraid_ccbCommand *, cmd_context *);
 };
 
 #define mraid_my_intr() ((this->*sc.sc_iop->mio_intr)())

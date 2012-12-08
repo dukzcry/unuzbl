@@ -1,12 +1,13 @@
 #define super IOCommand
 
+class SASMegaRAID;
 class mraid_ccbCommand: public IOCommand {
     OSDeclareDefaultStructors(mraid_ccbCommand);
 private:
-    typedef void        (*ccb_done_ptr)(mraid_ccbCommand *);    
+    typedef void (*ccb_done_ptr)(mraid_ccbCommand *);
 public:
     struct st {
-        void            *ccb_cookie;
+        void            *ccb_context;
     
         ccb_done_ptr    ccb_done;
     
@@ -33,7 +34,7 @@ public:
         s.ccb_frame->mrr_header.mrh_cmd_status = 0x0;
         s.ccb_frame->mrr_header.mrh_flags = 0x0;
         
-        s.ccb_cookie = NULL;
+        s.ccb_context = NULL;
         s.ccb_done = NULL;
         s.ccb_direction = 0;
         s.ccb_frame_size = 0;

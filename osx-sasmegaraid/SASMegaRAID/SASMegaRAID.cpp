@@ -419,6 +419,7 @@ bool SASMegaRAID::Attach()
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
+    /* Rework: InitializePowerManagement() */
     PMinit();
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 1);
@@ -1044,6 +1045,7 @@ void SASMegaRAID::MRAID_Shutdown()
     }
 }
 
+/* TO-DO: HandlePowerOn/Off() */
 void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
 {
     DbgPrint("%s: spec = %#x\n", __FUNCTION__, spec);
@@ -1130,10 +1132,10 @@ void mraid_exec_done(mraid_ccbCommand *ccb)
     
     DbgPrint("%s\n", __FUNCTION__);
     
-    ccb_lock = (lock *) ccb->s.ccb_cookie;
+    ccb_lock = (lock *) ccb->s.ccb_context;
     
     IOLockLock(ccb_lock->holder);
-    ccb->s.ccb_cookie = NULL;
+    ccb->s.ccb_context = NULL;
     ccb_lock->event = true;
     IOLockWakeup(ccb_lock->holder, &ccb_lock->event, true);
     IOLockUnlock(ccb_lock->holder);
@@ -1147,12 +1149,12 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
     DbgPrint("%s\n", __FUNCTION__);
     
 #if defined(DEBUG)
-    if (ccb->s.ccb_cookie || ccb->s.ccb_done)
+    if (ccb->s.ccb_context || ccb->s.ccb_done)
         DbgPrint("Warning: event or done set\n");
 #endif
     ccb_lock.holder = IOLockAlloc();
     ccb_lock.event = false;
-    ccb->s.ccb_cookie = &ccb_lock;
+    ccb->s.ccb_context = &ccb_lock;
     
     ccb->s.ccb_done = mraid_exec_done;
     mraid_post(ccb);
@@ -1172,12 +1174,15 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 
 void mraid_cmd_done(mraid_ccbCommand *ccb)
 {
-    cmd_cookie *cmd;
+    SCSI_Sense_Data sense = { 0 };
+    
+    cmd_context *cmd;
     mraid_frame_header *hdr = &ccb->s.ccb_frame->mrr_header;
     
     DbgPrint("%s: frame %p\n", __FUNCTION__, ccb->s.ccb_frame);
     
-    cmd = (cmd_cookie *) ccb->s.ccb_cookie;
+    cmd = (cmd_context *) ccb->s.ccb_context;
+    ccb->s.ccb_context = NULL;
     
     switch (hdr->mrh_cmd_status) {
         case MRAID_STAT_OK:
@@ -1185,8 +1190,8 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         break;
         case MRAID_STAT_SCSI_DONE_WITH_ERROR:
             cmd->ts = kSCSITaskStatus_CHECK_CONDITION;
-            memset(&cmd->sense, 0, sizeof(SCSI_Sense_Data));
-            memcpy(&cmd->sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
+            cmd->sense = &sense;
+            memcpy(&sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
         break;
         case MRAID_STAT_DEVICE_NOT_FOUND:
             cmd->ts = kSCSITaskStatus_BUSY;
@@ -1200,11 +1205,21 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
             if (hdr->mrh_scsi_status) {
                 DbgPrint("Sense %#x %p\n", hdr->mrh_scsi_status, ccb->s.ccb_sense);
                 cmd->ts = kSCSITaskStatus_CHECK_CONDITION;
-                memset(&cmd->sense, 0, sizeof(SCSI_Sense_Data));
-                memcpy(&cmd->sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
+                cmd->sense = &sense;
+                memcpy(&sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
             }
         break;
     }
+    
+    cmd->instance->CompleteTask(ccb, cmd);
+}
+
+void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
+{
+    Putccb(ccb);
+    
+    if (cmd->ts == kSCSITaskStatus_CHECK_CONDITION)
+        SetAutoSenseData(cmd->pr, cmd->sense, sizeof(SCSI_Sense_Data));
 }
 
 bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr)
@@ -1213,7 +1228,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     IOMemoryDescriptor* transferMemDesc;
     
     mraid_pass_frame *pf;
-    cmd_cookie cmd;
+    cmd_context cmd;
     
     DbgPrint("%s\n", __FUNCTION__);
     
@@ -1223,7 +1238,8 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     pf->mpf_header.mrh_lun_id = 0;
     pf->mpf_header.mrh_cdb_len = GetCommandDescriptorBlockSize(pr);
     pf->mpf_header.mrh_timeout = 0;
-    pf->mpf_header.mrh_data_len = (UInt32)(GetRequestedDataTransferCount(pr) & 0x00000000ffffffff); /* XXX */
+    /* XXX */
+    pf->mpf_header.mrh_data_len = (UInt32)(GetRequestedDataTransferCount(pr) & 0x00000000ffffffff);
     pf->mpf_header.mrh_sense_len = MRAID_SENSE_SIZE;
     
     pf->mpf_sense_addr = htole64(ccb->s.ccb_psense);
@@ -1233,11 +1249,14 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
 	memcpy(pf->mpf_cdb, cdbData, pf->mpf_header.mrh_cdb_len);
     
     ccb->s.ccb_done = mraid_cmd_done;
-    memset(&cmd.sense, 0, sizeof(cmd.sense));
+    
+    cmd.instance = this;
 #if defined(DEBUG)
     cmd.opcode = cdbData[0];
 #endif
-    ccb->s.ccb_cookie = &cmd;
+    cmd.pr = pr;
+    ccb->s.ccb_context = &cmd;
+    
     ccb->s.ccb_frame_size = MRAID_PASS_FRAME_SIZE;
     ccb->s.ccb_sgl = &pf->mpf_sgl;
     
@@ -1275,6 +1294,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     SCSICommandDescriptorBlock cdbData = { 0 };
     
     mraid_ccbCommand *ccb;
+    UInt8 mbox[MRAID_MBOX_SIZE];
     
     GetCommandDescriptorBlock(parallelRequest, &cdbData);
     
@@ -1285,20 +1305,48 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
              int(targetID << 32), int(logicalUnitNumber << 32));
 #endif
     
+    /* TO-DO: We need batt status refreshing for this */
+    /*if (cdbData[0] == kSCSICmd_SYNCHRONIZE_CACHE && sc.sc_bbuok)
+        return kSCSIServiceResponse_TASK_COMPLETE;*/
+    
     ccb = Getccb();
     
     switch (cdbData[0]) {
-            case kSCSICmd_TEST_UNIT_READY:
-                if (!LogicalDiskCmd(ccb, parallelRequest))
-                    return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
-            break;
-            default:
-                return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
-            break;
+        case kSCSICmd_SYNCHRONIZE_CACHE:
+            mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
+            if (!Management(MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox))
+                goto fail;
+        goto complete;
+        case kSCSICmd_TEST_UNIT_READY:
+            if (!LogicalDiskCmd(ccb, parallelRequest))
+                goto fail;
+        break;
+        default:
+            goto fail;
     }
     
-    Putccb(ccb);
+    DbgPrint("Started processing\n");
     
+    /* IMMED */
+    if (cdbData[1] & 0x01) {
+        MRAID_Poll(ccb);
+        if (ccb->s.ccb_frame->mrr_header.mrh_cmd_status == MRAID_STAT_OK) {
+            DbgPrint("Polled command completed\n");
+            goto complete;
+        } else {
+            DbgPrint("Polled command failed\n");
+            goto fail;
+        }
+    }
+    
+    mraid_post(ccb);
+    DbgPrint("Command queued\n");
+    return kSCSIServiceResponse_Request_In_Process;
+fail:
+    Putccb(ccb);
+    return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+complete:
+    Putccb(ccb);
     return kSCSIServiceResponse_TASK_COMPLETE;
 }
 
