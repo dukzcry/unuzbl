@@ -1225,7 +1225,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
 void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
 {
     if (ccb->s.ccb_direction != MRAID_DATA_NONE) {
-        if (ccb->s.ccb_direction == MRAID_DATA_IN)
+        if (ccb->s.ccb_direction == MRAID_DATA_IN && cmd->ts == kSCSITaskStatus_GOOD)
             GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
                                    (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
                                     ccb->s.ccb_sglmem.len);
@@ -1272,10 +1272,10 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
+    cmd->pr = pr;
 #if defined(DEBUG)
     cmd->opcode = cdbData[0];
 #endif
-    cmd->pr = pr;
     ccb->s.ccb_context = cmd;
     
     ccb->s.ccb_frame_size = MRAID_PASS_FRAME_SIZE;
