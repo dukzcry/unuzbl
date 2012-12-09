@@ -1369,7 +1369,10 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     
     DbgPrint("Started processing\n");
     
-    if (IMMED_ST(cdbData[1])) {
+    /* Rework: it shouldn't rely on CDB of concrete cmd */
+#if 0
+    /* IMMED */
+    if (cdbData[1] & 0x01) {
         MRAID_Poll(ccb);
         if (ccb->s.ccb_frame->mrr_header.mrh_cmd_status != MRAID_STAT_OK)
             DbgPrint("Polled command failed\n");
@@ -1378,6 +1381,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
             DbgPrint("Polled command completed\n");
             goto complete;
     }
+#endif
     
     mraid_post(ccb);
     DbgPrint("Command queued\n");
