@@ -1,3 +1,7 @@
+/* Notes for code reader:
+ - Syncs are bogus and not everywhere
+ - Segments support bits aren't everywhere */
+
 #include "SASMegaRAID.h"
 #include "Registers.h"
 
@@ -67,8 +71,13 @@ bool SASMegaRAID::InitializeController(void)
     type = PCIHelperP->MappingType(this, regbar, &barval);
     switch(type) {
         case PCI_MAPREG_TYPE_IO:
+#if 1
+            IOPrint("Memory mapping failed\n");
+            return false;
+#else
             fPCIDevice->setIOEnable(true);
-            break;
+        break;
+#endif
         case PCI_MAPREG_MEM_TYPE_32BIT_1M:
         case PCI_MAPREG_MEM_TYPE_32BIT:
             fPCIDevice->setMemoryEnable(true);
@@ -88,15 +97,16 @@ bool SASMegaRAID::InitializeController(void)
                              (UInt32)map->getLength());
                 }
                 else {
-                    IOPrint("Can't map controller PCI space.\n");
+                    IOPrint("Can't map controller PCI space\n");
                     return false;
                 }
             }
-            break;
+        break;
         case PCI_MAPREG_MEM_TYPE_64BIT:
-            /*IOPrint("Only PCI-E cards are supported.\n");
-             return false;*/
-            
+#ifdef notyet
+            IOPrint("PCI-X support to be implemented\n");
+            return false;
+#else
             fPCIDevice->setMemoryEnable(true);
             
             /* Rework: Mapping with 64-bit address. */
@@ -112,13 +122,14 @@ bool SASMegaRAID::InitializeController(void)
                              (UInt32)map->getLength());
                 }
                 else {
-                    IOPrint("Can't map controller PCI space.\n");
+                    IOPrint("Can't map controller PCI space\n");
                     return false;
                 }
             }
-            break;
+        break;
+#endif
         default:
-            DbgPrint("Can't find out mapping scheme.\n");
+            IOPrint("Can't find out mapping scheme\n");
             return false;
     }
     OSBoolean *sPreferMSI = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
@@ -129,7 +140,7 @@ bool SASMegaRAID::InitializeController(void)
         return false;
     
     if(!Attach()) {
-        IOPrint("Can't attach device.\n");
+        IOPrint("Can't attach device\n");
         return false;
     }
 
@@ -291,7 +302,7 @@ bool SASMegaRAID::Probe()
 void mraid_empty_done(mraid_ccbCommand *)
 {
     /* ;) */
-    __asm__ volatile("nop");
+    __asm__ /*volatile*/("nop");
 }
 
 bool SASMegaRAID::Attach()
@@ -309,7 +320,7 @@ bool SASMegaRAID::Attach()
         return false;
     
     if(!(ccbCommandPool = IOCommandPool::withWorkLoop(MyWorkLoop))) {
-        DbgPrint("Can't init command pool\n");
+        IOPrint("Can't init command pool\n");
         return false;
     }
     
@@ -329,7 +340,7 @@ bool SASMegaRAID::Attach()
         sc.sc_sgl_size = sizeof(mraid_sg32);
         sc.sc_sgl_flags = MRAID_FRAME_SGL32;
     }
-    DbgPrint("DMA: %d-bit, max commands: %u, max SGL count: %u\n", IOPhysSize, sc.sc_max_cmds,
+    IOPrint("DMA: %d-bit, max commands: %u, max SGL count: %u\n", IOPhysSize, sc.sc_max_cmds,
               sc.sc_max_sgl);
     
     /* Allocate united mem for reply queue & producer-consumer */
@@ -1113,7 +1124,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
             break;
         
         if (cycles++ > 500) {
-            IOPrint("ccb timeout\n");
+            IOPrint("Poll timeout\n");
             break;
         }
         
@@ -1154,7 +1165,7 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
     
 #if defined(DEBUG)
     if (ccb->s.ccb_context || ccb->s.ccb_done)
-        DbgPrint("Warning: event or done set\n");
+        IOPrint("Warning: event or done set\n");
 #endif
     ccb_lock.holder = IOLockAlloc();
     ccb_lock.event = false;
@@ -1176,6 +1187,7 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 }
 /* */
 
+/* SCSI part */
 void mraid_cmd_done(mraid_ccbCommand *ccb)
 {
     SCSI_Sense_Data sense = { 0 };
@@ -1317,16 +1329,6 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     return true;
 }
 
-bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
-{
-    //DbgPrint("%s\n", __FUNCTION__);
-    
-    if (!sc.sc_ld_present[targetID])
-        return false;
-    
-    return true;
-}
-
 SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier parallelRequest)
 {
     SCSICommandDescriptorBlock cdbData = { 0 };
@@ -1340,12 +1342,12 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     SCSITargetIdentifier targetID = GetTargetIdentifier(parallelRequest);
     SCSILogicalUnitNumber logicalUnitNumber = GetLogicalUnitNumber(parallelRequest);
     IOPrint("%s: Opcode 0x%x, Target %d, LUN %d\n", __FUNCTION__, cdbData[0],
-             int(targetID << 32), int(logicalUnitNumber << 32));
+            int(targetID << 32), int(logicalUnitNumber << 32));
 #endif
     
     /* TO-DO: We need batt status refreshing for this */
     /*if (cdbData[0] == kSCSICmd_SYNCHRONIZE_CACHE && sc.sc_bbuok)
-        return kSCSIServiceResponse_TASK_COMPLETE;*/
+     return kSCSIServiceResponse_TASK_COMPLETE;*/
     
     ccb = Getccb();
     
@@ -1362,7 +1364,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
             mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
             if (!Do_Management(ccb, MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox))
                 goto fail;
-        goto complete;
+            goto complete;
         default:
             if (!LogicalDiskCmd(ccb, parallelRequest))
                 goto fail;
@@ -1375,12 +1377,13 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     /* IMMED */
     if (cdbData[1] & 0x01) {
         MRAID_Poll(ccb);
-        if (ccb->s.ccb_frame->mrr_header.mrh_cmd_status != MRAID_STAT_OK)
-            DbgPrint("Polled command failed\n");
+        if (ccb->s.ccb_frame->mrr_header.mrh_cmd_status != MRAID_STAT_OK) {
+            IOPrint("Polled command failed\n");
             goto fail;
-            
+        } else {
             DbgPrint("Polled command completed\n");
             goto complete;
+        }
     }
 #endif
     
@@ -1393,6 +1396,18 @@ fail:
 complete:
     Putccb(ccb);
     return kSCSIServiceResponse_TASK_COMPLETE;
+}
+
+/* */
+
+bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
+{
+    //DbgPrint("%s\n", __FUNCTION__);
+    
+    if (!sc.sc_ld_present[targetID])
+        return false;
+    
+    return true;
 }
 
 bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeature)
@@ -1410,6 +1425,8 @@ bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeatu
     
     return false;
 }
+
+/* Optionals */
 
 void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints )
 {

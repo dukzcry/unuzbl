@@ -86,12 +86,12 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
         CPtr->fMSIEnabled = true;
 
     if(!(CPtr->MyWorkLoop = IOWorkLoop::workLoop())) {
-        DbgPrint("[Helper] My Workloop creation failed\n");
+        IOPrint("[Helper] My Workloop creation failed\n");
         return false;
     }
     
     if(CPtr->fMSIEnabled) {
-        DbgPrint("[Helper] MSI interrupt index: %d\n", msi_index);
+        IOPrint("[Helper] MSI interrupt index: %d\n", msi_index);
         /* MSI interrupts can't be shared, so we don't use a filter. */
         CPtr->fInterruptSrc = IOInterruptEventSource::interruptEventSource(CPtr, 
             OSMemberFunctionCast(IOInterruptEventSource::Action, CPtr, InterruptHandler), 
@@ -112,8 +112,8 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
     }
     if (!CPtr->fInterruptSrc || CPtr->MyWorkLoop->addEventSource(CPtr->fInterruptSrc) != kIOReturnSuccess)
     {
-        if (!CPtr->fInterruptSrc) DbgPrint("[Helper] Couldn't create interrupt source\n");
-            else DbgPrint("[Helper] Couldn't attach interrupt source\n");
+        if (!CPtr->fInterruptSrc) IOPrint("[Helper] Couldn't create interrupt source\n");
+            else IOPrint("[Helper] Couldn't attach interrupt source\n");
         return false;
     }
     

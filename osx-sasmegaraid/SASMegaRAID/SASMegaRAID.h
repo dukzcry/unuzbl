@@ -230,7 +230,7 @@ protected:
 1;};
     /* We don't need it, we use our own cmds pool, and we're rely on it much before service starting */
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
-    /* We're not an actual SCSI controller */
+    /* We're not a real SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};
     /* This one is a must for starting */
     virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {return MRAID_MAXFER;};

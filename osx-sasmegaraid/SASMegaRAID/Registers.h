@@ -1,5 +1,4 @@
 /* PCI config space BAR addresses */
-
 #define	MRAID_BAR		0x10    /* kIOPCIConfigBaseAddress0 */
 #define	MRAID_BAR_GEN2	0x14    /* kIOPCIConfigBaseAddress1 */
 
