@@ -7,6 +7,9 @@
 #include "Hardware.h"
 #include "HelperLib.h"
 
+/* SCSI-related */
+#define IMMED_ST(x)       (x & 0x01)
+
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
 #if segmem
@@ -223,7 +226,11 @@ protected:
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
     virtual void                    HandleInterruptRequest ( void ) {};
-    virtual UInt32                  ReportMaximumTaskCount ( void ) {return 1;};
+    virtual UInt32                  ReportMaximumTaskCount ( void ) {return
+#if 0
+        sc.sc_max_cmds -
+#endif
+1;};
     /* We don't need it, we use our own cmds pool, and we're rely on it much before service starting */
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* We're not an actual SCSI controller */

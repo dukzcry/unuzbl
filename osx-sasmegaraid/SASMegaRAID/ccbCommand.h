@@ -3,13 +3,11 @@
 class SASMegaRAID;
 class mraid_ccbCommand: public IOCommand {
     OSDeclareDefaultStructors(mraid_ccbCommand);
-private:
-    typedef void (*ccb_done_ptr)(mraid_ccbCommand *);
 public:
     struct st {
         void            *ccb_context;
     
-        ccb_done_ptr    ccb_done;
+        void (*ccb_done)(mraid_ccbCommand *);
     
         UInt32          ccb_direction;
 #define MRAID_DATA_NONE	0
