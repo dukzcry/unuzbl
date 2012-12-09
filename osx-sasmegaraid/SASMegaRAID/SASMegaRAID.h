@@ -7,9 +7,6 @@
 #include "Hardware.h"
 #include "HelperLib.h"
 
-/* SCSI-related */
-#define IMMED_ST(x)       (x & 0x01)
-
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
 #if segmem
