@@ -7,6 +7,7 @@ public:
     struct st {
         void            *ccb_context;
     
+        /* Do things painless, save us from pointer to member function */
         void (*ccb_done)(mraid_ccbCommand *);
     
         UInt32          ccb_direction;
