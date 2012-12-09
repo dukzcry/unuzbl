@@ -1224,13 +1224,14 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
 
 void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
 {
-#ifdef broken
     if (ccb->s.ccb_direction != MRAID_DATA_NONE) {
-        GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
-                                   ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), ccb->s.ccb_sglmem.len);
+        if (ccb->s.ccb_direction == MRAID_DATA_IN)
+            GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
+                                   (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
+                                    ccb->s.ccb_sglmem.len);
+        
         FreeSGL(&ccb->s.ccb_sglmem);
     }
-#endif
     
     Putccb(ccb);
 
@@ -1243,8 +1244,8 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
 bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr)
 {
     SCSICommandDescriptorBlock cdbData = { 0 };
-    //IOMemoryDescriptor* transferMemDesc;
-    //IOByteCount transferLen;
+    IOMemoryDescriptor* transferMemDesc;
+    IOByteCount transferLen;
     
     mraid_pass_frame *pf;
     cmd_context *cmd;
@@ -1292,7 +1293,6 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
         break;
     }
 
-#ifdef broken
     if ((transferMemDesc = GetDataBuffer(pr))) {
         if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
                                                     kernel_task,
@@ -1301,15 +1301,14 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
                                                     IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
             return false;
         ccb->s.ccb_sglmem.bmd->prepare();
-        if (ccb->s.ccb_direction == MRAID_DATA_OUT)
-            transferMemDesc->readBytes(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
-        
+
         ccb->s.ccb_sglmem.len = (UInt32) transferLen;
+        if (ccb->s.ccb_direction == MRAID_DATA_OUT)
+            transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
         
         if (!CreateSGL(ccb))
             return false;
     }
-#endif
     
     return true;
 }
@@ -1347,10 +1346,9 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     ccb = Getccb();
     
     switch (cdbData[0]) {
-#ifndef fixed
-        case 0x12:
-#endif
-            
+        case kSCSICmd_INQUIRY:
+            /* Broken */
+            goto fail;
         case kSCSICmd_READ_12:
         case kSCSICmd_READ_10:
         case kSCSICmd_READ_6:
