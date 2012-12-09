@@ -1230,7 +1230,7 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
             		GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
                                    (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
                                     ccb->s.ccb_sglmem.len);
-                SetRealizedDataTransferCount(cmd->pr, ccb->s.ccb_sglmem.len);
+            SetRealizedDataTransferCount(cmd->pr, ccb->s.ccb_sglmem.len);
     	} else
     		SetRealizedDataTransferCount(cmd->pr, 0);
         
@@ -1263,7 +1263,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     pf->mpf_header.mrh_cdb_len = GetCommandDescriptorBlockSize(pr);
     pf->mpf_header.mrh_timeout = 0;
     /* XXX */
-    pf->mpf_header.mrh_data_len = (UInt32)(GetRequestedDataTransferCount(pr) & 0x00000000ffffffff);
+    pf->mpf_header.mrh_data_len = (UInt32) GetRequestedDataTransferCount(pr);
     pf->mpf_header.mrh_sense_len = MRAID_SENSE_SIZE;
     
     pf->mpf_sense_addr = htole64(ccb->s.ccb_psense);
@@ -1350,9 +1350,6 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     ccb = Getccb();
     
     switch (cdbData[0]) {
-        case kSCSICmd_INQUIRY:
-            /* Broken */
-            goto fail;
         case kSCSICmd_READ_12:
         case kSCSICmd_READ_10:
         case kSCSICmd_READ_6:
