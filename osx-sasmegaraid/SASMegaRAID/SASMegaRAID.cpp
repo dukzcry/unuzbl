@@ -1225,10 +1225,14 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
 void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
 {
     if (ccb->s.ccb_direction != MRAID_DATA_NONE) {
-        if (ccb->s.ccb_direction == MRAID_DATA_IN && cmd->ts == kSCSITaskStatus_GOOD)
-            GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
+    	if (cmd->ts == kSCSITaskStatus_GOOD) {
+        	if (ccb->s.ccb_direction == MRAID_DATA_IN)
+            		GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
                                    (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
                                     ccb->s.ccb_sglmem.len);
+                SetRealizedDataTransferCount(cmd->pr, ccb->s.ccb_sglmem.len);
+    	} else
+    		SetRealizedDataTransferCount(cmd->pr, 0);
         
         FreeSGL(&ccb->s.ccb_sglmem);
     }
