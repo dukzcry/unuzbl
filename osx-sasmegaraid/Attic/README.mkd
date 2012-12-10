@@ -2,7 +2,7 @@ I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers. This dr
 Note, that probably almost every card from this family requires x86 host to get access to device firmware's management utility (maybe such card will work on PPC machine, without booting capatibility, but you'll not be able to do initial setup of things outside of OS, i.e. you'll need to insert card inside of PC to create virtual disks and so on...). Also most of devices don't have EFI-compatible firmware, so you'll have problem not only on PPC hosts, but on original Macs with EFI firmware too. The ideal box to play with is a hackintosh with BIOS.
 
 Postponed features:
-- sleep/resume handling
+- Sleep/resume handling
 - Hotspare support
 - Sensors data refreshing
 - Management of RAID functional
