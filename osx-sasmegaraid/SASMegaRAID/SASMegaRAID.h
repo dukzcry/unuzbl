@@ -1,8 +1,9 @@
+#include <IOKit/IOBufferMemoryDescriptor.h>
 #include <IOKit/pci/IOPCIDevice.h>
 #include <IOKit/scsi/spi/IOSCSIParallelInterfaceController.h>
 #include <IOKit/scsi/SCSICommandOperationCodes.h>
-#include <IOKit/IOBufferMemoryDescriptor.h>
 #include <IOKit/storage/IOStorageDeviceCharacteristics.h>
+//#include <IOKit/IOKitKeys.h>
 
 #include "Hardware.h"
 #include "HelperLib.h"

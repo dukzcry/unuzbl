@@ -66,6 +66,7 @@ bool SASMegaRAID::InitializeController(void)
 	regbar = (mpd->mpd_iop == MRAID_IOP_GEN2 || mpd->mpd_iop == MRAID_IOP_SKINNY) ?
         MRAID_BAR_GEN2 : MRAID_BAR;
 
+    /* We do DMA transactions */
     fPCIDevice->setBusMasterEnable(true);
     /* Figuring out mapping scheme */
     type = PCIHelperP->MappingType(this, regbar, &barval);
@@ -1430,6 +1431,17 @@ bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeatu
 
 void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints )
 {
+#if 0
+    OSNumber *byteCount = NULL;
+    UInt64 align_mask = 0xFFFFFFFFFFFFFFFFULL;
+    
+    byteCount = OSDynamicCast(OSNumber, getProperty(kIOMaximumSegmentCountReadKey));
+    setProperty(kIOMaximumSegmentCountReadKey, byteCount); byteCount = NULL;
+    
+    byteCount = OSDynamicCast(OSNumber, getProperty(kIOMaximumSegmentCountWriteKey));
+    setProperty(kIOMaximumSegmentCountWriteKey, byteCount); byteCount = NULL;
+#endif
+    
     BaseClass::ReportHBAConstraints(constraints);
 }
 
