@@ -1,2 +1,3 @@
 See: http://www.freelists.org/post/haiku-bugs/Haiku-4567-Middle-mouse-click-and-key-combos,1
+
 Only tapping recognition is currently implemented, no figerprint scanning yet :-(
