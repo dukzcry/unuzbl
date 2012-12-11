@@ -57,6 +57,8 @@
 
 /* Command opcodes */
 #define MRAID_CMD_INIT                          0x00
+#define MRAID_CMD_LD_READ                       0x01
+#define MRAID_CMD_LD_WRITE                      0x02
 #define MRAID_CMD_LD_SCSI_IO                    0x03
 #define MRAID_CMD_DCMD                          0x05
 
