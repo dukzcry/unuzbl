@@ -1,6 +1,6 @@
 /* Notes for code reader:
- - Syncs are bogus and not everywhere
- - Segments support bits aren't everywhere */
+ - Syncs are bogus and not in all places they ough to be
+ - Segments support bits aren't in all places they should to be */
 
 #include "SASMegaRAID.h"
 #include "Registers.h"
@@ -232,8 +232,8 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
 
     //sc.sc_pcq->cmd->synchronize(kIODirectionInOut);
     
-    Producer = letoh32(pcq->mpc_producer);
-    Consumer = letoh32(pcq->mpc_consumer);
+    Producer = pcq->mpc_producer;
+    Consumer = pcq->mpc_consumer;
     
     while (Consumer != Producer) {
         DbgPrint("pi: %#x ci: %#x\n", Producer, Consumer);
@@ -677,7 +677,7 @@ bool SASMegaRAID::Initialize_Firmware()
     qinfo = (mraid_init_qinfo *)((UInt8 *) init + MRAID_FRAME_SIZE);
     
     memset(qinfo, 0, sizeof(mraid_init_qinfo));
-    qinfo->miq_rq_entries = htole32(sc.sc_max_cmds + 1);
+    qinfo->miq_rq_entries = sc.sc_max_cmds + 1;
     
     qinfo->miq_rq_addr = htole64(MRAID_DVA(sc.sc_pcq) + offsetof(mraid_prod_cons, mpc_reply_q));
 	qinfo->miq_pi_addr = htole64(MRAID_DVA(sc.sc_pcq) + offsetof(mraid_prod_cons, mpc_producer));
@@ -1330,6 +1330,71 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     return true;
 }
 
+bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UInt32 lba, UInt16 len)
+{
+    SCSICommandDescriptorBlock cdbData = { 0 };
+    IOMemoryDescriptor* transferMemDesc;
+    IOByteCount transferLen;
+    
+    mraid_io_frame *io;
+    cmd_context *cmd;
+    
+    DbgPrint("%s\n", __FUNCTION__);
+    
+    if (!(transferMemDesc = GetDataBuffer(pr)))
+        return false;
+    
+    io = &ccb->s.ccb_frame->mrr_io;
+    switch (GetDataTransferDirection(pr)) {
+        case kSCSIDataTransfer_FromTargetToInitiator:
+            io->mif_header.mrh_cmd = MRAID_CMD_LD_READ;
+            ccb->s.ccb_direction = MRAID_DATA_IN;
+            break;
+        case kSCSIDataTransfer_FromInitiatorToTarget:
+            io->mif_header.mrh_cmd = MRAID_CMD_LD_WRITE;
+            ccb->s.ccb_direction = MRAID_DATA_OUT;
+            break;
+    }
+    io->mif_header.mrh_target_id = GetTargetIdentifier(pr);
+    io->mif_header.mrh_timeout = 0;
+    io->mif_header.mrh_flags = 0;
+    io->mif_header.mrh_data_len = len;
+    io->mif_header.mrh_sense_len = MRAID_SENSE_SIZE;
+    io->mif_lba = htole64(lba);
+
+    io->mif_sense_addr = htole64(ccb->s.ccb_psense);
+    
+    ccb->s.ccb_done = mraid_cmd_done;
+    
+    cmd = IONew(cmd_context, 1);
+    cmd->instance = this;
+    cmd->pr = pr;
+#if defined(DEBUG)
+    cmd->opcode = cdbData[0];
+#endif
+    ccb->s.ccb_context = cmd;
+    
+    ccb->s.ccb_frame_size = MRAID_PASS_FRAME_SIZE;
+    ccb->s.ccb_sgl = &io->mif_sgl;
+    
+    if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
+                                                                                    kernel_task,
+                                                                                    kIOMemoryPhysicallyContiguous,
+                                                                                    (transferLen = transferMemDesc->getLength()),
+                                                                                    IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
+        return false;
+    ccb->s.ccb_sglmem.bmd->prepare();
+        
+    ccb->s.ccb_sglmem.len = (UInt32) transferLen;
+    if (ccb->s.ccb_direction == MRAID_DATA_OUT)
+        transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
+        
+    if (!CreateSGL(ccb))
+        return false;
+    
+    return true;
+}
+
 SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier parallelRequest)
 {
     SCSICommandDescriptorBlock cdbData = { 0 };
@@ -1354,13 +1419,23 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     
     switch (cdbData[0]) {
         case kSCSICmd_READ_12:
-        case kSCSICmd_READ_10:
-        case kSCSICmd_READ_6:
         case kSCSICmd_WRITE_12:
+            if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2),
+                       /* XXX: Check me */
+                       OSReadBigInt16(cdbData, 9)))
+                goto fail;
+            break;
+        case kSCSICmd_READ_10:
         case kSCSICmd_WRITE_10:
+            if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2), OSReadBigInt16(cdbData, 7)))
+                goto fail;
+        break;
+        case kSCSICmd_READ_6:
         case kSCSICmd_WRITE_6:
-            /* To be written */
-            goto fail;
+            if (!IOCmd(ccb, parallelRequest, OSSwapBigToHostConstInt32(*((UInt32 *)cdbData)) & kSCSICmdFieldMask21Bit,
+                       cdbData[4] ? cdbData[4] : 256))
+                goto fail;
+        break;
         case kSCSICmd_SYNCHRONIZE_CACHE:
             mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
             if (!Do_Management(ccb, MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox))

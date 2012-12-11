@@ -3,6 +3,7 @@
 #include <IOKit/scsi/spi/IOSCSIParallelInterfaceController.h>
 #include <IOKit/scsi/SCSICommandOperationCodes.h>
 #include <IOKit/storage/IOStorageDeviceCharacteristics.h>
+#include <IOKit/scsi/SCSICommandDefinitions.h>
 //#include <IOKit/IOKitKeys.h>
 
 #include "Hardware.h"
@@ -206,6 +207,7 @@ private:
     void mraid_skinny_post(mraid_ccbCommand *);
     
     bool LogicalDiskCmd(mraid_ccbCommand *, SCSIParallelTaskIdentifier);
+    bool IOCmd(mraid_ccbCommand *, SCSIParallelTaskIdentifier, UInt32, UInt16);
 protected:
     virtual bool init(OSDictionary *);
     
@@ -238,6 +240,7 @@ protected:
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
     virtual SCSIServiceResponse     ProcessParallelTask ( SCSIParallelTaskIdentifier parallelRequest );
     virtual bool                    DoesHBASupportSCSIParallelFeature ( SCSIParallelFeature theFeature );
+    /* Implement us */
     virtual SCSIServiceResponse     AbortTaskRequest ( SCSITargetIdentifier theT, SCSILogicalUnitNumber theL,
                                                       SCSITaggedTaskIdentifier theQ ) {
         return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
@@ -257,6 +260,7 @@ protected:
 	virtual	SCSIServiceResponse TargetResetRequest (SCSITargetIdentifier theT ) {
         return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
     };
+    /* */
     
     void ReportHBAConstraints (OSDictionary *constraints );
 public:
