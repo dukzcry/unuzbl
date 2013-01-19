@@ -232,7 +232,7 @@ How to use:
 +        }
 +		if (size < 512) {
 +            if (!map_flag) {
-+                IOPrint(/*" - 0x%x*/" pg\n" /*, (int) ptoa_64(end)*/);
++                IOLog(/*" - 0x%x*/" pg\n" /*, (int) ptoa_64(end)*/);
 +                vtassert(map_flag);
 +            }
 +            break;
