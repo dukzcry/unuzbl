@@ -343,9 +343,9 @@ How to use:
  				VTLOG("ACPI_DMAR_TYPE_RESERVED_MEMORY 0x%llx, 0x%llx\n", 
  					mem->BaseAddress, mem->EndAddress);
 +                
-+                if (!parse_dev_scope((void *) (mem + 1), ((char *) mem) + mem->Header.Length, mem->Segment,
++                /*if (!parse_dev_scope((void *) (mem + 1), ((char *) mem) + mem->Header.Length, mem->Segment,
 +                                    hdr->Type))
-+                    continue;
++                    continue;*/
  
  				addr = mem->BaseAddress;
  				count = atop_32(mem->EndAddress - addr);
