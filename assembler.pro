@@ -8,4 +8,4 @@ sentence_r(S, S)			--> [].
 sentence_r(S0, seq(S0, S))	--> statement(S1), sentence_r(S1, S).
 
 max(X)						--> const(X).
-statement(X,Y)				--> max(X), [,], max(Y), ['\n'].
+statement(instruction(X,Y))	--> max(X), [,], max(Y), ['\n'].
