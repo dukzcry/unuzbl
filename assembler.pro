@@ -1,7 +1,9 @@
 :- include('impldep.pro').
 
+% 32 GP registers
 register(X)
 	--> [X], {number(X), between(0,31,X)}.
+% 16 bit consts only
 const(X)
 	--> [X], {number(X), between(-32768,32767,X)}.
 
@@ -10,7 +12,7 @@ sentence(S)
 	--> statement(S0), sentence_r(S0, S).
 sentence_r(S, S)
 	--> [].
-sentence_r(S0, seq(S0, S))
+sentence_r(S0, sq(S0, S))
 	--> statement(S1), sentence_r(S1, S).
 
 % part_l =:= part_r
