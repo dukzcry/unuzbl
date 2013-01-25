@@ -1,3 +1,5 @@
 % SWI Prolog
 
-run :- phrase_from_file(sentence(S), 'in.asm', [buffer_size(16384)]).
+:- use_module(library(clpfd)).
+run :-
+	phrase_from_file(, 'in.asm', [buffer_size(16384)]).
