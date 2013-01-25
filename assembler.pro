@@ -14,13 +14,15 @@ sentence_r(S, S)
 sentence_r(S0, sq(S0, S))
 	--> statement(S1), sentence_r(S1, S).
 
-% part_l =:= part_r
-statement(i(Op,Dest,Src))
-	--> operator2(Op), [' '], part(Dest), [,], [' '], part(Src), ['\n'].
 lim(X)
 	--> const(X).
 relative(Ptr)
 	--> ['('], register(Ptr), [')'].
+whitespace
+	--> [' ']; [].
+% part_l =:= part_r
+statement(i(Op,Dest,Src))
+	--> operator2(Op), whitespace, part(Dest), [,], whitespace, part(Src), ['\n'].
 part(a(X))
 	--> [0], relative(X), !.
 part(a(X,Off))
