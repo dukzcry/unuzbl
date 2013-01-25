@@ -16,7 +16,7 @@ sentence_r(S0, sq(S0, S))
 
 % part_l =:= part_r
 statement(i(Op,Dest,Src))
-	--> operator2(Op), part(Dest), [,], part(Src), ['\n'].
+	--> operator2(Op), [' '], part(Dest), [,], [' '], part(Src), ['\n'].
 lim(X)
 	--> const(X).
 relative(Ptr)
