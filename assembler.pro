@@ -37,7 +37,7 @@ binary_number(Bs0,N,Upto) :-
 	reverse(Bs0,Bs),
 	binary_number(Bs,0,0,N,Upto), !.
 binary_number(_,I,N,N,Upto) :-
-	I >= Upto.
+	I = Upto.
 binary_number([B|Bs],I0,N0,N,Upto) :-
 	B in 0 .. 1,
 	% horner
