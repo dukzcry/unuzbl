@@ -1,6 +1,5 @@
 :- include('impldep.pro').
 
-% 32 GP registers
 register(X)
 	--> [X], {number(X), between(0,31,X)}.
 % 16 bit consts only
@@ -30,4 +29,4 @@ part(d(X))
 	--> lim(X).
 
 operator2(1)
-	--> [li].
+	--> [=].

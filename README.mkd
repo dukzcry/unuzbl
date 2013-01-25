@@ -1,0 +1,3 @@
+###Specs
+
+32 GP registers
