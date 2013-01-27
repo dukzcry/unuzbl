@@ -6,6 +6,13 @@ register(X) -->
 const(X) --> 
 	[X], {number(X), between(-32768,32767,X)}.
 
+call_semidet(Goal) :-
+	( call_nth(Goal, 2) ->
+	throw(error(mode_error(semidet,Goal),_)); 
+	once(Goal) ).
+/*my_phrase(NT) -->
+	call(S0^S^call_semidet(phrase(NT,S0,S))).*/
+
 % one look ahead
 sentence(S) -->
 	statement(S0), sentence_r(S0,S).
