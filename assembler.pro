@@ -17,10 +17,10 @@ call_semidet(Goal) :-
 % one look ahead
 sentence(S) -->
 	statement(S0), sentence_r(S0,S).
-sentence_r(S, S) -->
-	[].
 sentence_r(S0, sq(S0,S)) -->
 	statement(S1), sentence_r(S1,S).
+sentence_r(S, S) -->
+	[].	
 
 lim(X) --> 
 	const(X).
@@ -28,6 +28,16 @@ relative(Ptr) -->
 	"(", register(Ptr), ")".
 whitespace -->
 	" "; !, [].
+digit(0) --> "0". digit(1) --> "1". digit(2) --> "2".
+digit(3) --> "3". digit(4) --> "4". digit(5) --> "5".
+digit(6) --> "6". digit(7) --> "7". digit(8) --> "8".
+digit(9) --> "9".
+nat(N) -->
+	digit(D), nat(D,N).
+nat(A,N) -->
+	digit(D), { A1 is A * 10 + D }, nat(A1,N).
+nat(N,N) -->
+	[].
 % part_l =:= part_r
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, part(Dest), ",", whitespace, part(Src), "\n".
