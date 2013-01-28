@@ -1,10 +1,10 @@
 :- include('impldep.pro').
 
-register(X) --> 
-	[X], {number(X), between(0,31,X)}.
+register(X) :-
+	number(X), between(0,31,X).
 % 16 bit consts only
-const(X) --> 
-	[X], {number(X), between(-32768,32767,X)}.
+const(X) :-
+	number(X), between(-32768,32767,X).
 
 call_semidet(Goal) :-
 	( call_nth(Goal, 2) ->
@@ -22,10 +22,10 @@ sentence_r(S0, sq(S0,S)) -->
 sentence_r(S, S) -->
 	[].	
 
-lim(X) --> 
+lim(X) :-
 	const(X).
 relative(Ptr) -->
-	"(", register(Ptr), ")".
+	"(", (nat(Ptr), {register(Ptr)}), ")".
 whitespace -->
 	" "; !, [].
 digit(0) --> "0". digit(1) --> "1". digit(2) --> "2".
@@ -35,7 +35,7 @@ digit(9) --> "9".
 nat(N) -->
 	digit(D), nat(D,N).
 nat(A,N) -->
-	digit(D), { A1 is A * 10 + D }, nat(A1,N).
+	digit(D), {A1 is A * 10 + D}, nat(A1,N).
 nat(N,N) -->
 	[].
 % part_l =:= part_r
@@ -44,9 +44,9 @@ statement(i(Op,Dest,Src)) -->
 part(a(X)) -->
 	"0", relative(X), !.
 part(a(X,Off)) -->
-	const(Off), relative(X).
+	(nat(Off), {const(Off)}), relative(X).
 part(d(X)) -->
-	lim(X).
+	nat(X), {lim(X)}.
 
 operator2(1) -->
 	"=".

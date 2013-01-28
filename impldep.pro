@@ -5,7 +5,7 @@
 %:- use_module(lambda).
 
 run(Fn, AST) :-
-	phrase_from_file(sentence(AST), Fn, [buffer_size(16384)]).
+	call_semidet(phrase_from_file(sentence(AST), Fn, [buffer_size(16384)])).
 call_nth(Goal, C) :-
 	State = count(0,_), Goal, arg(1, State, C1), 
 	C2 is C1 + 1, nb_setarg(1, State, C2), C = C2.
