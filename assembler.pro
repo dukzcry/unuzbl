@@ -10,6 +10,7 @@ call_semidet(Goal) :-
 	( call_nth(Goal, 2) ->
 	throw(error(mode_error(semidet,Goal),_)); 
 	once(Goal) ).
+% determinism
 /*my_phrase(NT) -->
 	call(S0^S^call_semidet(phrase(NT,S0,S))).*/
 
@@ -24,21 +25,21 @@ sentence_r(S0, sq(S0,S)) -->
 lim(X) --> 
 	const(X).
 relative(Ptr) -->
-	['('], register(Ptr), [')'].
+	"(", register(Ptr), ")".
 whitespace -->
-	[' ']; [].
+	" "; !, [].
 % part_l =:= part_r
 statement(i(Op,Dest,Src)) -->
-	operator2(Op), whitespace, part(Dest), [,], whitespace, part(Src), ['\n'].
+	operator2(Op), whitespace, part(Dest), ",", whitespace, part(Src), "\n".
 part(a(X)) -->
-	[0], relative(X), !.
+	"0", relative(X), !.
 part(a(X,Off)) -->
 	const(Off), relative(X).
 part(d(X)) -->
 	lim(X).
 
 operator2(1) -->
-	[=].
+	"=".
 
 binary_common(Bs0,N,Upto) :- 
 	reverse(Bs0,Bs),
