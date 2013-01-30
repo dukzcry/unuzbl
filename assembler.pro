@@ -38,7 +38,10 @@ negative(-1) -->
 negative(1) -->
 	[].
 nat(N) -->
-	negative(D1), digit(D), {D2 is D * D1}, nat(D2,N).
+	negative(D1), digit(D), {D1 =:= 1 ->
+					D2 is D
+						; !,
+					D2 is -D}, nat(D2,N).
 nat(A,N) -->
 	digit(D), {A1 is A * 10 + D}, nat(A1,N).
 nat(N,N) -->
