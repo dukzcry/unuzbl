@@ -7,9 +7,10 @@ const(X) :-
 	number(X), between(-32768,32767,X).
 
 call_semidet(Goal) :-
-	( call_nth(Goal, 2) ->
-	throw(error(mode_error(semidet,Goal),_)); 
-	once(Goal) ).
+	call_nth(Goal, 2) ->
+		throw(error(mode_error(semidet,Goal),_))
+			; !,
+		once(Goal).
 % determinism
 /*my_phrase(NT) -->
 	call(S0^S^call_semidet(phrase(NT,S0,S))).*/
@@ -27,7 +28,7 @@ lim(X) :-
 relative(Ptr) -->
 	"(", (nat(Ptr), {register(Ptr)}), ")".
 whitespace -->
-	" "; !, [].
+	" "; [].
 digit(0) --> "0". digit(1) --> "1". digit(2) --> "2".
 digit(3) --> "3". digit(4) --> "4". digit(5) --> "5".
 digit(6) --> "6". digit(7) --> "7". digit(8) --> "8".
