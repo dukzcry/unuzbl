@@ -7,7 +7,7 @@ const(X) :-
 	number(X), between(-32768,32767,X).
 
 call_semidet(Goal) :-
-	call_nth(Goal, 2) ->
+	call_nth(Goal,2) ->
 		throw(error(mode_error(semidet,Goal),_))
 			; !,
 		once(Goal).
@@ -33,8 +33,12 @@ digit(0) --> "0". digit(1) --> "1". digit(2) --> "2".
 digit(3) --> "3". digit(4) --> "4". digit(5) --> "5".
 digit(6) --> "6". digit(7) --> "7". digit(8) --> "8".
 digit(9) --> "9".
+negative(-1) -->
+	"-".
+negative(1) -->
+	[].
 nat(N) -->
-	digit(D), nat(D,N).
+	negative(D1), digit(D), {D2 is D * D1}, nat(D2,N).
 nat(A,N) -->
 	digit(D), {A1 is A * 10 + D}, nat(A1,N).
 nat(N,N) -->
