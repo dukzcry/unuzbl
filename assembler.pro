@@ -43,7 +43,7 @@ nat(N) -->
 						; !,
 					D2 is -D}, nat(D2,N).
 nat(A,N) -->
-	digit(D), {A1 is A * 10 + D}, nat(A1,N).
+	digit(D), {A1 is A * 10 + copysign(D,A)}, nat(A1,N).
 nat(N,N) -->
 	[].
 % part_l =:= part_r
