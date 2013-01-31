@@ -72,7 +72,7 @@ binary_number(Bs0,N,Width) :-
 			; !,
 		Bit is 0, N1 is N ),
 	binary_common(Bs0,N1,Width,Bit), !.
-binary_number(_,I,N,N,Width,Bit) :-
+binary_number(_,I,N,N,Width,_) :-
 	% handling zero
 	I > 0,
 	I >= Width.
