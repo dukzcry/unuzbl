@@ -41,7 +41,8 @@ nat(N) -->
 	negative(D1), digit(D), {D1 =:= 1 ->
 					D2 is D
 						; !,
-					D2 is -D}, nat(D2,N).
+					D2 is -D}, 
+	nat(D2,N).
 nat(A,N) -->
 	digit(D), {A1 is A * 10 + copysign(D,A)}, nat(A1,N).
 nat(N,N) -->
@@ -59,18 +60,26 @@ part(d(X)) -->
 operator2(1) -->
 	"=".
 
-binary_common(Bs0,N,Upto) :- 
+binary_common(Bs0,N,Width,Bit) :-
 	reverse(Bs0,Bs),
-	binary_number(Bs,0,0,N,Upto).
+	binary_number(Bs,0,0,N,Width,Bit).
 binary_number(Bs0,N) :-
-	atom_length(Bs0,Upto),
-	binary_common(Bs0,N,Upto).
-binary_number(Bs0,N,Upto) :-
-	binary_common(Bs0,N,Upto), !.
-binary_number(_,I,N,N,Upto) :-
-	I >= Upto.
-binary_number([B|Bs],I0,N0,N,Upto) :-
+	atom_length(Bs0,Width),
+	binary_common(Bs0,N,Width,0).
+binary_number(Bs0,N,Width) :-
+	( sign(N) =:= -1 ->
+		Bit is 1, N1 is abs(N) - 1
+			; !,
+		Bit is 0, N1 is N ),
+	binary_common(Bs0,N1,Width,Bit), !.
+binary_number(_,I,N,N,Width,Bit) :-
+	% handling zero
+	I > 0,
+	I >= Width.
+binary_number([B|Bs],I0,N0,N,Width,Bit) :-
 	between(0,1,B),
+	% inverted code
+	B1 is abs(B - Bit),
 	% horner
-	N1 #= N0 + 2^I0 * B, I1 #= I0 + 1,
-	binary_number(Bs,I1,N1,N,Upto).
+	N1 #= N0 + B1 * 2^I0, I1 #= I0 + 1,
+	binary_number(Bs,I1,N1,N,Width,Bit).
