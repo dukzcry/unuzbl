@@ -5,6 +5,8 @@ register(X) :-
 % 16 bit consts only
 const(X) :-
 	number(X), between(-32768,32767,X).
+opcode(Bs,Opc) :-
+	binary_number(Bs,Opc,6).
 
 call_semidet(Goal) :-
 	call_nth(Goal,2) ->
