@@ -60,11 +60,12 @@ part(d(X)) -->
 operator2(1) -->
 	"=".
 
+% rework: don't cut negative bit on truncate
 binary_common(Bs0,N,Width,Bit) :-
 	reverse(Bs0,Bs),
 	binary_number(Bs,0,0,N,Width,Bit).
 binary_number(Bs0,N) :-
-	atom_length(Bs0,Width),
+	nonvar(Bs0), atom_length(Bs0,Width),
 	binary_common(Bs0,N,Width,0).
 binary_number(Bs0,N,Width) :-
 	( sign(N) =:= -1 ->
