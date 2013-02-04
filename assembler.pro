@@ -7,6 +7,8 @@ const(X) :-
 	number(X), between(-32768,32767,X).
 opcode(Bs,Opc) :-
 	binary_number(Bs,Opc,6).
+second_field(Bs,Val) :-
+	binary_number(Bs,Val,5).
 
 call_semidet(Goal) :-
 	call_nth(Goal,2) ->
