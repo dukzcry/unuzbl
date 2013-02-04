@@ -64,12 +64,17 @@ part(d(X)) -->
 operator2(1) -->
 	"=".
 
+direct_command(List,Opc,Reg,Op,Val) :-
+	opcode(Bs0,Opc), second_field(Bs1,Reg), 
+	binary_number(Bs2,Op,6), binary_number(Bs3,Val,16),
+	L = [Bs0,Bs1,Bs2,Bs3], flatten(L,List).
+
 % rework: don't cut negative bit on truncate
 binary_common(Bs0,N,Width,Bit) :-
 	reverse(Bs0,Bs),
 	binary_number(Bs,0,0,N,Width,Bit).
 binary_number(Bs0,N) :-
-	nonvar(Bs0), atom_length(Bs0,Width),
+	nonvar(Bs0), length(Bs0,Width),
 	binary_common(Bs0,N,Width,0).
 binary_number(Bs0,N,Width) :-
 	( sign(N) =:= -1 ->
