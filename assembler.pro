@@ -67,7 +67,7 @@ operator2(1) -->
 direct_command(List,Opc,Reg,Op,Val) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg), 
 	binary_number(Bs2,Op,6), binary_number(Bs3,Val,16),
-	L = [Bs0,Bs1,Bs2,Bs3], flatten(L,List).
+	flatten([Bs0,Bs1,Bs2,Bs3],List).
 
 % rework: don't cut negative bit on truncate
 binary_common(Bs0,N,Width,Bit) :-
