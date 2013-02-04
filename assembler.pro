@@ -64,6 +64,10 @@ part(d(X)) -->
 operator2(1) -->
 	"=".
 
+i(Opc,X,Y) :-
+	functor(X,d,1), functor(Y,d,1), arg(1,X,X1), arg(1,Y,Y1),
+	immediate_word(List,Opc,X1,0,Y1).
+
 immediate_word(List,Opc,Reg,Op,Val) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg), 
 	binary_number(Bs2,Op,6), binary_number(Bs3,Val,16),
@@ -72,8 +76,7 @@ dflatten(S,F) :-
   flatten_dl(S,F-[]), !.
 flatten_dl([],X-X).
 flatten_dl([X|Xs],Y-Z) :-
-	flatten_dl(X,Y-T),
-	flatten_dl(Xs,T-Z).
+	flatten_dl(X,Y-T), flatten_dl(Xs,T-Z).
 flatten_dl(X,[X|Z]-Z).
 
 % rework: don't cut negative bit on truncate
