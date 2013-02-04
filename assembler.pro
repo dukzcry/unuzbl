@@ -64,10 +64,17 @@ part(d(X)) -->
 operator2(1) -->
 	"=".
 
-direct_command(List,Opc,Reg,Op,Val) :-
+immediate_word(List,Opc,Reg,Op,Val) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg), 
 	binary_number(Bs2,Op,6), binary_number(Bs3,Val,16),
-	flatten([Bs0,Bs1,Bs2,Bs3],List).
+	dflatten([Bs0,Bs1,Bs2,Bs3],List).
+dflatten(S,F) :-
+  flatten_dl(S,F-[]), !.
+flatten_dl([],X-X).
+flatten_dl([X|Xs],Y-Z) :-
+	flatten_dl(X,Y-T),
+	flatten_dl(Xs,T-Z).
+flatten_dl(X,[X|Z]-Z).
 
 % rework: don't cut negative bit on truncate
 binary_common(Bs0,N,Width,Bit) :-
