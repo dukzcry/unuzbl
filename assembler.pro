@@ -71,19 +71,16 @@ right(d(X)) -->
 operator2(1) -->
 	"=".
 
-i(Opc,X,Y,L) :-
+i(Opc,X,Y) :-
 	functor(X,d,1), functor(Y,d,1), arg(1,X,Rs), arg(1,Y,Y1),
-	L is immediate_word(Opc,Rs,0,Y1), !.
-i(Opc,X,Y,L) :-
+	List is immediate_word(Opc,Rs,0,Y1), !.
+i(Opc,X,Y) :-
 	functor(X,d,1), functor(Y,a,2), arg(1,X,Rs), arg(1,Y,Ra), arg(2,Y,D),
-	L is immediate_word(Opc,Rs,Ra,D).
+	List is immediate_word(Opc,Rs,Ra,D).
 
-eval(X,Y) :-
-	nonvar(X), eval(X,[],Y1),
-	reverse(Y1,Y).
-eval([X|Xs],L,R) :-
-	call(X,L1), eval(Xs,[L1|L],R).
-eval([],L,L).
+eval([X|Xs]) :-
+	call(X), eval(Xs).
+eval([]).
 
 immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
