@@ -86,7 +86,8 @@ eval([]).
 immediate_word(List,Opc,Reg,Op,Val) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
 	binary_number(Bs2,Op,6), value_field(Bs3,Val),
-	dflatten_rec([Bs0,Bs1,Bs2,Bs3],List), writeln(List).
+	dflatten_rec([Bs0,Bs1,Bs2,Bs3],List).
+	%writeln(List)
 dflatten_rec(S,F) :-
   flatten_dl(S,F-[]), !.
 flatten_dl([],X-X).
