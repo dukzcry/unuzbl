@@ -10,6 +10,9 @@
 :- arithmetic_function(my_sign/1).
 :- arithmetic_function(immediate_word/4).
 :- arithmetic_function(dflatten_rec/1).
+:- arithmetic_function(i/2).
+:- arithmetic_function(parse/1).
+%:- arithmetic_function(eval/1).
 my_copysign(X,Y,Z) :-
 	Z is copysign(X,Y).
 my_sign(X,Y) :-
