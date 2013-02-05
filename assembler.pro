@@ -6,12 +6,12 @@ register(X) :-
 const(X) :-
 	number(X), between(-32768,32767,X).
 value_field(Bs,Val) :-
-	binary_number(Bs,Val,16).
+	binary_number(Val,16,Bs).
 %
 opcode(Bs,Opc) :-
-	binary_number(Bs,Opc,5).
+	binary_number(Opc,5,Bs).
 second_field(Bs,Val) :-
-	binary_number(Bs,Val,5).
+	binary_number(Val,5,Bs).
 
 call_semidet(Goal) :-
 	call_nth(Goal,2) ->
@@ -49,15 +49,14 @@ negative(1) -->
 	[].
 nat(N) -->
 	negative(D1), digit(D), {D1 =:= 1 ->
-					D2 is D
+					D2 = D
 						; !,
-					D2 is -D}, 
+					D2 = -D}, 
 	nat(D2,N).
 nat(A,N) -->
-	digit(D), {A1 is A * 10 + copysign(D,A)}, nat(A1,N).
+	digit(D), {A1 is A * 10 + my_copysign(D,A)}, nat(A1,N).
 nat(N,N) -->
 	[].
-% part_l =:= part_r
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, left(Dest), ",", whitespace, right(Src), "\n".
 left(d(X)) -->
@@ -74,21 +73,22 @@ operator2(1) -->
 
 i(Opc,X,Y) :-
 	functor(X,d,1), functor(Y,d,1), arg(1,X,Rs), arg(1,Y,Y1),
-	immediate_word(List,Opc,Rs,0,Y1), !.
+	List is immediate_word(Opc,Rs,0,Y1), !.
 i(Opc,X,Y) :-
 	functor(X,d,1), functor(Y,a,2), arg(1,X,Rs), arg(1,Y,Ra), arg(2,Y,D),
-	immediate_word(List,Opc,Rs,Ra,D).
+	List is immediate_word(Opc,Rs,Ra,D).
 
 eval([X|Xs]) :-
 	call(X), eval(Xs).
 eval([]).
 
-immediate_word(List,Opc,Reg,Op,Val) :-
+immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
-	binary_number(Bs2,Op,6), value_field(Bs3,Val),
-	dflatten_rec([Bs0,Bs1,Bs2,Bs3],List).
-	%writeln(List)
+	Bs2 is binary_number(Op,6), value_field(Bs3,Val),
+	L = [Bs0,Bs1,Bs2,Bs3], F is dflatten_rec(L)
+	,writeln(F).
 dflatten_rec(S,F) :-
+  %nonvar(F)
   flatten_dl(S,F-[]), !.
 flatten_dl([],X-X).
 flatten_dl([X|Xs],Y-Z) :-
@@ -102,11 +102,11 @@ binary_common(Bs0,N,Width,Bit) :-
 binary_number(Bs0,N) :-
 	nonvar(Bs0), length(Bs0,Width),
 	binary_common(Bs0,N,Width,0).
-binary_number(Bs0,N,Width) :-
-	( sign(N) =:= -1 ->
-		Bit is 1, N1 is abs(N) - 1
+binary_number(N,Width,Bs0) :-
+	nonvar(N), number(Width), ( my_sign(N) =:= -1 ->
+		Bit = 1, N1 is abs(N) - 1
 			; !,
-		Bit is 0, N1 is N ),
+		Bit = 0, N1 = N ),
 	binary_common(Bs0,N1,Width,Bit), !.
 binary_number(_,I,N,N,Width,_) :-
 	% handling zero
@@ -117,5 +117,5 @@ binary_number([B|Bs],I0,N0,N,Width,Bit) :-
 	% inverted code
 	B1 is abs(B - Bit),
 	% horner
-	N1 #= N0 + B1 * 2^I0, I1 #= I0 + 1,
+	N1 is N0 + B1 * 2^I0, I1 is I0 + 1,
 	binary_number(Bs,I1,N1,N,Width,Bit).
