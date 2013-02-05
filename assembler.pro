@@ -19,13 +19,16 @@ call_semidet(Goal) :-
 /*my_phrase(NT) -->
 	call(S0^S^call_semidet(phrase(NT,S0,S))).*/
 
+sentence(/*S*/[S0|S]) -->
+	statement(S0), sentence(S).
+	%sentence_r(S0,S)
+sentence([]) -->
+	[].
 % one look ahead
-sentence(S) -->
-	statement(S0), sentence_r(S0,S).
-sentence_r(S0, sq(S0,S)) -->
-	statement(S1), sentence_r(S1,S).
-sentence_r(S, S) -->
-	[].	
+/*sentence_r(S0,sq(S0,S)) -->
+	statement(S1), sentence_r(S1,S).*/
+/*sentence_r(S,S) -->
+	[].*/
 
 lim(X) :-
 	const(X).
@@ -65,8 +68,11 @@ operator2(1) -->
 	"=".
 
 i(Opc,X,Y) :-
-	functor(X,d,1), functor(Y,d,1), arg(1,X,X1), arg(1,Y,Y1),
-	immediate_word(List,Opc,X1,0,Y1).
+	functor(X,d,1), functor(Y,d,1), arg(1,X,Rs), arg(1,Y,Y1),
+	immediate_word(List,Opc,Rs,0,Y1), !.
+i(Opc,X,Y) :-
+	functor(X,d,1), functor(Y,a,2), arg(1,X,Rs), arg(1,Y,Ra), arg(2,Y,D),
+	immediate_word(List,Opc,Rs,Ra,D).
 
 immediate_word(List,Opc,Reg,Op,Val) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg), 

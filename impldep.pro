@@ -4,7 +4,7 @@
 % http://www.complang.tuwien.ac.at/ulrich/Prolog-inedit/lambda.pl
 %:- use_module(lambda).
 
-run(Fn,AST) :-
+parse(Fn,AST) :-
 	call_semidet(phrase_from_file(sentence(AST),Fn,[buffer_size(16384)])).
 call_nth(Goal,C) :-
 	State = count(0,_), Goal, arg(1,State,C1), 
