@@ -1,5 +1,9 @@
 :- include('impldep.pro').
 
+:- op(500,fx,storing).
+storing(X,Y) :-
+	Y = X.
+
 register(X) :-
 	number(X), between(0,31,X).
 % 16 bit consts only
@@ -73,10 +77,10 @@ operator2(1) -->
 
 i(Opc,X,Y,L) :-
 	functor(X,d,1), functor(Y,d,1), arg(1,X,Rs), arg(1,Y,Y1),
-	L is immediate_word(Opc,Rs,0,Y1), !.
+	L is storing immediate_word(Opc,Rs,0,Y1), !.
 i(Opc,X,Y,L) :-
 	functor(X,d,1), functor(Y,a,2), arg(1,X,Rs), arg(1,Y,Ra), arg(2,Y,D),
-	L is immediate_word(Opc,Rs,Ra,D).
+	L is storing immediate_word(Opc,Rs,Ra,D).
 
 evaluate(X,Y) :-
 	nonvar(X), evaluate(X,[],Y1),
@@ -87,8 +91,8 @@ evaluate([],L,L).
 
 immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
-	Bs2 is binary_number(Op,6), value_field(Bs3,Val),
-	L = [Bs0,Bs1,Bs2,Bs3], F is dflatten_rec(L).
+	Bs2 is storing binary_number(Op,6), value_field(Bs3,Val),
+	L = [Bs0,Bs1,Bs2,Bs3], F is storing dflatten_rec(L).
 	%writeln(F)
 dflatten_rec(S,F) :-
   %nonvar(F)
