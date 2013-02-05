@@ -5,8 +5,11 @@ register(X) :-
 % 16 bit consts only
 const(X) :-
 	number(X), between(-32768,32767,X).
+value_field(Bs,Val) :-
+	binary_number(Bs,Val,16).
+%
 opcode(Bs,Opc) :-
-	binary_number(Bs,Opc,6).
+	binary_number(Bs,Opc,5).
 second_field(Bs,Val) :-
 	binary_number(Bs,Val,5).
 
@@ -26,8 +29,8 @@ sentence([]) -->
 	[].
 % one look ahead
 /*sentence_r(S0,sq(S0,S)) -->
-	statement(S1), sentence_r(S1,S).*/
-/*sentence_r(S,S) -->
+	statement(S1), sentence_r(S1,S).
+sentence_r(S,S) -->
 	[].*/
 
 lim(X) :-
@@ -56,12 +59,14 @@ nat(N,N) -->
 	[].
 % part_l =:= part_r
 statement(i(Op,Dest,Src)) -->
-	operator2(Op), whitespace, part(Dest), ",", whitespace, part(Src), "\n".
-part(a(X)) -->
+	operator2(Op), whitespace, left(Dest), ",", whitespace, right(Src), "\n".
+left(d(X)) -->
+	nat(X), {register(X)}.
+right(a(X)) -->
 	"0", relative(X), !.
-part(a(X,Off)) -->
+right(a(X,Off)) -->
 	(nat(Off), {const(Off)}), relative(X).
-part(d(X)) -->
+right(d(X)) -->
 	nat(X), {lim(X)}.
 
 operator2(1) -->
@@ -74,11 +79,15 @@ i(Opc,X,Y) :-
 	functor(X,d,1), functor(Y,a,2), arg(1,X,Rs), arg(1,Y,Ra), arg(2,Y,D),
 	immediate_word(List,Opc,Rs,Ra,D).
 
+eval([X|Xs]) :-
+	call(X), eval(Xs).
+eval([]).
+
 immediate_word(List,Opc,Reg,Op,Val) :-
-	opcode(Bs0,Opc), second_field(Bs1,Reg), 
-	binary_number(Bs2,Op,6), binary_number(Bs3,Val,16),
-	dflatten([Bs0,Bs1,Bs2,Bs3],List).
-dflatten(S,F) :-
+	opcode(Bs0,Opc), second_field(Bs1,Reg),
+	binary_number(Bs2,Op,6), value_field(Bs3,Val),
+	dflatten_rec([Bs0,Bs1,Bs2,Bs3],List), writeln(List).
+dflatten_rec(S,F) :-
   flatten_dl(S,F-[]), !.
 flatten_dl([],X-X).
 flatten_dl([X|Xs],Y-Z) :-
