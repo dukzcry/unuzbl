@@ -13,7 +13,7 @@ value_field(Bs,Val) :-
 	binary_number(Val,16,Bs).
 %
 opcode(Bs,Opc) :-
-	binary_number(Opc,5,Bs).
+	binary_number(Opc,6,Bs).
 second_field(Bs,Val) :-
 	binary_number(Val,5,Bs).
 
@@ -88,10 +88,19 @@ evaluate(X,Y) :-
 evaluate([X|Xs],L,R) :-
 	call(X,L1), evaluate(Xs,[L1|L],R).
 evaluate([],L,L).
+binary_write([Xs|Xss],S) :-
+	N is binary_number(Xs), 
+	write_word(N,S), binary_write(Xss,S).
+binary_write([],_).
+write_word(Bs,Stream) :-
+	X1 is Bs >> 16, Y1 is X1 >> 8, Y2 is X1 /\ 0x00ff,
+	X2 is Bs /\ 0x0000ffff, Y3 is X2 >> 8, Y4 is X2 /\ 0x00ff,
+	put_byte(Stream,Y1), put_byte(Stream,Y2),
+	put_byte(Stream,Y3), put_byte(Stream,Y4).
 
 immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
-	Bs2 is storing binary_number(Op,6), value_field(Bs3,Val),
+	Bs2 is storing binary_number(Op,5), value_field(Bs3,Val),
 	L = [Bs0,Bs1,Bs2,Bs3], F is storing dflatten_rec(L).
 	%writeln(F)
 dflatten_rec(S,F) :-
@@ -126,3 +135,5 @@ binary_number([B|Bs],I0,N0,N,Width,Bit) :-
 	% horner
 	N1 is N0 + B1 * 2^I0, I1 is I0 + 1,
 	binary_number(Bs,I1,N1,N,Width,Bit).
+
+%T is storing parse(In), evaluate(T,Ws), open(Out,write,Fd,[type(binary)]), binary_write(Ws,Fd), close(Fd).
