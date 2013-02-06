@@ -11,7 +11,7 @@
 :- arithmetic_function(immediate_word/4).
 :- arithmetic_function(dflatten_rec/1).
 :- arithmetic_function(parse/1).
-%:- arithmetic_function(evaluate/1).
+:- arithmetic_function(evaluate/1).
 :- arithmetic_function(storing/1).
 
 my_copysign(X,Y,Z) :-

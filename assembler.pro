@@ -136,4 +136,4 @@ binary_number([B|Bs],I0,N0,N,Width,Bit) :-
 	N1 is N0 + B1 * 2^I0, I1 is I0 + 1,
 	binary_number(Bs,I1,N1,N,Width,Bit).
 
-%T is storing parse(In), evaluate(T,Ws), open(Out,write,Fd,[type(binary)]), binary_write(Ws,Fd), close(Fd).
+%T is storing parse(In), Ws is storing evaluate(T), open(Out,write,Fd,[type(binary)]), binary_write(Ws,Fd), close(Fd).
