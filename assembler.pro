@@ -53,9 +53,9 @@ negative(1) -->
 	[].
 nat(N) -->
 	negative(D1), digit(D), {D1 =:= 1 ->
-					D2 = D
-						; !,
-					D2 = -D}, 
+								D2 = D
+									; !,
+								D2 = -D}, 
 	nat(D2,N).
 nat(A,N) -->
 	digit(D), {A1 is A * 10 + my_copysign(D,A)}, nat(A1,N).
@@ -88,15 +88,19 @@ evaluate(X,Y) :-
 evaluate([X|Xs],L,R) :-
 	call(X,L1), evaluate(Xs,[L1|L],R).
 evaluate([],L,L).
-binary_write([Xs|Xss],S) :-
-	N is binary_number(Xs), 
-	write_word(N,S), binary_write(Xss,S).
-binary_write([],_).
-write_word(Bs,Stream) :-
+text(N) :-
+	format('~`0t~16r~8|~n', N).
+binary(N) :-
+	write_word(N).
+dump([Xs|Xss],Type) :-
+	N is binary_number(Xs),
+	T =.. [Type,N], call(T), dump(Xss,Type).
+dump([],_).
+write_word(Bs) :-
 	X1 is Bs >> 16, Y1 is X1 >> 8, Y2 is X1 /\ 0x00ff,
 	X2 is Bs /\ 0x0000ffff, Y3 is X2 >> 8, Y4 is X2 /\ 0x00ff,
-	put_byte(Stream,Y1), put_byte(Stream,Y2),
-	put_byte(Stream,Y3), put_byte(Stream,Y4).
+	put_byte(Y1), put_byte(Y2),
+	put_byte(Y3), put_byte(Y4).
 
 immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
@@ -119,10 +123,10 @@ binary_number(Bs0,N) :-
 	nonvar(Bs0), length(Bs0,Width),
 	binary_common(Bs0,N,Width,0).
 binary_number(N,Width,Bs0) :-
-	nonvar(N), number(Width), ( my_sign(N) =:= -1 ->
+	nonvar(N), number(Width), (my_sign(N) =:= -1 ->
 		Bit = 1, N1 is abs(N) - 1
 			; !,
-		Bit = 0, N1 = N ),
+		Bit = 0, N1 = N),
 	binary_common(Bs0,N1,Width,Bit), !.
 binary_number(_,I,N,N,Width,_) :-
 	% handling zero
@@ -136,4 +140,6 @@ binary_number([B|Bs],I0,N0,N,Width,Bit) :-
 	N1 is N0 + B1 * 2^I0, I1 is I0 + 1,
 	binary_number(Bs,I1,N1,N,Width,Bit).
 
-%T is storing parse(In), Ws is storing evaluate(T), open(Out,write,Fd,[type(binary)]), binary_write(Ws,Fd), close(Fd).
+%T is storing parse(In), Ws is storing evaluate(T),
+%Out = "out.o", open(Out,write,Fd,[type(binary)]), set_output(Fd), dump(Ws,binary), told.
+%Out = 'out.h', tell(Out), dump(Ws,text), told.
