@@ -18,6 +18,8 @@ my_copysign(X,Y,Z) :-
 	Z is copysign(X,Y).
 my_sign(X,Y) :-
 	Y is sign(X).
+erlang_writef(F,A) :-
+	format(F,A).
 parse(Fn,AST) :-
 	call_semidet(phrase_from_file(sentence(AST),Fn,[buffer_size(16384)])).
 call_nth(Goal,C) :-

@@ -89,7 +89,7 @@ evaluate([X|Xs],L,R) :-
 	call(X,L1), evaluate(Xs,[L1|L],R).
 evaluate([],L,L).
 text(N) :-
-	format('~`0t~16r~8|~n', N).
+	erlang_writef('~`0t~16r~8|~n',N).
 binary(N) :-
 	write_word(N).
 dump([Xs|Xss],Type) :-
