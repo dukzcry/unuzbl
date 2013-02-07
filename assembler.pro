@@ -88,6 +88,9 @@ evaluate(X,Y) :-
 evaluate([X|Xs],L,R) :-
 	call(X,L1), evaluate(Xs,[L1|L],R).
 evaluate([],L,L).
+evaluate([X|Xs],L,R) :-
+	call(X,L1), evaluate(Xs,[L1|L],R).
+evaluate([],L,L).
 text(N) :-
 	erlang_writef('~`0t~16r~8|~n',N).
 binary(N) :-
@@ -116,9 +119,6 @@ flatten_dl([X|Xs],Y-Z) :-
 flatten_dl(X,[X|Z]-Z).
 
 % rework: don't cut negative bit on truncate
-binary_common(Bs0,N,Width,Bit) :-
-	reverse(Bs0,Bs),
-	binary_number(Bs,0,0,N,Width,Bit).
 binary_number(Bs0,N) :-
 	nonvar(Bs0), length(Bs0,Width),
 	binary_common(Bs0,N,Width,0).
@@ -128,6 +128,9 @@ binary_number(N,Width,Bs0) :-
 			; !,
 		Bit = 0, N1 = N),
 	binary_common(Bs0,N1,Width,Bit), !.
+binary_common(Bs0,N,Width,Bit) :-
+        reverse(Bs0,Bs),
+        binary_number(Bs,0,0,N,Width,Bit).
 binary_number(_,I,N,N,Width,_) :-
 	% handling zero
 	I > 0,
@@ -139,6 +142,13 @@ binary_number([B|Bs],I0,N0,N,Width,Bit) :-
 	% horner
 	N1 is N0 + B1 * 2^I0, I1 is I0 + 1,
 	binary_number(Bs,I1,N1,N,Width,Bit).
+c(Q,_,Width,A,A) :- 
+	Q < 1, 
+	length(A,Width1), 
+	Width1 > 0,
+	Width1 >= Width, !.
+c(N,B,Width,L,R) :-
+	M is N mod B, Q is N div B, c(Q,B,Width,[M|L],R).
 
 %T is storing parse(In), Ws is storing evaluate(T),
 %Out = "out.o", open(Out,write,Fd,[type(binary)]), set_output(Fd), dump(Ws,binary), told.
