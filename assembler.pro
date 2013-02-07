@@ -66,7 +66,7 @@ statement(i(Op,Dest,Src)) -->
 left(d(X)) -->
 	nat(X), {register(X)}.
 right(a(X)) -->
-	"0", relative(X), !.
+	"0", relative(X), !. % next
 right(a(X,Off)) -->
 	(nat(Off), {const(Off)}), relative(X).
 right(d(X)) -->
@@ -109,7 +109,7 @@ immediate_word(Opc,Reg,Op,Val,F) :-
 	%writeln(F)
 dflatten_rec(S,F) :-
   %nonvar(F)
-  flatten_dl(S,F-[]), !.
+  flatten_dl(S,F-[]), !. % once
 flatten_dl([],X-X).
 flatten_dl([X|Xs],Y-Z) :-
 	flatten_dl(X,Y-T), flatten_dl(Xs,T-Z).
@@ -117,35 +117,32 @@ flatten_dl(X,[X|Z]-Z).
 
 % rework: don't cut negative bit on truncate
 binary_number(Bs0,N) :-
-	nonvar(Bs0), length(Bs0,Width),
-	binary_common(Bs0,N,Width,0).
+	nonvar(Bs0), reverse(Bs0,Bs),
+	binary_number(Bs,0,0,N).
 binary_number(N,Width,Bs0) :-
 	nonvar(N), number(Width), (my_sign(N) =:= -1 ->
 		Bit = 1, N1 is abs(N) - 1
 			; !,
 		Bit = 0, N1 = N),
-	binary_common(Bs0,N1,Width,Bit), !.
-binary_common(Bs0,N,Width,Bit) :-
-        reverse(Bs0,Bs),
-        binary_number(Bs,0,0,N,Width,Bit).
-binary_number(_,I,N,N,Width,_) :-
-	% handling zero
-	I > 0,
-	I >= Width.
-binary_number([B|Bs],I0,N0,N,Width,Bit) :-
+	binary_number(Bs0,0,[],N1,Width,Bit).
+binary_number([],_,N,N).
+binary_number([B|Bs],I0,N0,N) :-
 	between(0,1,B),
+	% horner
+	N1 is N0 + B * 2^I0, I1 is I0 + 1,
+	binary_number(Bs,I1,N1,N).
+binary_number(A,I,A,Q,Width,_) :- 
+	Q < 1,
+	% handling zero 
+	I > 0,
+	I >= Width, !. % loop
+% above one was able to solve this task, but backtracing is too slow
+binary_number(R,I0,L,N,Width,Bit) :-
+	B is N mod 2,
 	% inverted code
 	B1 is abs(B - Bit),
-	% horner
-	N1 is N0 + B1 * 2^I0, I1 is I0 + 1,
-	binary_number(Bs,I1,N1,N,Width,Bit).
-c(Q,_,Width,A,A) :- 
-	Q < 1, 
-	length(A,Width1), 
-	Width1 > 0,
-	Width1 >= Width, !.
-c(N,B,Width,L,R) :-
-	M is N mod B, Q is N div B, c(Q,B,Width,[M|L],R).
+	Q is N div 2, I1 is I0 + 1, 
+	binary_number(R,I1,[B1|L],Q,Width,Bit).
 
 %T is storing parse(In), Ws is storing evaluate(T),
 %Out = "out.o", open(Out,write,Fd,[type(binary)]), set_output(Fd), dump(Ws,binary), told.
