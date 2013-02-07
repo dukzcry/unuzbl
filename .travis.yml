@@ -1,4 +1,5 @@
-script: cd ./skeleton
+before_script: cd ./skeleton
+script: make
 language: cpp
 compiler:
   - clang
