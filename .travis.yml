@@ -1,6 +1,10 @@
 before_script: cd ./skeleton
 script: make
+after_success: ./test-app
 language: cpp
-compiler:
-  - clang
-  - gcc
+matrix:
+	include:
+		- compiler: clang
+		env: CXXFLAGS=-Wno-address-of-temporary
+  		-compiler: gcc
+		env: CXXFLAGS=-fpermissive
