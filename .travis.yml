@@ -6,5 +6,5 @@ matrix:
 	include:
 		- compiler: clang
 		env: CXXFLAGS=-Wno-address-of-temporary
-  		-compiler: gcc
+  		- compiler: gcc
 		env: CXXFLAGS=-fpermissive
