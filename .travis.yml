@@ -1,3 +1,4 @@
+script: cd ./skeleton
 language: cpp
 compiler:
   - clang
