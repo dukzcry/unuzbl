@@ -5,9 +5,8 @@ language: cpp
 compiler:
   - clang
   - gcc
-env:
-  - CXXFLAGS=-Wno-address-of-temporary
+env: CXXFLAGS=-Wno-address-of-temporary
 matrix:
   exclude:
     - compiler: gcc
-    env: CXXFLAGS=-Wno-address-of-temporary
+      env: CXXFLAGS=-Wno-address-of-temporary
