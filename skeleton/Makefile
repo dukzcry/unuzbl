@@ -1,6 +1,6 @@
 # Gmake Makefile
 
-LDFLAGS=-lpthread
+LDFLAGS=-lpthread 
 CXXFLAGS=-c -fpermissive
 BFLAGS=-d -o
 SRC=MemPool.cpp parser.cpp test.cpp
