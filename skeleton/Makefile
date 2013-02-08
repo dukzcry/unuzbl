@@ -1,7 +1,7 @@
 # Gmake Makefile
 
 LDFLAGS=-lpthread 
-CXXFLAGS=-c -fpermissive
+CXXFLAGS+=-c -fpermissive
 BFLAGS=-d -o
 SRC=MemPool.cpp parser.cpp test.cpp
 OBJ=$(SRC:.cpp=.o)
