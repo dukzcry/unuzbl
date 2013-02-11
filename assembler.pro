@@ -42,7 +42,7 @@ lim(X) :-
 relative(Ptr) -->
 	"(", (nat(Ptr), {register(Ptr)}), ")".
 whitespace -->
-	" "; [].
+	" "; !, [].
 digit(0) --> "0". digit(1) --> "1". digit(2) --> "2".
 digit(3) --> "3". digit(4) --> "4". digit(5) --> "5".
 digit(6) --> "6". digit(7) --> "7". digit(8) --> "8".
@@ -53,9 +53,9 @@ negative(1) -->
 	[].
 nat(N) -->
 	negative(D1), digit(D), {D1 =:= 1 ->
-								D2 = D
-									; !,
-								D2 = -D}, 
+		D2 = D
+			; !,
+		D2 = -D}, 
 	nat(D2,N).
 nat(A,N) -->
 	digit(D), {A1 is A * 10 + my_copysign(D,A)}, nat(A1,N).
@@ -105,15 +105,15 @@ write_word(Bs) :-
 immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
 	Bs2 is storing binary_number(Op,5), value_field(Bs3,Val),
-	L = [Bs0,Bs1,Bs2,Bs3], F is storing dflatten_rec(L).
+	L = [Bs0,Bs1,Bs2,Bs3], F is storing flatten_diff(L).
 	%writeln(F)
-dflatten_rec(S,F) :-
-  %nonvar(F)
-  flatten_dl(S,F-[]), !. % once
-flatten_dl([],X-X).
-flatten_dl([X|Xs],Y-Z) :-
-	flatten_dl(X,Y-T), flatten_dl(Xs,T-Z).
-flatten_dl(X,[X|Z]-Z).
+flatten_diff(S,F) :-
+	nonvar(S),
+	fd_binrec(S,F-[]), !. % once
+fd_binrec([],X-X).
+fd_binrec([X|Xs],Y-Z) :-
+	fd_binrec(X,Y-T), fd_binrec(Xs,T-Z).
+fd_binrec(X,[X|Z]-Z).
 
 % rework: don't cut negative bit on truncate
 binary_number(Bs0,N) :-

@@ -9,7 +9,7 @@
 :- arithmetic_function(my_copysign/2).
 :- arithmetic_function(my_sign/1).
 :- arithmetic_function(immediate_word/4).
-:- arithmetic_function(dflatten_rec/1).
+:- arithmetic_function(flatten_diff/1).
 :- arithmetic_function(parse/1).
 :- arithmetic_function(evaluate/1).
 :- arithmetic_function(storing/1).
