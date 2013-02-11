@@ -42,7 +42,7 @@ lim(X) :-
 relative(Ptr) -->
 	"(", (nat(Ptr), {register(Ptr)}), ")".
 whitespace -->
-	" "; !, [].
+	" "; [].
 digit(0) --> "0". digit(1) --> "1". digit(2) --> "2".
 digit(3) --> "3". digit(4) --> "4". digit(5) --> "5".
 digit(6) --> "6". digit(7) --> "7". digit(8) --> "8".
@@ -63,7 +63,7 @@ nat(N,N) -->
 	[].
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, left(Dest), ",", whitespace, right(Src), "\n".
-left(d(X)) -->
+left(X) -->
 	nat(X), {register(X)}.
 right(a(X)) -->
 	"0", relative(X), !. % next
@@ -75,11 +75,11 @@ right(d(X)) -->
 operator2(1) -->
 	"=".
 
-i(Opc,X,Y,L) :-
-	functor(X,d,1), functor(Y,d,1), arg(1,X,Rs), arg(1,Y,Y1),
+i(Opc,Rs,Y,L) :-
+	functor(Y,d,1), arg(1,Y,Y1),
 	L is storing immediate_word(Opc,Rs,0,Y1), !.
-i(Opc,X,Y,L) :-
-	functor(X,d,1), functor(Y,a,2), arg(1,X,Rs), arg(1,Y,Ra), arg(2,Y,D),
+i(Opc,Rs,Y,L) :-
+	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
 	L is storing immediate_word(Opc,Rs,Ra,D).
 
 evaluate(X,Y) :-
@@ -109,7 +109,7 @@ immediate_word(Opc,Reg,Op,Val,F) :-
 	%writeln(F)
 flatten_diff(S,F) :-
 	nonvar(S),
-	fd_binrec(S,F-[]), !. % once
+	once(fd_binrec(S,F-[])).
 fd_binrec([],X-X).
 fd_binrec([X|Xs],Y-Z) :-
 	fd_binrec(X,Y-T), fd_binrec(Xs,T-Z).
