@@ -63,6 +63,8 @@ nat(N,N) -->
 	[].
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, left(Dest), ",", whitespace, right(Src), "\n".
+statement(l(X)) -->
+	":l", nat(X), "\n".
 left(X) -->
 	nat(X), {register(X)}.
 right(a(X)) -->
