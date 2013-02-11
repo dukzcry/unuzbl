@@ -64,7 +64,7 @@ nat(N,N) -->
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, left(Dest), ",", whitespace, right(Src), "\n".
 statement(l(X)) -->
-	":l", nat(X), "\n".
+	"l", nat(X), "\n".
 left(X) -->
 	nat(X), {register(X)}.
 right(a(X)) -->
@@ -77,19 +77,26 @@ right(d(X)) -->
 operator2(1) -->
 	"=".
 
-i(Opc,Rs,Y,L) :-
+i(Opc,Rs,Y,_,L) :-
 	functor(Y,d,1), arg(1,Y,Y1),
 	L is storing immediate_word(Opc,Rs,0,Y1), !.
-i(Opc,Rs,Y,L) :-
+i(Opc,Rs,Y,_,L) :-
 	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
 	L is storing immediate_word(Opc,Rs,Ra,D).
+l(X,PC,_) :-
+	recordz(X,PC).
 
 evaluate(X,Y) :-
-	nonvar(X), evaluate(X,[],Y1),
+	nonvar(X), evaluate(X,[],0,Y1),
 	reverse(Y1,Y).
-evaluate([X|Xs],L,R) :-
-	call(X,L1), evaluate(Xs,[L1|L],R).
-evaluate([],L,L).
+evaluate([X|Xs],LI,PC0,R) :-
+	writeln(PC0),
+	call(X,PC0,W), (nonvar(W) ->
+		LR = [W|LI], PC1 is PC0 + 1
+			; !,
+		LR = LI, PC1 is PC0),
+	evaluate(Xs,LR,PC1,R).
+evaluate([],L,_,L).
 text(N) :-
 	erlang_writef('~`0t~16r~8|~n',N).
 binary(N) :-
