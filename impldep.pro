@@ -11,6 +11,7 @@
 :- arithmetic_function(immediate_word/4).
 :- arithmetic_function(flatten_diff/1).
 :- arithmetic_function(parse/1).
+:- arithmetic_function(optimize/1).
 :- arithmetic_function(evaluate/1).
 :- arithmetic_function(storing/1).
 
@@ -21,7 +22,7 @@ my_sign(X,Y) :-
 erlang_writef(F,A) :-
 	format(F,A).
 my_recordz(K,P) :-
-	% P0 =.. [K,P], assertz(P0)
+	% like P0 =.. [K,P], assertz(P0)
 	recordz(K,P).
 parse(Fn,AST) :-
 	call_semidet(phrase_from_file(sentence(AST),Fn,[buffer_size(16384)])).

@@ -64,7 +64,7 @@ nat(N,N) -->
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, left(Dest), ",", whitespace, right(Src), "\n".
 statement(l(X)) -->
-	"l", nat(X), "\n".
+	":", nat(X), "\n".
 left(X) -->
 	nat(X), {register(X)}.
 right(a(X)) -->
@@ -84,13 +84,27 @@ i(Opc,Rs,Y,_,L) :-
 	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
 	L is storing immediate_word(Opc,Rs,Ra,D).
 l(X,PC,_) :-
-	recordz(X,PC).
+	my_recordz(X,PC).
 
+optimize(In,OutR) :-
+	%reverse(In,InR),
+	once(remove_dupes(In,OutR,0)).
+	%reverse(Out,OutR)
+remove_dupes([X|Xs0],[X|Xs],Line0) :-
+	Line1 is Line0 + 1,
+	(not(member(X,Xs0)) ; not(functor(X,l,1))),
+	remove_dupes(Xs0,Xs,Line1).
+remove_dupes([X|Xs0],Xs,Line0) :-
+	Line1 is Line0 + 1,
+	member(X,Xs0),
+	format('~w ~w ~w ~w~n',['ignoring redefined',X,@,Line0]),
+	remove_dupes(Xs0,Xs,Line1).
+remove_dupes([],[],_).
 evaluate(X,Y) :-
 	nonvar(X), evaluate(X,[],0,Y1),
 	reverse(Y1,Y).
 evaluate([X|Xs],LI,PC0,R) :-
-	writeln(PC0),
+	%writeln(PC0)
 	call(X,PC0,W), (nonvar(W) ->
 		LR = [W|LI], PC1 is PC0 + 1
 			; !,
@@ -153,6 +167,6 @@ binary_number(R,I0,L,N,Width,Bit) :-
 	Q is N div 2, I1 is I0 + 1, 
 	binary_number(R,I1,[B1|L],Q,Width,Bit).
 
-%T is storing parse(In), Ws is storing evaluate(T),
+%T is storing parse(In), To is storing optimize(T), Ws is storing evaluate(To),
 %Out = "out.o", open(Out,write,Fd,[type(binary)]), set_output(Fd), dump(Ws,binary), told.
 %Out = 'out.h', tell(Out), dump(Ws,text), told.
