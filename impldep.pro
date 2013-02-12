@@ -20,6 +20,9 @@ my_sign(X,Y) :-
 	Y is sign(X).
 erlang_writef(F,A) :-
 	format(F,A).
+my_recordz(K,P) :-
+	% P0 =.. [K,P], assertz(P0)
+	recordz(K,P).
 parse(Fn,AST) :-
 	call_semidet(phrase_from_file(sentence(AST),Fn,[buffer_size(16384)])).
 call_nth(Goal,C) :-
