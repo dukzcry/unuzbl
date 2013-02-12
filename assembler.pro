@@ -97,7 +97,7 @@ remove_dupes([X|Xs0],[X|Xs],Line0) :-
 remove_dupes([X|Xs0],Xs,Line0) :-
 	Line1 is Line0 + 1,
 	member(X,Xs0),
-	format('~w ~w ~w ~w~n',['ignoring redefined',X,@,Line0]),
+	erlang_writef('ignoring redefined ~w @ ~w~n',[X,Line0]),
 	remove_dupes(Xs0,Xs,Line1).
 remove_dupes([],[],_).
 evaluate(X,Y) :-
