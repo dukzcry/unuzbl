@@ -41,6 +41,8 @@ reg(X) -->
 	nat(X), {register(X)}.
 lim(X) :-
 	const(X).
+val(d(X)) -->
+	nat(X), {lim(X)}.
 relative(Ptr) -->
 	"(", reg(Ptr), ")".
 whitespace -->
@@ -66,27 +68,33 @@ nat(A,N) -->
 nat(N,N) -->
 	[].
 statement(i(Op,0,0,D)) -->
-	operator(Op), whitespace, label(D).
+	operator(Op), whitespace, addr_right(D), "\n".
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, reg(Dest), comma, right(Src), "\n".
 statement(i(Op,Rs,Rt,D)) -->
-	operator3(Op), whitespace, reg(Rs), comma, reg(Rt), comma, label(D).
+	operator3(Op), whitespace, reg(Rs), comma, reg(Rt), comma, addr_right(D), "\n".
 statement(X) -->
-	label(X).
+	label(X), "\n".
 right(a(X)) -->
 	"0", relative(X), !. % next
 right(a(X,Off)) -->
 	(nat(Off), {const(Off)}), relative(X).
-right(d(X)) -->
-	nat(X), {lim(X)}.
+right(X) -->
+	val(X).
 label(l(X)) -->
-	":", nat(X), "\n".
+	":", nat(X).
+addr_right(X) -->
+	val(X).
+addr_right(X) -->
+	label(X).
 
 operator(1) -->
 	"ba".
-operator2(2) -->
+operator(2) -->
+	"b".
+operator2(3) -->
 	"=".
-operator3(3) -->
+operator3(4) -->
 	"b=".
 
 i(Opc,Rs,Y,_,L) :-
@@ -95,10 +103,17 @@ i(Opc,Rs,Y,_,L) :-
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
 	L is storing immediate_word(Opc,Rs,Ra,D).
-i(Opc,Rs,Rt,D,_,L) :-
+i(1,Rs,Rt,D,_,L) :-
+	functor(D,d,1), arg(1,D,A),
+	L is storing immediate_word(1,Rs,Rt,A), !.
+i(2,Rs,Rt,D,PC,L) :-
+	functor(D,d,1), arg(1,D,D1), A is PC + D1,
+	L is storing immediate_word(2,Rs,Rt,A), !.
+i(Opc,Rs,Rt,D,PC,L) :-
 	functor(D,l,1), arg(1,D,D1),
-	recorded(D1,A,_),
-	L is storing immediate_word(Opc,Rs,Rt,A).
+	(recorded(D1,A,_);
+	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))),
+	L is storing immediate_word(Opc,Rs,Rt,A), !. % once
 l(_,_,_) :-
 	true.
 
@@ -109,7 +124,7 @@ preevaluate(In,OutR) :-
 remove_dupes([X|Xs0],[X|Xs],PC0) :-
 	(not(functor(X,l,1)) ; not(member(X,Xs0))),
 	(functor(X,l,1) ->
-		arg(1,X,X1), recordz(X1,PC0), PC1 is PC0
+		arg(1,X,X1), my_recordz(X1,PC0), PC1 is PC0
 			; !,
 		PC1 is PC0 + 1),
 	remove_dupes(Xs0,Xs,PC1).
