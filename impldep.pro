@@ -8,6 +8,7 @@
 :- arithmetic_function(binary_number/2).
 :- arithmetic_function(my_copysign/2).
 :- arithmetic_function(my_sign/1).
+:- arithmetic_function(my_recorded/2).
 :- arithmetic_function(immediate_word/4).
 :- arithmetic_function(flatten_diff/1).
 :- arithmetic_function(parse/1).
@@ -24,6 +25,8 @@ erlang_writef(F,A) :-
 my_recordz(K,P) :-
 	% like P0 =.. [K,P], assertz(P0)
 	recordz(K,P).
+my_recorded(K,R,V) :-
+	recorded(K,V,R).
 parse(Fn,AST) :-
 	call_semidet(phrase_from_file(sentence(AST),Fn,[buffer_size(16384)])).
 call_nth(Goal,C) :-
