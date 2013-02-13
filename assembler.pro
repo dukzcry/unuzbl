@@ -59,7 +59,7 @@ nat(N) -->
 	negative(D1), digit(D), {D1 =:= 1 ->
 		D2 = D
 			; !,
-		D2 = -D}, 
+		D2 is -D}, 
 	nat(D2,N).
 nat(A,N) -->
 	digit(D), {A1 is A * 10 + my_copysign(D,A)}, nat(A1,N).
@@ -80,9 +80,7 @@ right(a(X,Off)) -->
 right(X) -->
 	val(X).
 addr_right(X) -->
-	val(X).
-addr_right(X) -->
-	label(X).
+	val(X) ; label(X).
 label(l(X)) -->
 	":", nat(X).
 
@@ -112,13 +110,12 @@ i(Opc,Rs,Rt,D,PC,L) :-
 	(A is my_recorded(D1,_);
 	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))),
 	L is storing immediate_word(Opc,Rs,Rt,A), !. % once
-l(_,_,_) :-
-	true.
 
 preevaluate(In,OutR) :-
 	%reverse(In,InR),
-	once(remove_dupes(In,OutR,0)).
+	once(remove_dupes(In,OutR,0)),
 	%reverse(Out,OutR)
+	assert(l(_,_,_)).
 remove_dupes([X|Xs0],[X|Xs],PC0) :-
 	(not(functor(X,l,1)) ; not(member(X,Xs0))),
 	(functor(X,l,1) ->
