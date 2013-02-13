@@ -39,10 +39,8 @@ sentence_r(S,S) -->
 
 reg(X) -->
 	nat(X), {register(X)}.
-lim(X) :-
-	const(X).
 val(d(X)) -->
-	nat(X), {lim(X)}.
+	nat(X), {const(X)}.
 relative(Ptr) -->
 	"(", reg(Ptr), ")".
 whitespace -->
@@ -78,15 +76,15 @@ statement(X) -->
 right(a(X)) -->
 	"0", relative(X), !. % next
 right(a(X,Off)) -->
-	(nat(Off), {const(Off)}), relative(X).
+	val(Off), relative(X).
 right(X) -->
 	val(X).
-label(l(X)) -->
-	":", nat(X).
 addr_right(X) -->
 	val(X).
 addr_right(X) -->
 	label(X).
+label(l(X)) -->
+	":", nat(X).
 
 operator(1) -->
 	"ba".
@@ -111,7 +109,7 @@ i(2,Rs,Rt,D,PC,L) :-
 	L is storing immediate_word(2,Rs,Rt,A), !.
 i(Opc,Rs,Rt,D,PC,L) :-
 	functor(D,l,1), arg(1,D,D1),
-	(recorded(D1,A,_);
+	(A is my_recorded(D1,_);
 	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))),
 	L is storing immediate_word(Opc,Rs,Rt,A), !. % once
 l(_,_,_) :-
