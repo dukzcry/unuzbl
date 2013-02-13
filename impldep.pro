@@ -11,7 +11,7 @@
 :- arithmetic_function(immediate_word/4).
 :- arithmetic_function(flatten_diff/1).
 :- arithmetic_function(parse/1).
-:- arithmetic_function(optimize/1).
+:- arithmetic_function(preevaluate/1).
 :- arithmetic_function(evaluate/1).
 :- arithmetic_function(storing/1).
 

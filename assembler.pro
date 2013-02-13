@@ -37,10 +37,10 @@ sentence([]) -->
 sentence_r(S,S) -->
 	[].*/
 
-lim(X) :-
-	const(X).
 reg(X) -->
 	nat(X), {register(X)}.
+lim(X) :-
+	const(X).
 relative(Ptr) -->
 	"(", reg(Ptr), ")".
 whitespace -->
@@ -99,22 +99,23 @@ i(Opc,Rs,Rt,D,_,L) :-
 	functor(D,l,1), arg(1,D,D1),
 	recorded(D1,A,_),
 	L is storing immediate_word(Opc,Rs,Rt,A).
-l(X,PC,_) :-
-	my_recordz(X,PC).
+l(_,_,_) :-
+	true.
 
-optimize(In,OutR) :-
+preevaluate(In,OutR) :-
 	%reverse(In,InR),
 	once(remove_dupes(In,OutR,0)).
 	%reverse(Out,OutR)
-remove_dupes([X|Xs0],[X|Xs],Line0) :-
-	Line1 is Line0 + 1,
+remove_dupes([X|Xs0],[X|Xs],PC0) :-
 	(not(functor(X,l,1)) ; not(member(X,Xs0))),
-	remove_dupes(Xs0,Xs,Line1).
-remove_dupes([X|Xs0],Xs,Line0) :-
-	Line1 is Line0 + 1,
-	member(X,Xs0),
-	erlang_writef('ignoring redefined ~w @ ~w~n',[X,Line0]),
-	remove_dupes(Xs0,Xs,Line1).
+	(functor(X,l,1) ->
+		arg(1,X,X1), recordz(X1,PC0), PC1 is PC0
+			; !,
+		PC1 is PC0 + 1),
+	remove_dupes(Xs0,Xs,PC1).
+remove_dupes([X|Xs0],Xs,PC) :-
+	throw(error(mode_error('redefined label',X),_)),
+	remove_dupes(Xs0,Xs,PC).
 remove_dupes([],[],_).
 evaluate(X,Y) :-
 	nonvar(X), evaluate(X,[],0,Y1),
@@ -184,6 +185,6 @@ binary_number(R,I0,L,N,Width,Bit) :-
 	Q is N div 2, I1 is I0 + 1, 
 	binary_number(R,I1,[B1|L],Q,Width,Bit).
 
-%T is storing parse(In), To is storing optimize(T), Ws is storing evaluate(To),
+%T is storing parse(In), To is storing preevaluate(T), Ws is storing evaluate(To),
 %Out = "out.o", open(Out,write,Fd,[type(binary)]), set_output(Fd), dump(Ws,binary), told.
 %Out = 'out.h', tell(Out), dump(Ws,text), told.
