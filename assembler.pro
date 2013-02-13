@@ -39,10 +39,14 @@ sentence_r(S,S) -->
 
 lim(X) :-
 	const(X).
+reg(X) -->
+	nat(X), {register(X)}.
 relative(Ptr) -->
-	"(", (nat(Ptr), {register(Ptr)}), ")".
+	"(", reg(Ptr), ")".
 whitespace -->
 	" "; [].
+comma -->
+	whitespace, ",", whitespace.
 digit(0) --> "0". digit(1) --> "1". digit(2) --> "2".
 digit(3) --> "3". digit(4) --> "4". digit(5) --> "5".
 digit(6) --> "6". digit(7) --> "7". digit(8) --> "8".
@@ -61,21 +65,29 @@ nat(A,N) -->
 	digit(D), {A1 is A * 10 + my_copysign(D,A)}, nat(A1,N).
 nat(N,N) -->
 	[].
+statement(i(Op,0,0,D)) -->
+	operator(Op), whitespace, label(D).
 statement(i(Op,Dest,Src)) -->
-	operator2(Op), whitespace, left(Dest), ",", whitespace, right(Src), "\n".
-statement(l(X)) -->
-	":", nat(X), "\n".
-left(X) -->
-	nat(X), {register(X)}.
+	operator2(Op), whitespace, reg(Dest), comma, right(Src), "\n".
+statement(i(Op,Rs,Rt,D)) -->
+	operator3(Op), whitespace, reg(Rs), comma, reg(Rt), comma, label(D).
+statement(X) -->
+	label(X).
 right(a(X)) -->
 	"0", relative(X), !. % next
 right(a(X,Off)) -->
 	(nat(Off), {const(Off)}), relative(X).
 right(d(X)) -->
 	nat(X), {lim(X)}.
+label(l(X)) -->
+	":", nat(X), "\n".
 
-operator2(1) -->
+operator(1) -->
+	"ba".
+operator2(2) -->
 	"=".
+operator3(3) -->
+	"b=".
 
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,d,1), arg(1,Y,Y1),
@@ -83,6 +95,10 @@ i(Opc,Rs,Y,_,L) :-
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
 	L is storing immediate_word(Opc,Rs,Ra,D).
+i(Opc,Rs,Rt,D,_,L) :-
+	functor(D,l,1), arg(1,D,D1),
+	recorded(D1,A,_),
+	L is storing immediate_word(Opc,Rs,Rt,A).
 l(X,PC,_) :-
 	my_recordz(X,PC).
 
@@ -92,7 +108,7 @@ optimize(In,OutR) :-
 	%reverse(Out,OutR)
 remove_dupes([X|Xs0],[X|Xs],Line0) :-
 	Line1 is Line0 + 1,
-	(not(member(X,Xs0)) ; not(functor(X,l,1))),
+	(not(functor(X,l,1)) ; not(member(X,Xs0))),
 	remove_dupes(Xs0,Xs,Line1).
 remove_dupes([X|Xs0],Xs,Line0) :-
 	Line1 is Line0 + 1,
@@ -137,6 +153,7 @@ fd_binrec([],X-X).
 fd_binrec([X|Xs],Y-Z) :-
 	fd_binrec(X,Y-T), fd_binrec(Xs,T-Z).
 fd_binrec(X,[X|Z]-Z).
+	
 
 % rework: don't cut negative bit on truncate
 binary_number(Bs0,N) :-
