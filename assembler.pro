@@ -66,7 +66,9 @@ nat(A,N) -->
 nat(N,N) -->
 	[].
 statement(i(Op,0,0,D)) -->
-	operator(Op), whitespace, addr_right(D), "\n".
+	operatori(Op), addr_common(D).
+statement(j(Op,D)) -->
+	operatorj(Op), addr_common(D).
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, reg(Dest), comma, right(Src), "\n".
 statement(i(Op,Rs,Rt,D)) -->
@@ -79,19 +81,25 @@ right(a(X,Off)) -->
 	val(Off), relative(X).
 right(X) -->
 	val(X).
+addr_common(X) -->
+	whitespace, addr_right(X), "\n".
 addr_right(X) -->
 	val(X) ; label(X).
 label(l(X)) -->
 	":", nat(X).
 
-operator(1) -->
-	"ba".
-operator(2) -->
-	"b".
-operator2(3) -->
+operatori(1) -->
+	"j".
+operatori(2) -->
+	"jr".
+operatorj(3) -->
+	"jl".
+operatorj(4) -->
+	"jlr".
+operator2(5) -->
 	"=".
-operator3(4) -->
-	"b=".
+operator3(6) -->
+	"j=".
 
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,d,1), arg(1,Y,Y1),
@@ -103,13 +111,26 @@ i(1,Rs,Rt,D,_,L) :-
 	functor(D,d,1), arg(1,D,A),
 	L is storing immediate_word(1,Rs,Rt,A), !.
 i(2,Rs,Rt,D,PC,L) :-
-	functor(D,d,1), arg(1,D,D1), A is PC + D1,
+	A is calc_relative(D,PC),
 	L is storing immediate_word(2,Rs,Rt,A), !.
 i(Opc,Rs,Rt,D,PC,L) :-
+	A is storing find_label(D,PC),
+	L is storing immediate_word(Opc,Rs,Rt,A).
+j(3,D,_,L) :-
+	functor(D,d,1), arg(1,D,A),
+	L is storing jump_word(3,A), !.
+j(4,D,PC,L) :-
+	A is calc_relative(D,PC),
+	L is storing jump_word(4,A), !.
+j(Opc,D,PC,L) :-
+	A is storing find_label(D,PC),
+	L is storing jump_word(Opc,A).
+find_label(D,PC,A) :-
 	functor(D,l,1), arg(1,D,D1),
 	(A is my_recorded(D1,_);
-	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))),
-	L is storing immediate_word(Opc,Rs,Rt,A), !. % once
+	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))).
+calc_relative(D,PC,A) :-
+	functor(D,d,1), arg(1,D,D1), A is PC + D1.
 
 preevaluate(In,OutR) :-
 	%reverse(In,InR),
@@ -156,7 +177,9 @@ immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
 	Bs2 is storing binary_number(Op,5), value_field(Bs3,Val),
 	L = [Bs0,Bs1,Bs2,Bs3], F is storing flatten_diff(L).
-	%writeln(F)
+jump_word(Opc,A,F) :-
+	opcode(Bs0,Opc), Bs1 is storing binary_number(A,26),
+	L = [Bs0,Bs1], F is storing flatten_diff(L).
 flatten_diff(S,F) :-
 	nonvar(S),
 	once(fd_binrec(S,F-[])).
