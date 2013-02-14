@@ -39,7 +39,7 @@ sentence_r(S,S) -->
 
 reg(X) -->
 	nat(X), {register(X)}.
-val(d(X)) -->
+val(X) -->
 	nat(X), {const(X)}.
 relative(Ptr) -->
 	"(", reg(Ptr), ")".
@@ -65,10 +65,8 @@ nat(A,N) -->
 	digit(D), {A1 is A * 10 + my_copysign(D,A)}, nat(A1,N).
 nat(N,N) -->
 	[].
-statement(i(Op,0,0,D)) -->
-	operatori(Op), addr_common(D).
 statement(j(Op,D)) -->
-	operatorj(Op), addr_common(D).
+	operator(Op), addr_common(D).
 statement(i(Op,Dest,Src)) -->
 	operator2(Op), whitespace, reg(Dest), comma, right(Src), "\n".
 statement(i(Op,Rs,Rt,D)) -->
@@ -79,57 +77,60 @@ right(a(X)) -->
 	"0", relative(X), !. % next
 right(a(X,Off)) -->
 	val(Off), relative(X).
-right(X) -->
+right(d(X)) -->
 	val(X).
 addr_common(X) -->
 	whitespace, addr_right(X), "\n".
+addr_right(d(X)) -->
+	val(X).
 addr_right(X) -->
-	val(X) ; label(X).
+	label(X).
 label(l(X)) -->
 	":", nat(X).
 
-operatori(1) -->
+operator(0) -->
 	"j".
-operatori(2) -->
-	"jr".
-operatorj(3) -->
+operator(1) -->
+	"ja".
+operator(2) -->
 	"jl".
-operatorj(4) -->
-	"jlr".
-operator2(5) -->
+operator2(3) -->
 	"=".
-operator3(6) -->
+operator3(4) -->
 	"j=".
+operator3(5) -->
+	"j!=".
 
+% cuts for nexts
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,d,1), arg(1,Y,Y1),
 	L is storing immediate_word(Opc,Rs,0,Y1), !.
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
 	L is storing immediate_word(Opc,Rs,Ra,D).
-i(1,Rs,Rt,D,_,L) :-
-	functor(D,d,1), arg(1,D,A),
-	L is storing immediate_word(1,Rs,Rt,A), !.
-i(2,Rs,Rt,D,PC,L) :-
-	A is calc_relative(D,PC),
-	L is storing immediate_word(2,Rs,Rt,A), !.
+i(4,Rs,Rt,D,PC,L) :-
+	A is calc_absolute(D,PC),
+	L is storing immediate_word(4,Rs,Rt,A), !.
 i(Opc,Rs,Rt,D,PC,L) :-
-	A is storing find_label(D,PC),
+	A is find_label(D,PC),
 	L is storing immediate_word(Opc,Rs,Rt,A).
-j(3,D,_,L) :-
+j(0,D,PC,L) :-
+	A is calc_absolute(D,PC),
+	L is storing jump_word(0,A), !.
+j(1,D,_,L) :-
 	functor(D,d,1), arg(1,D,A),
-	L is storing jump_word(3,A), !.
-j(4,D,PC,L) :-
-	A is calc_relative(D,PC),
-	L is storing jump_word(4,A), !.
+	L is storing jump_word(1,A), !.
+j(2,D,PC,L) :-
+	A is calc_absolute(D,PC),
+	L is storing jump_word(2,A), !.
 j(Opc,D,PC,L) :-
-	A is storing find_label(D,PC),
+	A is find_label(D,PC),
 	L is storing jump_word(Opc,A).
 find_label(D,PC,A) :-
 	functor(D,l,1), arg(1,D,D1),
 	(A is my_recorded(D1,_);
-	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))).
-calc_relative(D,PC,A) :-
+	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))), !. % once
+calc_absolute(D,PC,A) :-
 	functor(D,d,1), arg(1,D,D1), A is PC + D1.
 
 preevaluate(In,OutR) :-
@@ -145,12 +146,12 @@ remove_dupes([X|Xs0],[X|Xs],PC0) :-
 		PC1 is PC0 + 1),
 	remove_dupes(Xs0,Xs,PC1).
 remove_dupes([X|Xs0],Xs,PC) :-
-	throw(error(mode_error('redefined label',X),_)),
+	erlang_writef('ignoring redefined ~w, PC=~w~n',[X,PC]),
 	remove_dupes(Xs0,Xs,PC).
 remove_dupes([],[],_).
+% evaluate(+X,-Y)
 evaluate(X,Y) :-
-	nonvar(X), evaluate(X,[],0,Y1),
-	reverse(Y1,Y).
+	evaluate(X,[],0,Y1), reverse(Y1,Y).
 evaluate([X|Xs],LI,PC0,R) :-
 	%writeln(PC0)
 	call(X,PC0,W), (nonvar(W) ->
@@ -180,8 +181,8 @@ immediate_word(Opc,Reg,Op,Val,F) :-
 jump_word(Opc,A,F) :-
 	opcode(Bs0,Opc), Bs1 is storing binary_number(A,26),
 	L = [Bs0,Bs1], F is storing flatten_diff(L).
+% flatten_diff(+S,-F)
 flatten_diff(S,F) :-
-	nonvar(S),
 	once(fd_binrec(S,F-[])).
 fd_binrec([],X-X).
 fd_binrec([X|Xs],Y-Z) :-
@@ -190,11 +191,12 @@ fd_binrec(X,[X|Z]-Z).
 	
 
 % rework: don't cut negative bit on truncate
+% binary_number(+Bs0,-N)
 binary_number(Bs0,N) :-
-	nonvar(Bs0), reverse(Bs0,Bs),
-	binary_number(Bs,0,0,N).
+	reverse(Bs0,Bs), binary_number(Bs,0,0,N).
+% binary_number(+N,+Width,-Bs0)
 binary_number(N,Width,Bs0) :-
-	nonvar(N), number(Width), (my_sign(N) =:= -1 ->
+	(my_sign(N) =:= -1 ->
 		Bit = 1, N1 is abs(N) - 1
 			; !,
 		Bit = 0, N1 = N),
@@ -218,6 +220,6 @@ binary_number(R,I0,L,N,Width,Bit) :-
 	Q is N div 2, I1 is I0 + 1, 
 	binary_number(R,I1,[B1|L],Q,Width,Bit).
 
-%T is storing parse(In), To is storing preevaluate(T), Ws is storing evaluate(To),
+%T is storing parse(In), Tp is storing preevaluate(T), Ws is storing evaluate(Tp),
 %Out = "out.o", open(Out,write,Fd,[type(binary)]), set_output(Fd), dump(Ws,binary), told.
 %Out = 'out.h', tell(Out), dump(Ws,text), told.

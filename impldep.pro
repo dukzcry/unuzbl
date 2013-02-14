@@ -10,6 +10,9 @@
 :- arithmetic_function(my_sign/1).
 :- arithmetic_function(my_recorded/2).
 :- arithmetic_function(immediate_word/4).
+:- arithmetic_function(jump_word/2).
+:- arithmetic_function(find_label/2).
+:- arithmetic_function(calc_absolute/2).
 :- arithmetic_function(flatten_diff/1).
 :- arithmetic_function(parse/1).
 :- arithmetic_function(preevaluate/1).
