@@ -43,10 +43,12 @@ val(X) -->
 	nat(X), {const(X)}.
 relative(Ptr) -->
 	"(", reg(Ptr), ")".
-whitespace -->
-	" "; [].
+whitespaces -->
+	" ", whitespaces.
+whitespaces -->
+	[].
 comma -->
-	whitespace, ",", whitespace.
+	whitespaces, ",", whitespaces.
 digit(0) --> "0". digit(1) --> "1". digit(2) --> "2".
 digit(3) --> "3". digit(4) --> "4". digit(5) --> "5".
 digit(6) --> "6". digit(7) --> "7". digit(8) --> "8".
@@ -68,9 +70,9 @@ nat(N,N) -->
 statement(j(Op,D)) -->
 	operator(Op), addr_common(D).
 statement(i(Op,Dest,Src)) -->
-	operator2(Op), whitespace, reg(Dest), comma, right(Src), "\n".
+	operator2(Op), whitespaces, reg(Dest), comma, right(Src), "\n".
 statement(i(Op,Rs,Rt,D)) -->
-	operator3(Op), whitespace, reg(Rs), comma, reg(Rt), comma, addr_right(D), "\n".
+	operator3(Op), whitespaces, reg(Rs), comma, reg(Rt), comma, addr_right(D), "\n".
 statement(X) -->
 	label(X), "\n".
 right(a(X)) -->
@@ -80,7 +82,7 @@ right(a(X,Off)) -->
 right(d(X)) -->
 	val(X).
 addr_common(X) -->
-	whitespace, addr_right(X), "\n".
+	whitespaces, addr_right(X), "\n".
 addr_right(d(X)) -->
 	val(X).
 addr_right(X) -->
