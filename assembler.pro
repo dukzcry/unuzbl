@@ -191,7 +191,7 @@ fd_binrec([X|Xs],Y-Z) :-
 	fd_binrec(X,Y-T), fd_binrec(Xs,T-Z).
 fd_binrec(X,[X|Z]-Z).
 	
-
+:- dynamic binary_number/3.
 % rework: don't cut negative bit on truncate
 % binary_number(+Bs0,-N)
 binary_number(Bs0,N) :-
@@ -202,7 +202,8 @@ binary_number(N,Width,Bs0) :-
 		Bit = 1, N1 is abs(N) - 1
 			; !,
 		Bit = 0, N1 = N),
-	binary_number(Bs0,0,[],N1,Width,Bit).
+	binary_number(Bs0,0,[],N1,Width,Bit),
+	asserta(binary_number(N,Width,Bs0) :- !). % next
 binary_number([],_,N,N).
 binary_number([B|Bs],I0,N0,N) :-
 	between(0,1,B),
