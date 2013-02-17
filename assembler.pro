@@ -3,6 +3,7 @@
 :- op(500,fx,storing).
 storing(X,Y) :-
 	Y = X.
+:- dynamic binary_number/3.
 
 register(X) :-
 	number(X), between(0,31,X).
@@ -91,16 +92,23 @@ label(l(X)) -->
 	":", nat(X).
 
 operator(0) -->
-	"j".
-operator(1) -->
 	"ja".
+operator(1) -->
+	"j".
 operator(2) -->
 	"jl".
+% rA = rB
 operator2(3) -->
 	"=".
-operator3(4) -->
+% Ds(rB) = [rA], rB -= Ds
+operator2(4) -->
+	"sdu".
+% rA = Ds(rB)
+operator2(5) -->
+	"ld".
+operator3(6) -->
 	"j=".
-operator3(5) -->
+operator3(7) -->
 	"j!=".
 
 % cuts for nexts
@@ -109,22 +117,22 @@ i(Opc,Rs,Y,_,L) :-
 	L is storing immediate_word(Opc,Rs,0,Y1), !.
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
-	L is storing immediate_word(Opc,Rs,Ra,D).
-i(4,Rs,Rt,D,PC,L) :-
+	L is storing immediate_word(Opc,Rs,Ra,D), !.
+i(Opc,Rs,Y,_,L) :-
+	functor(Y,a,1), arg(1,Y,Ra),
+	L is storing immediate_word(Opc,Rs,Ra,0).
+i(Opc,Rs,Rt,D,PC,L) :-
 	A is calc_absolute(D,PC),
-	L is storing immediate_word(4,Rs,Rt,A), !.
+	L is storing immediate_word(Opc,Rs,Rt,A), !.
 i(Opc,Rs,Rt,D,PC,L) :-
 	A is find_label(D,PC),
 	L is storing immediate_word(Opc,Rs,Rt,A).
-j(0,D,PC,L) :-
-	A is calc_absolute(D,PC),
-	L is storing jump_word(0,A), !.
-j(1,D,_,L) :-
+j(Opc,D,PC,L) :-
+	between(1,2,Opc), A is calc_absolute(D,PC),
+	L is storing jump_word(Opc,A), !.
+j(0,D,_,L) :-
 	functor(D,d,1), arg(1,D,A),
-	L is storing jump_word(1,A), !.
-j(2,D,PC,L) :-
-	A is calc_absolute(D,PC),
-	L is storing jump_word(2,A), !.
+	L is storing jump_word(0,A), !.
 j(Opc,D,PC,L) :-
 	A is find_label(D,PC),
 	L is storing jump_word(Opc,A).
@@ -191,7 +199,6 @@ fd_binrec([X|Xs],Y-Z) :-
 	fd_binrec(X,Y-T), fd_binrec(Xs,T-Z).
 fd_binrec(X,[X|Z]-Z).
 	
-:- dynamic binary_number/3.
 % rework: don't cut negative bit on truncate
 % binary_number(+Bs0,-N)
 binary_number(Bs0,N) :-
