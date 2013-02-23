@@ -119,7 +119,7 @@ i(Opc,Rs,Y,_,L) :-
 	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
 	L is storing immediate_word(Opc,Rs,Ra,D), !.
 i(Opc,Rs,Y,_,L) :-
-	functor(Y,a,1), arg(1,Y,Ra),
+	/*functor(Y,a,1),*/ arg(1,Y,Ra),
 	L is storing immediate_word(Opc,Rs,Ra,0).
 i(Opc,Rs,Rt,D,PC,L) :-
 	A is calc_absolute(D,PC),
@@ -137,7 +137,7 @@ j(Opc,D,PC,L) :-
 	A is find_label(D,PC),
 	L is storing jump_word(Opc,A).
 find_label(D,PC,A) :-
-	functor(D,l,1), arg(1,D,D1),
+	/*functor(D,l,1),*/ arg(1,D,D1),
 	(A is my_recorded(D1,_);
 	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))), !. % once
 calc_absolute(D,PC,A) :-
