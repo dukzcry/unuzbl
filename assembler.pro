@@ -1,3 +1,4 @@
+:- include('shared.pro').
 :- include('impldep.pro').
 
 :- op(500,fx,storing).
@@ -5,8 +6,6 @@ storing(X,Y) :-
 	Y = X.
 :- dynamic binary_number/3.
 
-register(X) :-
-	number(X), between(0,31,X).
 % 16 bit consts only
 const(X) :-
 	number(X), between(-32768,32767,X).
