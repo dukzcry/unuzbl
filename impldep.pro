@@ -1,4 +1,4 @@
-% SWI Prolog
+% SWI-Prolog
 
 :- use_module(library(arithmetic)).
 % http://www.complang.tuwien.ac.at/ulrich/Prolog-inedit/lambda.pl
