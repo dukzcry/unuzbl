@@ -5,7 +5,7 @@
 reg_sel(Cpu,R,V) :-
 	reg_arg(R,A), arg(A,Cpu,V), !. % next
 reg_sel(T,F,V) :-
-	find_fun(T,F,V,_).
+	once(find_fun(T,F,V,_)).
 reg_con(T,F,V,O) :-
 	(reg_arg(F,N) ; find_fun(T,F,_,N)), 
 	T =.. L, L = [X|L1],
@@ -25,7 +25,7 @@ reg_arg(R,A) :-
 	register(R), 
 	A is R + 1.
 find_fun(Cpu,F,Val,N) :-
-	T =.. [F,Val], arg(N,Cpu,T), !. % once
+	T =.. [F,Val], arg(N,Cpu,T).
 with_val([X|Xs],I,N,V,L,R) :-
 	(I =\= N ->
 		X1 = X
