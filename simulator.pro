@@ -14,7 +14,9 @@ reg_con(T,F,V,O) :-
 	reverse(R,R1), O =.. [X|R1], !. % once
 ram_sel(Ram,A,V) :-
 	N is A + 1, arg(N,Ram,V).
-% Vl == [N]
+ram_con(R,A,N,O) :-
+	number(N),
+	ram_con(R,A,[N],O), !. % next
 ram_con(Ram,A,[V|Vs],O) :-
 	N is A + 1,
 	% mutation cause ram is too big
