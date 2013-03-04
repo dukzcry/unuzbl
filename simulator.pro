@@ -38,3 +38,8 @@ with_val([X|Xs],I,N,V,L,R) :-
 	), I1 is I + 1,
 	with_val(Xs,I1,N,V,[X1|L],R).
 with_val([],_,_,_,L,L).
+
+link(Cpu,O) :-
+	reg_sel(Cpu,pc,PC),
+	NI is PC + 1,
+	reg_con(Cpu,lr,NI,O).
