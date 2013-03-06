@@ -6,14 +6,20 @@ reg_sel(Cpu,R,V) :-
 	reg_arg(R,A), arg(A,Cpu,V), !. % next
 reg_sel(T,F,V) :-
 	once(find_fun(T,F,V,_)).
+% wrapper
+reg_con(T,[F|Fs],[V|Vs],O) :-
+	reg_con(T,F,V,O1), reg_con(O1,Fs,Vs,O), !. % next
 reg_con(T,F,V,O) :-
 	(reg_arg(F,N) ; find_fun(T,F,_,N)), 
 	T =.. L, L = [X|L1],
 	% avoid using setarg/3
 	with_val(L1,1,N,V, [],R),
 	reverse(R,R1), O =.. [X|R1], !. % once
+% wrapper
+reg_con(O,[],[],O).
 ram_sel(Ram,A,V) :-
 	N is A + 1, arg(N,Ram,V).
+% wrapper
 ram_con(R,A,N,O) :-
 	number(N),
 	ram_con(R,A,[N],O), !. % next
@@ -39,7 +45,8 @@ with_val([X|Xs],I,N,V,L,R) :-
 	with_val(Xs,I1,N,V,[X1|L],R).
 with_val([],_,_,_,L,L).
 
-link(Cpu,O) :-
+
+jl(Cpu,A,O) :-
 	reg_sel(Cpu,pc,PC),
 	NI is PC + 1,
-	reg_con(Cpu,lr,NI,O).
+	reg_con(Cpu,[lr,pc],[NI,A],O).
