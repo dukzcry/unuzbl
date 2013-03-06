@@ -102,9 +102,9 @@ operator2(3) -->
 % Ds(rB) = [rA], rB -= Ds
 operator2(4) -->
 	"sdu".
-% rA = Ds(rB)
+% rA = Ds(rB), rB += Ds
 operator2(5) -->
-	"ld".
+	"ldu".
 operator3(6) -->
 	"j=".
 operator3(7) -->
