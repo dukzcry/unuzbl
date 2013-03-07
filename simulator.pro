@@ -17,6 +17,14 @@ reg_con(T,F,V,O) :-
 	reverse(R,R1), O =.. [X|R1], !. % once
 % wrapper
 reg_con(O,[],[],O).
+ram_sel(Ram,A,N,O) :-
+	A1 is A + N - 1,
+	ram_sel(Ram,A1,N,0,[],O).
+ram_sel(R,A,N,I,V,O) :-
+	ram_sel(R,A,V1),
+	A1 is A - 1, I1 is I + 1,
+	ram_sel(R,A1,N,I1,[V1|V],O), !. % next
+ram_sel(_,_,N,N,O,O).
 ram_sel(Ram,A,V) :-
 	N is A + 1, arg(N,Ram,V).
 % wrapper
@@ -29,6 +37,9 @@ ram_con(Ram,A,[V|Vs],O) :-
 	setarg(N,Ram,V),
 	ram_con(Ram,N,Vs,O), !. % once
 ram_con(O,_,[],O).
+ram_load(Ram,A,N) :-
+	ram_sel(Ram,A,8,Bs),
+	Bs = [Y1,Y2,Y3,Y4,Y5,Y6,Y7].
 ram_store(Ram,A,Bs,O) :-
 	Bs1 is Bs >> 32, bytify_word(Bs1,Y1,Y2,Y3,Y4),
 	Bs2 is Bs /\ 0x00000000ffffffff, bytify_word(Bs2,Y5,Y6,Y7,Y8),
