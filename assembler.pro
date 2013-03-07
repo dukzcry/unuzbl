@@ -178,10 +178,8 @@ dump([Xs|Xss],Type) :-
 	T =.. [Type,N], call(T), dump(Xss,Type).
 dump([],_).
 write_word(Bs) :-
-	X1 is Bs >> 16, Y1 is X1 >> 8, Y2 is X1 /\ 0x00ff,
-	X2 is Bs /\ 0x0000ffff, Y3 is X2 >> 8, Y4 is X2 /\ 0x00ff,
-	put_byte(Y1), put_byte(Y2),
-	put_byte(Y3), put_byte(Y4).
+	bytify_word(Bs,Y1,Y2,Y3,Y4),
+	put_byte(Y1), put_byte(Y2), put_byte(Y3), put_byte(Y4).
 
 immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),

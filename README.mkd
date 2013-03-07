@@ -1,5 +1,5 @@
 ###Specs
 
-- 32 GP registers
+- 32 GP 64-bit registers
 - Fixed instruction length of 32 bits
 - Big-endian byte order

@@ -29,6 +29,10 @@ ram_con(Ram,A,[V|Vs],O) :-
 	setarg(N,Ram,V),
 	ram_con(Ram,N,Vs,O), !. % once
 ram_con(O,_,[],O).
+ram_store(Ram,A,Bs,O) :-
+	Bs1 is Bs >> 32, bytify_word(Bs1,Y1,Y2,Y3,Y4),
+	Bs2 is Bs /\ 0x00000000ffffffff, bytify_word(Bs2,Y5,Y6,Y7,Y8),
+	ram_con(Ram,A,[Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8],O).
 reg_arg(R,A) :-
 	register(R), 
 	A is R + 1.
