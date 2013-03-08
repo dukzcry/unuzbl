@@ -39,7 +39,9 @@ ram_con(Ram,A,[V|Vs],O) :-
 ram_con(O,_,[],O).
 ram_load(Ram,A,N) :-
 	ram_sel(Ram,A,8,Bs),
-	Bs = [Y1,Y2,Y3,Y4,Y5,Y6,Y7].
+	Bs = [Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8],
+	% replace this crap with meta generator
+	N is (((Y1 - (Y1 >> 7) << 8) << 56) \/ (Y2 << 48) \/ (Y3 << 40) \/ (Y4 << 32) \/ (Y5 << 24) \/ (Y6 << 16)) \/ (Y7 << 8) \/ Y8.
 ram_store(Ram,A,Bs,O) :-
 	Bs1 is Bs >> 32, bytify_word(Bs1,Y1,Y2,Y3,Y4),
 	Bs2 is Bs /\ 0x00000000ffffffff, bytify_word(Bs2,Y5,Y6,Y7,Y8),
