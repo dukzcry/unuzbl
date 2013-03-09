@@ -2,6 +2,8 @@
 
 :- include('shared.pro').
 
+:- dynamic unbytify_gen/3.
+
 %:- use_module(library(apply)).
 foldl(T,[X|Xs],A,R) :-
 	call(T,X,A,A1),
@@ -68,7 +70,8 @@ with_val([],_,_,_,L,L).
 unbytify_gen(Bs,N,O) :-
 	T =.. [f|Bs],
 	bagof(R,unbytify_elm(T,N,R),O1),
-	foldl(plus,O1,0,O).
+	foldl(plus,O1,0,O),
+	asserta(unbytify_gen(Bs,N,O) :- !). % next
 unbytify_elm(T,M,R) :-
 	between(2,M,I), arg(I,T,V),
 	R is V << (M * (M - I)).
