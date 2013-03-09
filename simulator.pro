@@ -2,6 +2,12 @@
 
 :- include('shared.pro').
 
+%:- use_module(library(apply)).
+foldl(T,[X|Xs],A,R) :-
+	call(T,X,A,A1),
+	foldl(T,Xs,A1,R), !. % next
+foldl(_,[],R,R).
+
 reg_sel(Cpu,R,V) :-
 	reg_arg(R,A), arg(A,Cpu,V), !. % next
 reg_sel(T,F,V) :-
@@ -38,10 +44,8 @@ ram_con(Ram,A,[V|Vs],O) :-
 	ram_con(Ram,N,Vs,O), !. % once
 ram_con(O,_,[],O).
 ram_load(Ram,A,N) :-
-	ram_sel(Ram,A,8,Bs),
-	Bs = [Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8],
-	% replace this crap with generator
-	N is (((Y1 - (Y1 >> 7) << 8) << 56) \/ (Y2 << 48) \/ (Y3 << 40) \/ (Y4 << 32) \/ (Y5 << 24) \/ (Y6 << 16)) \/ (Y7 << 8) \/ Y8.
+	M is 8,
+	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,N).
 ram_store(Ram,A,Bs,O) :-
 	Bs1 is Bs >> 32, bytify_word(Bs1,Y1,Y2,Y3,Y4),
 	Bs2 is Bs /\ 0x00000000ffffffff, bytify_word(Bs2,Y5,Y6,Y7,Y8),
@@ -61,6 +65,16 @@ with_val([X|Xs],I,N,V,L,R) :-
 	), I1 is I + 1,
 	with_val(Xs,I1,N,V,[X1|L],R).
 with_val([],_,_,_,L,L).
+unbytify_gen(Bs,N,O) :-
+	T =.. [f|Bs],
+	bagof(R,unbytify_elm(T,N,R),O1),
+	foldl(plus,O1,0,O).
+unbytify_elm(T,M,R) :-
+	between(2,M,I), arg(I,T,V),
+	R is V << (M * (M - I)).
+unbytify_elm(T,M,R) :-
+	arg(1,T,V),
+	R is ((V - ((V >> 7) << 8)) << (M * (M - 1))).
 
 link(Cpu,O) :-	
 	reg_sel(Cpu,pc,PC),	
