@@ -5,6 +5,7 @@
 :- dynamic unbytify_gen/3.
 
 %:- use_module(library(apply)).
+% foldl(+#,+M,+u,-R)
 foldl(T,[X|Xs],A,R) :-
 	call(T,X,A,A1),
 	foldl(T,Xs,A1,R), !. % next
@@ -45,8 +46,9 @@ ram_con(Ram,A,[V|Vs],O) :-
 	setarg(N,Ram,V),
 	ram_con(Ram,N,Vs,O), !. % once
 ram_con(O,_,[],O).
-ram_load(Ram,A,N) :-
-	M is 8,
+ram_load(Ram,A,M,N) :-
+	% 1,2,4,8 bytes
+	between(1,8,M), E is 8 mod M, E =:= 0,
 	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,N).
 ram_store(Ram,A,Bs,O) :-
 	Bs1 is Bs >> 32, bytify_word(Bs1,Y1,Y2,Y3,Y4),
@@ -74,10 +76,10 @@ unbytify_gen(Bs,N,O) :-
 	asserta(unbytify_gen(Bs,N,O) :- !). % next
 unbytify_elm(T,M,R) :-
 	between(2,M,I), arg(I,T,V),
-	R is V << (M * (M - I)).
+	R is V << (8 * (M - I)).
 unbytify_elm(T,M,R) :-
 	arg(1,T,V),
-	R is ((V - ((V >> 7) << 8)) << (M * (M - 1))).
+	R is ((V - ((V >> 7) << 8)) << (8 * (M - 1))).
 
 link(Cpu,O) :-	
 	reg_sel(Cpu,pc,PC),	
