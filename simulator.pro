@@ -67,7 +67,7 @@ unbytify_gen(Bs,N,O) :-
 	T =.. [f|Bs],
 	bagof(R,unbytify_elm(T,N,R),O1),
 	my_foldl(my_plus,O1,0,O),
-	asserta(unbytify_gen(Bs,N,O) :- !).
+	asserta((unbytify_gen(Bs,N,O) :- !)). % next
 unbytify_elm(T,M,R) :-
 	between(2,M,I), arg(I,T,V),
 	R is V << (8 * (M - I)).

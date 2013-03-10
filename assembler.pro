@@ -208,7 +208,7 @@ binary_number(N,Width,Bs0) :-
 			; !,
 		Bit = 0, N1 = N),
 	binary_number(Bs0,0,[],N1,Width,Bit),
-	asserta(binary_number(N,Width,Bs0) :- !). % next
+	asserta((binary_number(N,Width,Bs0) :- !)). % next
 binary_number([],_,N,N).
 binary_number([B|Bs],I0,N0,N) :-
 	between(0,1,B),
