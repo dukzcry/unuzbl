@@ -148,7 +148,7 @@ preevaluate(In,OutR) :-
 	%reverse(Out,OutR)
 	assert(l(_,_,_)).
 remove_dupes([X|Xs0],[X|Xs],PC0) :-
-	(not(functor(X,l,1)) ; not(member(X,Xs0))),
+	(\+(functor(X,l,1)) ; \+(member(X,Xs0))),
 	(functor(X,l,1) ->
 		arg(1,X,X1), my_recordz(X1,PC0), PC1 is PC0
 			; !,
@@ -161,6 +161,7 @@ remove_dupes([],[],_).
 % evaluate(+X,-Y)
 evaluate(X,Y) :-
 	evaluate(X,[],0,Y1), reverse(Y1,Y).
+% custom maplist
 evaluate([X|Xs],LI,PC0,R) :-
 	%writeln(PC0)
 	call(X,PC0,W), (nonvar(W) ->
