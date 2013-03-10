@@ -4,7 +4,7 @@
 :- op(500,fx,storing).
 storing(X,Y) :-
 	Y = X.
-:- dynamic binary_number/3.
+:- dynamic(binary_number/3).
 
 % 16 bit consts only
 const(X) :-

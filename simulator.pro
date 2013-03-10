@@ -1,8 +1,7 @@
-% minimum SWI-Prolog deps, we may wish to compile this code with GNU Prolog for speedup in future
+% keeping SWI-Prolog deps at min
 
 :- include('shared.pro').
-
-:- dynamic unbytify_gen/3.
+:- dynamic(unbytify_gen/3).
 
 %:- use_module(library(apply)).
 % foldl(+#,+M,+u,-R)
@@ -10,6 +9,8 @@ foldl(T,[X|Xs],A,R) :-
 	call(T,X,A,A1),
 	foldl(T,Xs,A1,R), !. % next
 foldl(_,[],R,R).
+plus(X,Y,Z) :-
+	Z is X + Y.
 
 reg_sel(Cpu,R,V) :-
 	reg_arg(R,A), arg(A,Cpu,V), !. % next
@@ -73,7 +74,7 @@ unbytify_gen(Bs,N,O) :-
 	T =.. [f|Bs],
 	bagof(R,unbytify_elm(T,N,R),O1),
 	foldl(plus,O1,0,O),
-	asserta(unbytify_gen(Bs,N,O) :- !). % next
+	asserta(unbytify_gen(Bs,N,O) :- !).
 unbytify_elm(T,M,R) :-
 	between(2,M,I), arg(I,T,V),
 	R is V << (8 * (M - I)).
