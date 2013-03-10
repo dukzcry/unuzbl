@@ -1,0 +1,9 @@
+%:- use_module(library(apply)).
+
+% my_foldl(+#,+M,+u,-R)
+my_foldl(T,[X|Xs],A,R) :-
+	call(T,X,A,A1),
+	my_foldl(T,Xs,A1,R), !. % next
+my_foldl(_,[],R,R).
+my_plus(X,Y,Z) :-
+	Z is X + Y.

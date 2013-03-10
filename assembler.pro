@@ -1,5 +1,5 @@
 :- include('shared.pro').
-:- include('impldep.pro').
+:- include('assembler.dep').
 
 :- op(500,fx,storing).
 storing(X,Y) :-
