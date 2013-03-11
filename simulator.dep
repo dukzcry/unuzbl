@@ -1,5 +1,5 @@
-:- op(501,xfx,my_is).
-/*:- initialization(arithmetic_function(...)).
+/*:- op(501,xfx,my_is).
+:- initialization(arithmetic_function(...)).
 
 % xxx: YAP
 :- dynamic(register_arithmetic/1).
