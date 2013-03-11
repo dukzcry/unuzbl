@@ -1,6 +1,9 @@
 :- include('shared.pro').
 :- include('assembler.dep').
 
+:- op(500,fx,storing).
+storing(X,Y) :-
+	Y = X.
 :- dynamic(binary_number/3).
 
 % 16 bit consts only
@@ -176,7 +179,7 @@ dump([Xs|Xss],Type) :-
 	T =.. [Type,N], call(T), dump(Xss,Type).
 dump([],_).
 write_word(Bs) :-
-	bytify_word(Bs,Y1,Y2,Y3,Y4),
+	bytify_gen(Bs,4,O), O = [Y1,Y2,Y3,Y4],
 	put_byte(Y1), put_byte(Y2), put_byte(Y3), put_byte(Y4).
 
 immediate_word(Opc,Reg,Op,Val,F) :-

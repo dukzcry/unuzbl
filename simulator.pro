@@ -41,13 +41,11 @@ ram_con(Ram,A,[V|Vs],O) :-
 	ram_con(Ram,N,Vs,O), !. % once
 ram_con(O,_,[],O).
 ram_load(Ram,A,M,N) :-
-	% 1,2,4,8 bytes
-	between(1,8,M), E is 8 mod M, E =:= 0,
+	ram_rule(M),
 	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,N).
-ram_store(Ram,A,Bs,O) :-
-	Bs1 is Bs >> 32, bytify_word(Bs1,Y1,Y2,Y3,Y4),
-	Bs2 is Bs /\ 0x00000000ffffffff, bytify_word(Bs2,Y5,Y6,Y7,Y8),
-	ram_con(Ram,A,[Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8],O).
+ram_store(Ram,A,Bs,M,O) :-
+	bytify_gen(Bs,M,R),
+	ram_con(Ram,A,R,O).
 reg_arg(R,A) :-
 	register(R), 
 	A is R + 1.
