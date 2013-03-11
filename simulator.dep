@@ -1,9 +1,37 @@
 %:- use_module(library(apply)).
-
 % my_foldl(+#,+M,+u,-R)
 my_foldl(T,[X|Xs],A,R) :-
 	call(T,X,A,A1),
 	my_foldl(T,Xs,A1,R), !. % next
 my_foldl(_,[],R,R).
+
 my_plus(X,Y,Z) :-
 	Z is X + Y.
+
+% xxx: YAP
+:- dynamic(register_arithmetic/1).
+arithmetic_function(Functor/Arity) :-
+	retractall(register_arithmetic(Functor/Arity)),
+	assertz(register_arithmetic(Functor/Arity)).
+eval_arith(Term,Result) :-
+	Term =.. [F|Args],
+	eval_arith2(Args,Args2),
+	((length(Args2,L),
+	register_arithmetic(F/L),
+	append(Args2, [Result], Args3),
+	ATermN =.. [F|Args3],
+	ATermN, !)
+	; 
+	(ATerm =.. [F|Args2], 
+		Result = ATerm
+	)), !.
+eval_arith2([],[]). 
+eval_arith2([Term|Rest],[TermResult|RestResult]) :-
+	eval_arith(Term,TermResult),
+	eval_arith2(Rest, RestResult).
+my_is(R,T) :-
+	eval_arith(T,R).
+my_storing(R,T) :-
+	eval_arith(T,R).
+:- op(501,xfx,my_is).
+:- op(502,xfx,my_storing).

@@ -161,7 +161,7 @@ remove_dupes([],[],_).
 % evaluate(+X,-Y)
 evaluate(X,Y) :-
 	evaluate(X,[],0,Y1), reverse(Y1,Y).
-% custom maplist
+% custom maplist/2
 evaluate([X|Xs],LI,PC0,R) :-
 	%writeln(PC0)
 	call(X,PC0,W), (nonvar(W) ->
