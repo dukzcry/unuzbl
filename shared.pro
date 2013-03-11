@@ -1,3 +1,7 @@
+:- op(500,fx,storing).
+
+storing(X,Y) :-
+	Y = X.
 register(X) :-
         number(X), between(0,31,X).
 bytify_word(Bs,Y1,Y2,Y3,Y4) :-
