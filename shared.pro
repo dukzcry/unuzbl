@@ -10,7 +10,7 @@ bytify_binrec(N,M,Xs,R) :-
 	M > 16,
 	M1 is M div 2,
 	NL is N >> M1, NR is N /\ (2 ^ M1 - 1), 
-	bytify_binrec(NR,M1,Xs,RL), bytify_binrec(NL,M1,RL,R), !. % next
+	bytify_binrec(NR,M1,Xs,RR), bytify_binrec(NL,M1,RR,R), !. % next
 bytify_binrec(N,M,L,R) :-
 	M =:= 16,
 	Y1 is (N >> 8) 
