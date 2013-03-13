@@ -6,7 +6,7 @@ ram_rule(M) :-
 bytify_gen(Bs,N,G,O) :-
 	ram_rule(N), M is N * 8,
 	bytify_treerec(Bs,M,G,[],O).
-% algorithmic
+% algorithmic, don't swap
 bytify_treerec(N,M,G,Xs,R) :-
 	M div 8 =:= G, reverse([N|Xs],R), !. % next
 bytify_treerec(N,M,G,Xs,R) :-
