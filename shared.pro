@@ -6,16 +6,16 @@ ram_rule(M) :-
 bytify_gen(Bs,N,G,O) :-
 	ram_rule(N), M is N * 8,
 	bytify_treerec(Bs,M,G,[],O).
-% algorithmic, don't swap
+%% algorithmic, don't swap
 bytify_treerec(N,M,G,Xs,R) :-
-	N1 is N /\ (2 ^ M - 1),
+	N1 is N /\ (2 ^ M - 1), % kill sign
 	M div 8 =:= G, R = [N1|Xs], !. % next
 bytify_treerec(N,M,G,Xs,R) :-
 	M > 16,
 	M1 is M div 2,
 	NL is N >> M1, NR is N /\ (2 ^ M1 - 1),
 	bytify_treerec(NR,M1,G,Xs,RR), bytify_treerec(NL,M1,G,RR,R), !. % next
-%
+%%
 bytify_treerec(N,M,_,L,R) :-
 	M =:= 16,
 	Y1 is (N >> 8) 

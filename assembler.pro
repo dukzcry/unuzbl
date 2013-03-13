@@ -6,12 +6,12 @@ storing(X,Y) :-
 	Y = X.
 :- dynamic(binary_number/3).
 
-% 16 bit consts only
+%% 16 bit consts only
 const(X) :-
 	number(X), between(-32768,32767,X).
 value_field(Bs,Val) :-
 	binary_number(Val,16,Bs).
-%
+%%
 opcode(Bs,Opc) :-
 	binary_number(Opc,6,Bs).
 second_field(Bs,Val) :-
