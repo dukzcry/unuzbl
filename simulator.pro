@@ -45,7 +45,8 @@ ram_load(Ram,A,M,N) :-
 	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,N).
 ram_store(Ram,A,Bs,M,O) :-
 	ram_rule(M),
-	bytify_gen(Bs,M,R), ram_con(Ram,A,R,O).
+	% single-byte granularity for now
+	bytify_gen(Bs,M,1,R), ram_con(Ram,A,R,O).
 reg_arg(R,A) :-
 	register(R), 
 	A is R + 1.
