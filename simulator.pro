@@ -3,7 +3,7 @@
 :- include('shared.pro').
 :- include('simulator.dep').
 
-:- dynamic(unbytify_gen/3).
+:- dynamic(unbytify_gen/4).
 
 reg_sel(Cpu,R,V) :-
 	reg_arg(R,A), arg(A,Cpu,V), !. % next
@@ -42,7 +42,7 @@ ram_con(Ram,A,[V|Vs],O) :-
 ram_con(O,_,[],O).
 ram_load(Ram,A,M,N) :-
 	ram_rule(M),
-	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,N).
+	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,1,N).
 ram_store(Ram,A,Bs,M,O) :-
 	ram_rule(M),
 	% single-byte granularity for now
@@ -62,17 +62,17 @@ with_val([X|Xs],I,N,V,L,R) :-
 	), I1 is I + 1,
 	with_val(Xs,I1,N,V,[X1|L],R).
 with_val([],_,_,_,L,L).
-unbytify_gen(Bs,N,O) :-
-	T =.. [f|Bs],
-	bagof(R,unbytify_elm(T,N,R),O1),
+unbytify_gen(Bs,N,G,O) :-
+	T =.. [f|Bs], N1 is N div G,
+	bagof(R,unbytify_elm(T,N1,G,R),O1),
 	my_foldl(my_plus,O1,0,O),
-	asserta((unbytify_gen(Bs,N,O) :- !)). % next
-unbytify_elm(T,M,R) :-
+	asserta((unbytify_gen(Bs,N,G,O) :- !)). % next
+unbytify_elm(T,M,G,R) :-
 	between(2,M,I), arg(I,T,V),
-	R is V << (8 * (M - I)).
-unbytify_elm(T,M,R) :-
+	R is V << (8 * G * (M - I)).
+unbytify_elm(T,M,G,R) :-
 	arg(1,T,V),
-	R is ((V - ((V >> 7) << 8)) << (8 * (M - 1))).
+	R is ((V - ((V >> (8 * G - 1)) << (8 * G))) << (8 * G * (M - 1))).
 
 link(Cpu,O) :-	
 	reg_sel(Cpu,pc,PC),	

@@ -8,7 +8,8 @@ bytify_gen(Bs,N,G,O) :-
 	bytify_treerec(Bs,M,G,[],O).
 % algorithmic, don't swap
 bytify_treerec(N,M,G,Xs,R) :-
-	M div 8 =:= G, reverse([N|Xs],R), !. % next
+	N1 is N /\ (2 ^ M - 1),
+	M div 8 =:= G, R = [N1|Xs], !. % next
 bytify_treerec(N,M,G,Xs,R) :-
 	M > 16,
 	M1 is M div 2,
