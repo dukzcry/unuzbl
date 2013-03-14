@@ -41,13 +41,21 @@ ram_con(Ram,A,[V|Vs],O) :-
 	ram_con(Ram,N,Vs,O), !. % once
 ram_con(O,_,[],O).
 ram_load(Ram,A,M,N) :-
-	ram_rule(M),
 	%% octa-byte granularity
-	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,8,N).
+	ram_rule(M), align_rule(A,8),
+	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,1,N), !. % next
+ram_load(Ram,A,M,N) :-
+	G is 8,
+	%%
+	ram_rule(M), once(align_bl(A,G,BL)), once(align_br(A,G,BR)),
+	ram_sel(Ram,BL,M,BsL), ram_sel(Ram,BR,M,BsR),
+	unbytify_gen(BsL,M,1,NL), unbytify_gen(BsR,M,1,NR),
+	SL is NL << (G * (A - BL)), SR is NR >> (G * (BR - A)), % kill sign
+	writeln(SR),
+	N is SL + SR.
 ram_store(Ram,A,Bs,M,O) :-
 	ram_rule(M),
-	bytify_gen(Bs,M,8,R), ram_con(Ram,A,R,O).
-	%%
+	bytify_gen(Bs,M,1,R), ram_con(Ram,A,R,O).
 reg_arg(R,A) :-
 	register(R), 
 	A is R + 1.
@@ -74,7 +82,12 @@ unbytify_elm(T,M,G,R) :-
 unbytify_elm(T,M,G,R) :-
 	arg(1,T,V),
 	R is ((V - ((V >> (8 * G - 1)) << (8 * G))) << (8 * G * (M - 1))).
-
+align_bl(A,G,N) :-
+	A1 is A - 1, X is A - G,
+	between(X,A1,N), align_rule(N,G).
+align_br(A,G,N) :-
+	A1 is A + 1, X is A + G,
+	between(A1,X,N), align_rule(N,G).
 link(Cpu,O) :-	
 	reg_sel(Cpu,pc,PC),	
 	NI is PC + 1,	

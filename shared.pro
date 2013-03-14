@@ -3,11 +3,10 @@ register(X) :-
 ram_rule(M) :-
 	% 1,2,4,8 bytes
 	between(1,8,M), E is 8 mod M, E =:= 0.
-align_rule(A) :-
-	A mod 8 =:= 0.
+align_rule(A,G) :-
+	A mod G =:= 0.
 bytify_gen(Bs,N,G,O) :-
-	ram_rule(N), M is N * 8,
-	bytify_treerec(Bs,M,G,[],O).
+	M is N * 8, bytify_treerec(Bs,M,G,[],O).
 %% algorithmic, don't swap
 bytify_treerec(N,M,G,Xs,R) :-
 	N1 is N /\ (2 ^ M - 1), % kill sign
