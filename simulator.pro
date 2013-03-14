@@ -42,11 +42,11 @@ ram_con(Ram,A,[V|Vs],O) :-
 ram_con(O,_,[],O).
 ram_load(Ram,A,M,N) :-
 	ram_rule(M),
-	%% single-byte granularity for now
-	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,1,N).
+	%% octa-byte granularity
+	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,8,N).
 ram_store(Ram,A,Bs,M,O) :-
 	ram_rule(M),
-	bytify_gen(Bs,M,1,R), ram_con(Ram,A,R,O).
+	bytify_gen(Bs,M,8,R), ram_con(Ram,A,R,O).
 	%%
 reg_arg(R,A) :-
 	register(R), 
