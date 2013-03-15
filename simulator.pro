@@ -42,19 +42,23 @@ ram_con(Ram,A,[V|Vs],O) :-
 ram_con(O,_,[],O).
 ram_load(Ram,A,M,N) :-
 	%% octa-byte granularity
-	ram_rule(M), align_rule(A,4),
+	ram_rule(M), align_rule(A,8),
 	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,1,N), !. % next
 ram_load(Ram,A,M,N) :-
-	G is 4,
+	G is 8,
 	%%
-	ram_rule(M), once(align_bl(A,G,BL)), once(align_br(A,G,BR)),
-	ram_sel(Ram,BL,M,BsL), ram_sel(Ram,BR,M,BsR),
-	unbytify_gen(BsL,M,1,NL), unbytify_gen(BsR,M,1,NR),
-	SL is NL << (G * (A - BL)), SR is NR >> (G * (BR - A)),
-	N is SL + (SR).
+	ram_rule(M), once(align_bl(A,G,LB)), once(align_br(A,G,RB)),
+	ram_sel(Ram,LB,M,HL), ram_sel(Ram,RB,M,LL),
+	LS is A - LB, RS is RB - A,
+	%% emulate HL << LS, LL >> RS
+	LR =.. [r|HL], RR =.. [r|LL],
+	ram_sel(LR,LS,RS,LBs), ram_sel(RR,0,LS,RBs),
+	my_append(LBs,RBs,Bs),
+	%%
+	unbytify_gen(Bs,M,1,N).
 ram_store(Ram,A,Bs,M,O) :-
 	ram_rule(M),
-	bytify_gen(Bs,M,1,R), ram_con(Ram,A,R,O).
+	bytify_gen(Bs,M,R), ram_con(Ram,A,R,O).
 reg_arg(R,A) :-
 	register(R), 
 	A is R + 1.

@@ -11,7 +11,7 @@ my_is(Result,Term) :-
 	eval_arith2(Args,Args2),
 	((length(Args2,L),
 	register_arithmetic(F/L),
-	append(Args2, [Result], Args3),
+	my_append(Args2, [Result], Args3),
 	ATermN =.. [F|Args3],
 	ATermN, !)
 	; 
@@ -32,3 +32,8 @@ my_foldl(_,[],R,R).
 
 my_plus(X,Y,Z) :-
 	Z is X + Y.
+my_append(A,B,L) :-
+	% DCG pokery
+	expand_term(o --> A,X), arg(1,X,Y), arg(1,Y,Z), arg(2,Y,W),
+	append_diff(Z-W,B-_,L-[]).
+append_diff(A-B,B-C,A-C).
