@@ -48,7 +48,7 @@ ram_load(Ram,A,M,N) :-
 	G is 8,
 	%%
 	ram_rule(M), once(align_bl(A,G,LB)), once(align_br(A,G,RB)),
-	ram_sel(Ram,LB,M,HL), ram_sel(Ram,RB,M,LL),
+	ram_sel(Ram,LB,G,HL), ram_sel(Ram,RB,G,LL),
 	LS is A - LB, RS is RB - A,
 	%% emulate HL << LS, LL >> RS
 	LR =.. [r|HL], RR =.. [r|LL],
