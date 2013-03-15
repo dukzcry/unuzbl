@@ -1,21 +1,22 @@
 register(X) :-
         number(X), between(0,31,X).
-ram_rule(M) :-
+ram_rule(/*M*/_) /*:-
 	% 1,2,4,8 bytes
-	between(1,8,M), E is 8 mod M, E =:= 0.
+	between(1,8,M), E is 8 mod M, E =:= 0*/.
 align_rule(A,G) :-
 	A mod G =:= 0.
-bytify_gen(Bs,N,G,O) :-
-	M is N * 8, bytify_treerec(Bs,M,G,[],O).
+bytify_gen(Bs,N,S,O) :-
+	M is N * 8, bytify_treerec(Bs,M,S,[],O).
 %% algorithmic, don't swap
-bytify_treerec(N,M,G,Xs,R) :-
+/*bytify_treerec(N,M,G,Xs,R) :-
 	N1 is N /\ (2 ^ M - 1), % kill sign
 	M div 8 =:= G, R = [N1|Xs], !. % next
-bytify_treerec(N,M,G,Xs,R) :-
+*/
+bytify_treerec(N,M,S,Xs,R) :-
 	M > 16,
 	M1 is M div 2,
 	NL is N >> M1, NR is N /\ (2 ^ M1 - 1),
-	bytify_treerec(NR,M1,G,Xs,RR), bytify_treerec(NL,M1,G,RR,R), !. % next
+	bytify_treerec(NR,M1,S,Xs,RR), bytify_treerec(NL,M1,S,RR,R), !. % next
 %%
 bytify_treerec(N,M,_,L,R) :-
 	M =:= 16,

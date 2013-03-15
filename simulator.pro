@@ -42,17 +42,16 @@ ram_con(Ram,A,[V|Vs],O) :-
 ram_con(O,_,[],O).
 ram_load(Ram,A,M,N) :-
 	%% octa-byte granularity
-	ram_rule(M), align_rule(A,8),
+	ram_rule(M), align_rule(A,4),
 	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,1,N), !. % next
 ram_load(Ram,A,M,N) :-
-	G is 8,
+	G is 4,
 	%%
 	ram_rule(M), once(align_bl(A,G,BL)), once(align_br(A,G,BR)),
 	ram_sel(Ram,BL,M,BsL), ram_sel(Ram,BR,M,BsR),
 	unbytify_gen(BsL,M,1,NL), unbytify_gen(BsR,M,1,NR),
-	SL is NL << (G * (A - BL)), SR is NR >> (G * (BR - A)), % kill sign
-	writeln(SR),
-	N is SL + SR.
+	SL is NL << (G * (A - BL)), SR is NR >> (G * (BR - A)),
+	N is SL + (SR).
 ram_store(Ram,A,Bs,M,O) :-
 	ram_rule(M),
 	bytify_gen(Bs,M,1,R), ram_con(Ram,A,R,O).
@@ -71,23 +70,24 @@ with_val([X|Xs],I,N,V,L,R) :-
 	), I1 is I + 1,
 	with_val(Xs,I1,N,V,[X1|L],R).
 with_val([],_,_,_,L,L).
-unbytify_gen(Bs,N,G,O) :-
-	T =.. [f|Bs], N1 is N div G,
-	bagof(R,unbytify_elm(T,N1,G,R),O1),
+unbytify_gen(Bs,N,S,O) :-
+	T =.. [f|Bs], N1 is N div S,
+	bagof(R,unbytify_elm(T,N1,S,R),O1),
 	my_foldl(my_plus,O1,0,O),
-	asserta((unbytify_gen(Bs,N,G,O) :- !)). % next
-unbytify_elm(T,M,G,R) :-
+	asserta((unbytify_gen(Bs,N,S,O) :- !)). % next
+unbytify_elm(T,M,S,R) :-
 	between(2,M,I), arg(I,T,V),
-	R is V << (8 * G * (M - I)).
-unbytify_elm(T,M,G,R) :-
+	R is V << (8 * S * (M - I)).
+unbytify_elm(T,M,S,R) :-
 	arg(1,T,V),
-	R is ((V - ((V >> (8 * G - 1)) << (8 * G))) << (8 * G * (M - 1))).
+	R is ((V - ((V >> (8 * S - 1)) << (8 * S))) << (8 * S * (M - 1))).
 align_bl(A,G,N) :-
 	A1 is A - 1, X is A - G,
 	between(X,A1,N), align_rule(N,G).
 align_br(A,G,N) :-
 	A1 is A + 1, X is A + G,
 	between(A1,X,N), align_rule(N,G).
+
 link(Cpu,O) :-	
 	reg_sel(Cpu,pc,PC),	
 	NI is PC + 1,	
