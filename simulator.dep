@@ -33,7 +33,5 @@ my_foldl(_,[],R,R).
 my_plus(X,Y,Z) :-
 	Z is X + Y.
 my_append(A,B,L) :-
-	% DCG pokery
-	expand_term(o --> A,X), arg(1,X,Y), arg(1,Y,Z), arg(2,Y,W),
-	append_diff(Z-W,B-_,L-[]).
+	append_diff([A|W]-W,B-_,L1-[]), flatten_diff(L1,L).
 append_diff(A-B,B-C,A-C).

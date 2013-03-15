@@ -189,13 +189,6 @@ immediate_word(Opc,Reg,Op,Val,F) :-
 jump_word(Opc,A,F) :-
 	opcode(Bs0,Opc), Bs1 is storing binary_number(A,26),
 	L = [Bs0,Bs1], F is storing flatten_diff(L).
-% flatten_diff(+S,-F)
-flatten_diff(S,F) :-
-	once(fd_binrec(S,F-[])).
-fd_binrec([],X-X).
-fd_binrec([X|Xs],Y-Z) :-
-	fd_binrec(X,Y-T), fd_binrec(Xs,T-Z).
-fd_binrec(X,[X|Z]-Z).
 	
 % rework: don't cut negative bit on truncate
 % binary_number(+Bs0,-N)

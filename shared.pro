@@ -25,3 +25,11 @@ bytify_treerec(N,M,_,L,R) :-
 	Y2 is N /\ 0xff,
 	R = [Y1,Y2|L], !. % next
 bytify_treerec(N,_,_,L,R) :- NT is N /\ 0xff, R is [NT|L].
+
+% flatten_diff(+S,-F)
+flatten_diff(S,F) :-
+	once(fd_binrec(S,F-[])).
+fd_binrec([],X-X).
+fd_binrec([X|Xs],Y-Z) :-
+	fd_binrec(X,Y-T), fd_binrec(Xs,T-Z).
+fd_binrec(X,[X|Z]-Z).
