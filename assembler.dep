@@ -1,26 +1,55 @@
 % SWI-Prolog
 
-:- use_module(library(arithmetic)).
+:- include('shared.pro').
+
+%:- use_module(library(arithmetic)).
 % http://www.complang.tuwien.ac.at/ulrich/Prolog-inedit/lambda.pl
 %:- use_module(lambda).
 
-:- arithmetic_function(binary_number/1).
-:- arithmetic_function(binary_number/2).
-:- arithmetic_function(my_copysign/2).
-:- arithmetic_function(my_sign/1).
-:- arithmetic_function(my_recorded/2).
-:- arithmetic_function(immediate_word/4).
-:- arithmetic_function(jump_word/2).
-:- arithmetic_function(find_label/2).
-:- arithmetic_function(calc_absolute/2).
-:- arithmetic_function(flatten_diff/1).
-:- arithmetic_function(parse/1).
-:- arithmetic_function(preevaluate/1).
-:- arithmetic_function(evaluate/1).
-:- arithmetic_function(storing/1).
+:- op(500,xfx,my_is).
+:- op(501,xfx,my_storing).
 
-my_copysign(X,Y,Z) :-
-	Z is copysign(X,Y).
+%:- arithmetic_fun(...).
+:- initialization(arithmetic_function(binary_number/1)).
+:- initialization(arithmetic_function(binary_number/2)).
+:- initialization(arithmetic_function(my_sign/1)).
+:- initialization(arithmetic_function(my_recorded/2)).
+:- initialization(arithmetic_function(immediate_word/4)).
+:- initialization(arithmetic_function(jump_word/2)).
+:- initialization(arithmetic_function(find_label/2)).
+:- initialization(arithmetic_function(calc_absolute/2)).
+:- initialization(arithmetic_function(flatten_diff/1)).
+:- initialization(arithmetic_function(parse/1)).
+:- initialization(arithmetic_function(preevaluate/1)).
+:- initialization(arithmetic_function(evaluate/1)).
+:- initialization(arithmetic_function(storing/1)).
+
+% xxx: YAP
+:- dynamic(register_arithmetic/1).
+arithmetic_function(Functor/Arity) :-
+        retractall(register_arithmetic(Functor/Arity)),
+        assertz(register_arithmetic(Functor/Arity)).
+my_storing(R,T) :-
+        my_is(R,T).
+my_is(Result,Term) :-
+        Term =.. [F|Args],
+        eval_arith2(Args,Args2),
+        ((length(Args2,L),
+        register_arithmetic(F/L),
+        my_append(Args2, [Result], Args3),
+        ATermN =.. [F|Args3],
+        ATermN, !)
+        ;
+        (ATerm =.. [F|Args2],
+                Result = ATerm
+        )), !.
+eval_arith2([],[]).
+eval_arith2([Term|Rest],[TermResult|RestResult]) :-
+        my_is(TermResult,Term),
+        eval_arith2(Rest, RestResult).
+
+my_copysign(X,Y) :-
+	copysign(X,Y).
 my_sign(X,Y) :-
 	Y is sign(X).
 erlang_writef(F,A) :-

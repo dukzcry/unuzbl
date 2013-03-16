@@ -1,9 +1,8 @@
-:- include('shared.pro').
 :- include('assembler.dep').
 
-:- op(500,fx,storing).
+/*:- op(500,fx,storing).
 storing(X,Y) :-
-	Y = X.
+	Y = X.*/
 :- dynamic(binary_number/3).
 
 %% 16 bit consts only
@@ -64,7 +63,7 @@ nat(N) -->
 		D2 is -D}, 
 	nat(D2,N).
 nat(A,N) -->
-	digit(D), {A1 is A * 10 + my_copysign(D,A)}, nat(A1,N).
+	digit(D), {A1 is A * 10 + copysign(D,A)}, nat(A1,N).
 nat(N,N) -->
 	[].
 statement(j(Op,D)) -->
@@ -113,31 +112,31 @@ operator3(7) -->
 % cuts for nexts
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,d,1), arg(1,Y,Y1),
-	L is storing immediate_word(Opc,Rs,0,Y1), !.
+	L my_storing immediate_word(Opc,Rs,0,Y1), !.
 i(Opc,Rs,Y,_,L) :-
 	functor(Y,a,2), arg(1,Y,Ra), arg(2,Y,D),
-	L is storing immediate_word(Opc,Rs,Ra,D), !.
+	L my_storing immediate_word(Opc,Rs,Ra,D), !.
 i(Opc,Rs,Y,_,L) :-
 	/*functor(Y,a,1),*/ arg(1,Y,Ra),
-	L is storing immediate_word(Opc,Rs,Ra,0).
+	L my_storing immediate_word(Opc,Rs,Ra,0).
 i(Opc,Rs,Rt,D,PC,L) :-
-	A is calc_absolute(D,PC),
-	L is storing immediate_word(Opc,Rs,Rt,A), !.
+	A my_is calc_absolute(D,PC),
+	L my_storing immediate_word(Opc,Rs,Rt,A), !.
 i(Opc,Rs,Rt,D,PC,L) :-
-	A is find_label(D,PC),
-	L is storing immediate_word(Opc,Rs,Rt,A).
+	A my_is find_label(D,PC),
+	L my_storing immediate_word(Opc,Rs,Rt,A).
 j(Opc,D,PC,L) :-
-	between(1,2,Opc), A is calc_absolute(D,PC),
-	L is storing jump_word(Opc,A), !.
+	between(1,2,Opc), A my_is calc_absolute(D,PC),
+	L my_storing jump_word(Opc,A), !.
 j(0,D,_,L) :-
 	functor(D,d,1), arg(1,D,A),
-	L is storing jump_word(0,A), !.
+	L my_storing jump_word(0,A), !.
 j(Opc,D,PC,L) :-
-	A is find_label(D,PC),
-	L is storing jump_word(Opc,A).
+	A my_is find_label(D,PC),
+	L my_storing jump_word(Opc,A).
 find_label(D,PC,A) :-
 	/*functor(D,l,1),*/ arg(1,D,D1),
-	(A is my_recorded(D1,_);
+	(A my_is my_recorded(D1,_);
 	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))), !. % once
 calc_absolute(D,PC,A) :-
 	functor(D,d,1), arg(1,D,D1), A is PC + D1.
@@ -175,7 +174,7 @@ text(N) :-
 binary(N) :-
 	write_word(N).
 dump([Xs|Xss],Type) :-
-	N is binary_number(Xs),
+	N my_is binary_number(Xs),
 	T =.. [Type,N], call(T), dump(Xss,Type).
 dump([],_).
 write_word(Bs) :-
@@ -184,11 +183,11 @@ write_word(Bs) :-
 
 immediate_word(Opc,Reg,Op,Val,F) :-
 	opcode(Bs0,Opc), second_field(Bs1,Reg),
-	Bs2 is storing binary_number(Op,5), value_field(Bs3,Val),
-	L = [Bs0,Bs1,Bs2,Bs3], F is storing flatten_diff(L).
+	Bs2 my_storing binary_number(Op,5), value_field(Bs3,Val),
+	L = [Bs0,Bs1,Bs2,Bs3], F my_storing flatten_diff(L).
 jump_word(Opc,A,F) :-
-	opcode(Bs0,Opc), Bs1 is storing binary_number(A,26),
-	L = [Bs0,Bs1], F is storing flatten_diff(L).
+	opcode(Bs0,Opc), Bs1 my_storing binary_number(A,26),
+	L = [Bs0,Bs1], F my_storing flatten_diff(L).
 	
 % rework: don't cut negative bit on truncate
 % binary_number(+Bs0,-N)
@@ -196,7 +195,7 @@ binary_number(Bs0,N) :-
 	reverse(Bs0,Bs), binary_number(Bs,0,0,N).
 % binary_number(+N,+Width,-Bs0)
 binary_number(N,Width,Bs0) :-
-	(my_sign(N) =:= -1 ->
+	(sign(N) =:= -1 ->
 		Bit = 1, N1 is abs(N) - 1
 			; !,
 		Bit = 0, N1 = N),
@@ -221,6 +220,6 @@ binary_number(R,I0,L,N,Width,Bit) :-
 	Q is N div 2, I1 is I0 + 1, 
 	binary_number(R,I1,[B1|L],Q,Width,Bit).
 
-%T is storing parse(In), Tp is storing preevaluate(T), Ws is storing evaluate(Tp),
+%T my_storing parse(In), Tp my_storing preevaluate(T), Ws my_storing evaluate(Tp),
 %Out = "out.o", open(Out,write,Fd,[type(binary)]), set_output(Fd), dump(Ws,binary), told.
 %Out = 'out.h', tell(Out), dump(Ws,text), told.

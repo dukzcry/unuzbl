@@ -1,4 +1,4 @@
-% keeping SWI-Prolog deps at min
+% keeping SWI deps at min
 
 :- include('shared.pro').
 :- include('simulator.dep').

@@ -1,28 +1,3 @@
-/*:- op(501,xfx,my_is).
-:- initialization(arithmetic_function(...)).
-
-% xxx: YAP
-:- dynamic(register_arithmetic/1).
-arithmetic_function(Functor/Arity) :-
-	retractall(register_arithmetic(Functor/Arity)),
-	assertz(register_arithmetic(Functor/Arity)).
-my_is(Result,Term) :-
-	Term =.. [F|Args],
-	eval_arith2(Args,Args2),
-	((length(Args2,L),
-	register_arithmetic(F/L),
-	my_append(Args2, [Result], Args3),
-	ATermN =.. [F|Args3],
-	ATermN, !)
-	; 
-	(ATerm =.. [F|Args2], 
-		Result = ATerm
-	)), !.
-eval_arith2([],[]). 
-eval_arith2([Term|Rest],[TermResult|RestResult]) :-
-	my_is(TermResult,Term),
-	eval_arith2(Rest, RestResult).*/
-
 %:- use_module(library(apply)).
 % my_foldl(+#,+M,+u,-R)
 my_foldl(T,[X|Xs],A,R) :-
@@ -32,6 +7,3 @@ my_foldl(_,[],R,R).
 
 my_plus(X,Y,Z) :-
 	Z is X + Y.
-my_append(A,B,L) :-
-	append_diff([A|W]-W,B-_,L1-[]), flatten_diff(L1,L).
-append_diff(A-B,B-C,A-C).
