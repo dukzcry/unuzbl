@@ -47,7 +47,8 @@ ram_load(Ram,A,M,N) :-
 ram_load(Ram,A,M,N) :-
 	G is 8,
 	%%
-	ram_rule(M), once(align_bl(A,G,LB)), once(align_br(A,G,RB)),
+	ram_rule(M), 
+	once(align_br(A,G,RB)), LB is RB - G,
 	ram_sel(Ram,LB,G,HL), ram_sel(Ram,RB,G,LL),
 	LS is A - LB, RS is RB - A,
 	%% emulate HL << LS, LL >> RS
@@ -85,9 +86,6 @@ unbytify_elm(T,M,S,R) :-
 unbytify_elm(T,M,S,R) :-
 	arg(1,T,V),
 	R is ((V - ((V >> (8 * S - 1)) << (8 * S))) << (8 * S * (M - 1))).
-align_bl(A,G,N) :-
-	A1 is A - 1, X is A - G,
-	between(X,A1,N), align_rule(N,G).
 align_br(A,G,N) :-
 	A1 is A + 1, X is A + G,
 	between(A1,X,N), align_rule(N,G).
