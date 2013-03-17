@@ -63,7 +63,7 @@ nat(N) -->
 		D2 is -D}, 
 	nat(D2,N).
 nat(A,N) -->
-	digit(D), {A1 is A * 10 + copysign(D,A)}, nat(A1,N).
+	digit(D), {A1 my_is my_plus(A * 10, my_copysign(D,A))}, nat(A1,N).
 nat(N,N) -->
 	[].
 statement(j(Op,D)) -->
@@ -136,7 +136,7 @@ j(Opc,D,PC,L) :-
 	L my_storing jump_word(Opc,A).
 find_label(D,PC,A) :-
 	/*functor(D,l,1),*/ arg(1,D,D1),
-	(A my_is my_recorded(D1,_);
+	(my_recorded(D1,_,A);
 	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))), !. % once
 calc_absolute(D,PC,A) :-
 	functor(D,d,1), arg(1,D,D1), A is PC + D1.
@@ -195,7 +195,8 @@ binary_number(Bs0,N) :-
 	reverse(Bs0,Bs), binary_number(Bs,0,0,N).
 % binary_number(+N,+Width,-Bs0)
 binary_number(N,Width,Bs0) :-
-	(sign(N) =:= -1 ->
+	X my_is my_sign(N),
+	(X =:= -1 ->
 		Bit = 1, N1 is abs(N) - 1
 			; !,
 		Bit = 0, N1 = N),

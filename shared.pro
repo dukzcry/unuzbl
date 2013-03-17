@@ -1,3 +1,5 @@
+:- initialization(arithmetic_function(my_plus/2)).
+
 register(X) :-
         number(X), between(0,31,X).
 ram_rule(M) :-
@@ -35,6 +37,9 @@ fd_binrec([X|Xs],Y-Z) :-
 fd_binrec(X,[X|Z]-Z).
 my_append(A,B,L) :-
         %append_diff([A|W]-W,B-_,L1-[]), flatten_diff(L1,L).
+        % DCG pokery
         expand_term(o --> A,X), arg(1,X,Y), arg(1,Y,Z), arg(2,Y,W),
         append_diff(Z-W,B-_,L-[]).
 append_diff(A-B,B-C,A-C).
+my_plus(X,Y,Z) :-
+	Z is X + Y.

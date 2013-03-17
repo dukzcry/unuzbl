@@ -12,6 +12,7 @@
 %:- arithmetic_fun(...).
 :- initialization(arithmetic_function(binary_number/1)).
 :- initialization(arithmetic_function(binary_number/2)).
+:- initialization(arithmetic_function(my_copysign/2)).
 :- initialization(arithmetic_function(my_sign/1)).
 :- initialization(arithmetic_function(my_recorded/2)).
 :- initialization(arithmetic_function(immediate_word/4)).
@@ -30,8 +31,10 @@ arithmetic_function(Functor/Arity) :-
         retractall(register_arithmetic(Functor/Arity)),
         assertz(register_arithmetic(Functor/Arity)).
 my_storing(R,T) :-
-        my_is(R,T).
-my_is(Result,Term) :-
+        do_is(R,T), R \== T.
+my_is(R,T) :-
+        do_is(R,T), R \== T.
+do_is(Result,Term) :-
         Term =.. [F|Args],
         eval_arith2(Args,Args2),
         ((length(Args2,L),
@@ -45,11 +48,11 @@ my_is(Result,Term) :-
         )), !.
 eval_arith2([],[]).
 eval_arith2([Term|Rest],[TermResult|RestResult]) :-
-        my_is(TermResult,Term),
+        do_is(TermResult,Term),
         eval_arith2(Rest, RestResult).
 
-my_copysign(X,Y) :-
-	copysign(X,Y).
+my_copysign(X,Y,Z) :-
+	Z is copysign(X,Y).
 my_sign(X,Y) :-
 	Y is sign(X).
 erlang_writef(F,A) :-
