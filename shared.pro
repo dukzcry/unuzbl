@@ -1,5 +1,3 @@
-:- initialization(arithmetic_function(my_plus/2)).
-
 register(X) :-
         number(X), between(0,31,X).
 ram_rule(M) :-

@@ -25,6 +25,8 @@
 :- initialization(arithmetic_function(evaluate/1)).
 :- initialization(arithmetic_function(storing/1)).
 
+:- initialization(arithmetic_function(my_plus/2)).
+
 % xxx: YAP
 :- dynamic(register_arithmetic/1).
 arithmetic_function(Functor/Arity) :-
