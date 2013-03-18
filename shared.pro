@@ -24,7 +24,7 @@ bytify_treerec(N,M,_,L,R) :-
 	/\ 0xff, % kill sign
 	Y2 is N /\ 0xff,
 	R = [Y1,Y2|L], !. % next
-bytify_treerec(N,_,_,L,R) :- NT is N /\ 0xff, R is [NT|L].
+bytify_treerec(N,_,_,L,R) :- NT is N /\ 0xff, R = [NT|L].
 
 % flatten_diff(+S,-F)
 flatten_diff(S,F) :-
@@ -36,7 +36,7 @@ fd_binrec(X,[X|Z]-Z).
 my_append(A,B,L) :-
         %append_diff([A|W]-W,B-_,L1-[]), flatten_diff(L1,L).
         % DCG pokery
-        expand_term(o --> A,X), arg(1,X,Y), arg(1,Y,Z), arg(2,Y,W),
+        expand_term((o --> A),X), arg(1,X,Y), arg(1,Y,Z), arg(2,Y,W),
         append_diff(Z-W,B-_,L-[]).
 append_diff(A-B,B-C,A-C).
 my_plus(X,Y,Z) :-

@@ -40,11 +40,11 @@ ram_con(Ram,A,[V|Vs],O) :-
 	setarg(N,Ram,V),
 	ram_con(Ram,N,Vs,O), !. % once
 ram_con(O,_,[],O).
-ram_load(Ram,A,M,N,0) :-
+ram_load(Ram,A,M,N/0) :-
 	%% octa-byte granularity
 	ram_rule(M), align_rule(A,8),
 	ram_sel(Ram,A,M,Bs), unbytify_gen(Bs,M,1,N), !. % next
-ram_load(Ram,A,M,N,1) :-
+ram_load(Ram,A,M,N/1) :-
 	G is 8,
 	%%
 	ram_rule(M), 
