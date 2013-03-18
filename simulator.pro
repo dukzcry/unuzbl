@@ -57,9 +57,11 @@ ram_load(Ram,A,M,N/1) :-
 	my_append(LBs,RBs,Bs),
 	%%
 	unbytify_gen(Bs,M,1,N).
-ram_store(Ram,A,Bs,M,O) :-
+ram_store(Ram,A,Bs,M,O,Al) :-
 	ram_rule(M),
-	bytify_gen(Bs,M,R), ram_con(Ram,A,R,O).
+	bytify_gen(Bs,M,R), ram_con(Ram,A,R,O),
+	% xxx: overriding isn't affordable; read &combine & write is too slow
+	(align_rule(A,8), Al = 0, ! ; Al = 1).
 reg_arg(R,A) :-
 	register(R), 
 	A is R + 1.
