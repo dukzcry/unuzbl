@@ -1,0 +1,4 @@
+# XGI Volari frame buffer
+device  xgifb: wsemuldisplaydev, rasops8, rasops15, rasops16, rasops32, vcons
+attach  xgifb at pci
+file    modules/xgifb/xgifb.c         xgifb   needs-flag
