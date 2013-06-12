@@ -724,6 +724,7 @@ klua_close(klua_State *K)
 			LIST_FOREACH(m, &s->lua_modules, mod_next)
 				m->refcount--;
 			free(s, M_DEVBUF);
+			break;
 		}
 
 	lua_close(K->L);
