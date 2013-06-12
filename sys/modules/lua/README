@@ -1,0 +1,1 @@
+1. No need to check for ENOMEM when M_WAITOK is set (by default)
