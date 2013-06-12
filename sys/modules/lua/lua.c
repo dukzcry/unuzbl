@@ -78,8 +78,8 @@ static inline void *lua_realloc(void *ptr, size_t osize, size_t nsize)
   return newptr;
 }
 #else
-#define lua_realloc(ptr, _osize, nsize) kern_realloc(ptr, nsize, _M_WAITOK)
 #define lua_free(ptr, _size) kern_free(ptr)
+#define lua_realloc(ptr, _osize, nsize) kern_realloc(ptr, nsize, _M_WAITOK)
 #endif
 
 struct lua_softc {
@@ -306,7 +306,7 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 	struct lua_require *require;
 	struct lua_load *load;
 	struct lua_state *s;
-	struct lua_module *m;
+	struct lua_module *m, *sm;
 	kauth_cred_t cred;
 	struct nameidata nd;
 	struct pathbuf *pb;
@@ -379,6 +379,18 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 				LIST_FOREACH(m, &lua_modules, mod_next)
 					if (!strcmp(m->mod_name,
 					    require->module)) {
+					  LIST_FOREACH(sm, &s->lua_modules, mod_next)
+					    if (!strcmp(sm->mod_name,
+							m->mod_name)) {
+					      if (lua_verbose)
+						device_printf(sc->sc_dev,
+							      "module %s is "
+							      "already required "
+							      "in a state %s\n",
+							      m->mod_name,
+							      s->lua_name);
+					      return EBUSY;
+					    }
 					    	if (lua_verbose)
 						    	device_printf(
 						    	    sc->sc_dev,
@@ -515,6 +527,16 @@ lua_require(lua_State *L)
 	if (md != NULL)
 		LIST_FOREACH(s, &lua_states, lua_next)
 			if (s->K->L == L) {
+			  LIST_FOREACH(m, &s->lua_modules, mod_next)
+			    if (!strcmp(m->mod_name,
+					md->mod_name)) {
+			      if (lua_verbose)
+				device_printf(sc_self,
+					      "module %s is "
+					      "already required\n",
+					      m->mod_name);
+			      return EBUSY;
+			    }
 				if (lua_verbose)
 					device_printf(sc_self,
 					    "require module %s\n",
