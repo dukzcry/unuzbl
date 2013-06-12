@@ -1,5 +1,3 @@
-/*	$NetBSD */
-
 /*
  * Copyright (c) 2011 by Marc Balmer <mbalmer@NetBSD.org>.
  * All rights reserved.
@@ -38,7 +36,7 @@
 #include <sys/ioctl.h>
 #include <sys/lock.h>
 #include <sys/lua.h>
-#include <sys/malloc.h>
+//#include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/namei.h>
@@ -49,6 +47,40 @@
 #include <lauxlib.h>
 
 #include "luavar.h"
+
+void	*kern_malloc(unsigned long, int);
+void	*kern_realloc(void *, unsigned long, int);
+void	kern_free(void *);
+MALLOC_DECLARE(M_DEVBUF);
+#define _M_WAITOK 0x0000
+#define M_ZERO 0x0002
+#if 1
+#define malloc(size, _type, _flags) kmem_zalloc(size, KM_SLEEP)
+#define free_size(ptr, size) kmem_free(ptr, size)
+#define free(ptr, _type) free_size(ptr, sizeof(*ptr))
+#else
+#define malloc(size, _type, flags) kern_malloc(size, flags)
+#define free_size(ptr, _size) kern_free(ptr);
+#define free free_size
+#endif
+#if 1
+#define lua_free(ptr, size) kmem_free(ptr, size)
+static inline void *lua_realloc(void *ptr, size_t osize, size_t nsize)
+{
+  void *newptr = kmem_alloc(nsize, KM_SLEEP);
+
+  if (osize != 0) {
+    /* ptr != NULL, nsize != 0 */
+    memcpy(newptr, ptr, MIN(osize, nsize));
+    lua_free(ptr, osize);
+  }
+
+  return newptr;
+}
+#else
+#define lua_realloc(ptr, _osize, nsize) kern_realloc(ptr, nsize, _M_WAITOK)
+#define lua_free(ptr, _size) kern_free(ptr)
+#endif
 
 struct lua_softc {
 	device_t		 sc_dev;
@@ -501,11 +533,11 @@ void *
 lua_alloc(void *ud, void *ptr, size_t osize, size_t nsize)
 {
 	if (nsize == 0) {
-		if (ptr != NULL)
-			free(ptr, ud);
+		if (ptr != NULL && osize != 0)
+			lua_free(ptr, osize);
 		return NULL;
 	} else
-		return realloc(ptr, nsize, ud, 0);
+		return lua_realloc(ptr, osize, nsize);
 }
 
 static const char *
@@ -622,7 +654,6 @@ klua_newstate(lua_Alloc f, void *ud, const char *name, const char *desc)
 	mutex_init(&K->ks_lock, MUTEX_DEFAULT, IPL_VM);
 	cv_init(&K->ks_inuse_cv, "luainuse");
 
-finish:
 	mutex_enter(&sc->sc_state_lock);
 	sc->sc_state = false;
 	cv_signal(&sc->sc_state_cv);
