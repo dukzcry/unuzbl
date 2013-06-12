@@ -29,7 +29,7 @@ xgifb_attach(device_t parent, device_t self, void *aux)
 }
 CFATTACH_DECL_NEW(xgifb, sizeof(struct xgifb_softc), xgifb_match, xgifb_attach, NULL, NULL);
 
-MODULE(MODULE_CLASS_DRIVER, xgifb, NULL);
+MODULE(MODULE_CLASS_DRIVER, xgifb, "pci,luahw");
 static int
 xgifb_modcmd(modcmd_t cmd, void *opaque)
 {
