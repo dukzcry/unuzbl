@@ -34,6 +34,7 @@ struct lua_module {
 	int 			(*open)(void *);
 	int			refcount;
 	LIST_ENTRY(lua_module)	mod_next;
+ LIST_ENTRY(lua_module) sm_next;
 };
 
 struct lua_state {

@@ -379,7 +379,7 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 				LIST_FOREACH(m, &lua_modules, mod_next)
 					if (!strcmp(m->mod_name,
 					    require->module)) {
-					  LIST_FOREACH(sm, &s->lua_modules, mod_next)
+					  LIST_FOREACH(sm, &s->lua_modules, sm_next)
 					    if (!strcmp(sm->mod_name,
 							m->mod_name)) {
 					      if (lua_verbose)
@@ -402,7 +402,7 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 					    	m->refcount++;
 					    	LIST_INSERT_HEAD(
 					    	    &s->lua_modules, m,
-					    	    mod_next);
+					    	    sm_next);
 					    	return 0;
 					}
 		return ENXIO;
@@ -527,7 +527,7 @@ lua_require(lua_State *L)
 	if (md != NULL)
 		LIST_FOREACH(s, &lua_states, lua_next)
 			if (s->K->L == L) {
-			  LIST_FOREACH(m, &s->lua_modules, mod_next)
+			  LIST_FOREACH(m, &s->lua_modules, sm_next)
 			    if (!strcmp(m->mod_name,
 					md->mod_name)) {
 			      if (lua_verbose)
@@ -543,7 +543,7 @@ lua_require(lua_State *L)
 					    md->mod_name);
 				md->open(L);
 				md->refcount++;
-				LIST_INSERT_HEAD(&s->lua_modules, md, mod_next);
+				LIST_INSERT_HEAD(&s->lua_modules, md, sm_next);
 				return 0;
 			}
 
@@ -721,7 +721,7 @@ klua_close(klua_State *K)
 	LIST_FOREACH(s, &lua_states, lua_next)
 		if (s->K == K) {
 			LIST_REMOVE(s, lua_next);
-			LIST_FOREACH(m, &s->lua_modules, mod_next)
+			LIST_FOREACH(m, &s->lua_modules, sm_next)
 				m->refcount--;
 			free(s, M_DEVBUF);
 			break;
