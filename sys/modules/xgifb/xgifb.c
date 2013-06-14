@@ -98,9 +98,10 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
 				    cfattach_ioconf_xgifb, cfdata_ioconf_xgifb);
     break;
   case MODULE_CMD_FINI:
-    ret = config_fini_component(cfdriver_ioconf_xgifb,
-				  cfattach_ioconf_xgifb, cfdata_ioconf_xgifb);
-    klua_close(xgifb_glbl.K);
+    if (!(ret = config_fini_component(cfdriver_ioconf_xgifb,
+				      cfattach_ioconf_xgifb,
+				      cfdata_ioconf_xgifb)))
+      klua_close(xgifb_glbl.K);
     break;
   default:
     ret = ENOTTY;
