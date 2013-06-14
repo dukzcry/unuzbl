@@ -86,6 +86,7 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
       aprint_error("%s: LUALOAD\n", NAME);
       goto fail;
     }
+    K->ks_prot = true;
 
     ret = config_init_component(cfdriver_ioconf_xgifb,
 				    cfattach_ioconf_xgifb, cfdata_ioconf_xgifb);

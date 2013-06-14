@@ -375,7 +375,9 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 	case LUAREQUIRE:	/* 'require' a module in a State */
 		require = data;
 		LIST_FOREACH(s, &lua_states, lua_next)
-			if (!strcmp(s->lua_name, require->state))
+		  if (!strcmp(s->lua_name, require->state)) {
+		    if (s->K->ks_prot)
+		      return EBUSY;
 				LIST_FOREACH(m, &lua_modules, mod_next)
 					if (!strcmp(m->mod_name,
 					    require->module)) {
@@ -405,6 +407,7 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 					    	    sm_next);
 					    	return 0;
 					}
+		  }
 		return ENXIO;
 	case LUALOAD:
 		load = data;
@@ -413,6 +416,8 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 
 		LIST_FOREACH(s, &lua_states, lua_next)
 			if (!strcmp(s->lua_name, load->state)) {
+			  if (s->K->ks_prot)
+			    return EBUSY;
 				if (lua_verbose)
 					device_printf(sc->sc_dev,
 					    "loading %s into state %s\n",
@@ -662,6 +667,7 @@ klua_newstate(lua_Alloc f, void *ud, const char *name, const char *desc)
 	K = malloc(sizeof(klua_State), M_DEVBUF, M_ZERO);
 	K->L = lua_newstate(f, ud);
 	K->ks_user = false;
+	K->ks_prot = false;
 
 	strlcpy(s->lua_name, name, MAX_LUA_NAME);
 	strlcpy(s->lua_desc, desc, MAX_LUA_DESC);
