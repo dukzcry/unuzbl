@@ -1,9 +1,13 @@
 require 'hw'
 require 'core'
 
-function xgifbMatch(parent, match, pa)
+function xgifbMatch(pa, devs, num)
 	 --core.print("matching\n")
-	 return 0
+	 if hw.pci_matchbyid(pa, devs, num) == 1 then
+	    return 100
+	 else
+	    return 0
+	 end
 end
 function xgifbAttach(parent, sc, pa)
 	 --core.print("attaching\n")

@@ -5,7 +5,8 @@
 #include <sys/mallocvar.h>
 #include <sys/ioctl.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/pci/pcidevs.h>
+#include "luahw.h"
 
 #include "ioconf.c"
 
@@ -18,6 +19,11 @@ static struct {
   klua_State *K;
   lua_State *L;
 } xgifb_glbl;
+const struct pci_matchid xgifb_devices[] = {
+  { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z7 },
+  { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z9M },
+  { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z11 }
+};
 
 struct xgifb_softc {
   device_t sc_dev;
@@ -36,9 +42,9 @@ xgifb_match(device_t parent, cfdata_t match, void *aux)
   if (!lua_isfunction(L, -1))
     return 0;
 
-  lua_pushlightuserdata(L, &parent);
-  lua_pushlightuserdata(L, &match);
   lua_pushlightuserdata(L, pa);
+  lua_pushlightuserdata(L, xgifb_devices);
+  lua_pushinteger(L, __arraycount(xgifb_devices));
   lua_pcall(L, 3, 1, 0);
   return lua_tointeger(L, -1);
 }

@@ -3,6 +3,7 @@
 #include <sys/lua.h>
 
 #include <dev/pci/pcireg.h>
+#include "luahw.h"
 
 MODULE(MODULE_CLASS_LUA_BINDING, luahw, "lua");
 
@@ -12,23 +13,26 @@ struct hw_reg {
 };
 
 static int
-pci_vendor(lua_State *L)
+pci_matchbyid(lua_State *L)
 {
-  int arg, res;
+  struct pci_attach_args *pa;
+  const struct pci_matchid *ids;
+  int nent;
 
-  arg = lua_tointeger(L, 1);
-  res = PCI_VENDOR(arg);
-  lua_pushinteger(L, res);
-  return 1;
-}
-static int
-pci_product(lua_State *L)
-{
-  int arg, res;
+  const struct pci_matchid *pm;
+  int i;
 
-  arg = lua_tointeger(L, 1);
-  res = PCI_PRODUCT(arg);
-  lua_pushinteger(L, res);
+  pa = lua_touserdata(L, 1);
+  ids = lua_touserdata(L, 2);
+  nent = lua_tointeger(L, 3);
+
+  for (i = 0, pm = ids; i < nent; i++, pm++)
+    if (PCI_VENDOR(pa->pa_id) == pm->pm_vid &&
+	PCI_PRODUCT(pa->pa_id) == pm->pm_pid) {
+      lua_pushinteger(L, 1);
+      return 1;
+    }
+  lua_pushinteger(L, 0);
   return 1;
 }
 
@@ -38,8 +42,7 @@ luaopen_hw(void *ls)
   lua_State *L = (lua_State *)ls;
   int n, nfunc;
   struct hw_reg hw[] = {
-    { "PCI_VENDOR", pci_vendor },
-    { "PCI_PRODUCT", pci_product },
+    { "pci_matchbyid", pci_matchbyid },
   };
 
   nfunc = __arraycount(hw);
