@@ -11,7 +11,6 @@
 #include "ioconf.c"
 
 #define NAME xgifb_cd.cd_name /* files.pci's symbol */
-#define PATH "./xgifb.lua"
 MALLOC_DECLARE(M_DEVBUF);
 
 extern int luaioctl(dev_t, u_long, void *, int, struct lwp *);
@@ -74,7 +73,6 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
   int ret = 0;
   struct lua_load l = {
     .state = "xgifb",
-    .path = PATH
   };
   klua_State *K;
 
@@ -85,9 +83,10 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
       aprint_error("%s: LUACREATE\n", NAME);
       return -1;
     }
-    xgifb_glbl.K = K; /* for new call */
+    xgifb_glbl.K = K; /* for nextcoming calls */
     xgifb_glbl.L = K->L;
 
+    snprintf(l.path, MAXPATHLEN, "%s/xgifb/xgifb.lua", module_base);
     if (luaioctl(0, LUALOAD, &l, 0, NULL)) {
       aprint_error("%s: LUALOAD\n", NAME);
       goto fail;
