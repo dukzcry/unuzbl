@@ -444,7 +444,7 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 					    kauth_cred_get());
 					if (lua_verbose)
 						device_printf(sc->sc_dev,
-						    "erro VOP_GETATTR %d\n",
+						    "error VOP_GETATTR %d\n",
 						    error);
 					return error;
 				}
@@ -575,7 +575,9 @@ lua_reader(lua_State *L, void *data, size_t *size)
 	size_t rsiz;
 
 	ls = data;
-	if (ls->size < sizeof(buf))
+	if (ls->size == 0)
+	  return NULL;
+	else if (ls->size < sizeof(buf))
 		rsiz = ls->size;
 	else
 		rsiz = sizeof(buf);
