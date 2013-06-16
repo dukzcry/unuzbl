@@ -578,9 +578,7 @@ lua_reader(lua_State *L, void *data, size_t *size)
 	size_t rsiz;
 
 	ls = data;
-	if (ls->size == 0)
-	  return NULL;
-	else if (ls->size < sizeof(buf))
+	if (ls->size < sizeof(buf))
 		rsiz = ls->size;
 	else
 		rsiz = sizeof(buf);
