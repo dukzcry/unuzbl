@@ -313,6 +313,7 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 	struct vattr va;
 	struct lua_loadstate ls;
 	int error, n;
+	const char *msg;
 	klua_State *K;
 
 	sc = device_lookup_private(&lua_cd, minor(dev));
@@ -461,6 +462,8 @@ luaioctl(dev_t dev, u_long cmd, void *data, int flag, struct lwp *l)
 				error = lua_load(s->K->L, lua_reader, &ls,
 				    strrchr(load->path, '/') + 1);
 				vn_close(nd.ni_vp, FREAD, cred);
+				if (error && lua_verbose && (msg = lua_tostring(s->K->L, -1)))
+				  device_printf(sc->sc_dev, "%s\n", msg);
 				switch (error) {
 				case 0:	/* no error */
 					break;
