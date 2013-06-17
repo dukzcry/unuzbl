@@ -22,9 +22,9 @@ pci_matchbyid(lua_State *L)
   const struct pci_matchid *pm;
   int i;
 
-  pa = lua_touserdata(L, 1);
-  ids = lua_touserdata(L, 2);
-  nent = lua_tointeger(L, 3);
+  pa = lua_touserdata(L, -3);
+  ids = lua_touserdata(L, -2);
+  nent = lua_tointeger(L, -1);
 
   for (i = 0, pm = ids; i < nent; i++, pm++)
     if (PCI_VENDOR(pa->pa_id) == pm->pm_vid &&
@@ -35,6 +35,12 @@ pci_matchbyid(lua_State *L)
   lua_pushinteger(L, 0);
   return 1;
 }
+static void
+aprint_devinfo(lua_State *L)
+{
+  struct pci_attach_args *pa = lua_touserdata(L, -1);
+  pci_aprint_devinfo(pa, NULL);
+}
 
 int
 luaopen_hw(void *ls)
@@ -43,6 +49,7 @@ luaopen_hw(void *ls)
   int n, nfunc;
   struct hw_reg hw[] = {
     { "pci_matchbyid", pci_matchbyid },
+    { "pci_aprint_devinfo", aprint_devinfo }
   };
 
   nfunc = __arraycount(hw);
