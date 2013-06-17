@@ -1,7 +1,5 @@
-/*	$NetBSD: luaconf.h,v 1.4 2012/03/15 01:02:19 alnsn Exp $	*/
-
 /*
-** Id: luaconf.h,v 1.82.1.7 2008/02/11 16:25:08 roberto Exp $
+** $Id: luaconf.h,v 1.82.1.7 2008/02/11 16:25:08 roberto Exp $
 ** Configuration file for Lua
 ** See Copyright Notice in lua.h
 */
@@ -13,6 +11,9 @@
 #include <limits.h>
 #include <stddef.h>
 
+#ifndef LUA_CORE
+#define LUA_CORE
+#endif
 
 /*
 ** ==================================================================
@@ -22,7 +23,7 @@
 
 
 /*
-@@ LUA_ANSI controls the use of non-ansi features.
+@@ lUA_ANSI controls the use of non-ansi features.
 ** CHANGE it (define it) if you want Lua to avoid the use of any
 ** non-ansi feature or library.
 */
@@ -99,16 +100,9 @@
 #define LUA_ROOT	"/usr/"
 #define LUA_LDIR	LUA_ROOT "share/lua/5.1/"
 #define LUA_CDIR	LUA_ROOT "lib/lua/5.1/"
-
-/*
- * The original Lua distribution contain "./?.lua" at the beginning
- * of LUA_PATH_DEFAULT and "./?.so" at the beginning of LUA_CPATH_DEFAULT.
- * These path elements have been removed for the NetBSD version of Lua
- * to avoid potential security problems.
- */
 #define LUA_PATH_DEFAULT  \
-	LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
-	LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua"
+		LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
+		            LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua"
 #define LUA_CPATH_DEFAULT \
 	LUA_CDIR"?.so;" LUA_CDIR"loadall.so"
 #endif
@@ -510,15 +504,21 @@
 ** ===================================================================
 */
 
+#if defined _KERNEL || defined _NOFPA
+#define LUA_NUMBER	long long
+#undef HUGE_VAL
+#define HUGE_VAL ((LUA_NUMBER) __builtin_huge_val())
+#else
 #define LUA_NUMBER_DOUBLE
 #define LUA_NUMBER	double
+#endif
 
 /*
 @@ LUAI_UACNUMBER is the result of an 'usual argument conversion'
 @* over a number.
 */
-#define LUAI_UACNUMBER	double
 
+#define LUAI_UACNUMBER	LUA_NUMBER
 
 /*
 @@ LUA_NUMBER_SCAN is the format for reading numbers.
@@ -527,24 +527,37 @@
 @@ LUAI_MAXNUMBER2STR is maximum size of previous conversion.
 @@ lua_str2number converts a string to a number.
 */
+
+#if defined _KERNEL || defined _NOFPA
+#define LUA_NUMBER_SCAN		"%lld"
+#define LUA_NUMBER_FMT		"%lld"
+#define lua_str2number(s,p)	strtoll((s), (p), 10)
+#else
 #define LUA_NUMBER_SCAN		"%lf"
 #define LUA_NUMBER_FMT		"%.14g"
+#define lua_str2number(s,p)	strtod((s), (p))
+#endif
+
 #define lua_number2str(s,n)	sprintf((s), LUA_NUMBER_FMT, (n))
 #define LUAI_MAXNUMBER2STR	32 /* 16 digits, sign, point, and \0 */
-#define lua_str2number(s,p)	strtod((s), (p))
-
 
 /*
 @@ The luai_num* macros define the primitive operations over numbers.
 */
 #if defined(LUA_CORE)
+#if defined _KERNEL || defined _NOFPA
+#define luai_nummod(a,b)	((a)%(b))
+#define luai_numpow(a,b)	luai_nummul(a,b)
+#else
 #include <math.h>
+#define luai_nummod(a,b)	((a) - floor((a)/(b))*(b))
+#define luai_numpow(a,b)	(pow(a,b))
+#endif
+
 #define luai_numadd(a,b)	((a)+(b))
 #define luai_numsub(a,b)	((a)-(b))
 #define luai_nummul(a,b)	((a)*(b))
 #define luai_numdiv(a,b)	((a)/(b))
-#define luai_nummod(a,b)	((a) - floor((a)/(b))*(b))
-#define luai_numpow(a,b)	(pow(a,b))
 #define luai_numunm(a)		(-(a))
 #define luai_numeq(a,b)		((a)==(b))
 #define luai_numlt(a,b)		((a)<(b))
@@ -612,7 +625,14 @@ union luai_Cast { double l_d; long l_l; };
 ** compiling as C++ code, with _longjmp/_setjmp when asked to use them,
 ** and with longjmp/setjmp otherwise.
 */
-#if defined(__cplusplus)
+#ifdef _KERNEL
+/* in NetBSD kernel */
+#define LUAI_THROW(L,c)	longjmp(& ((c)->b))
+#define LUAI_TRY(L,c,a)	if (setjmp(& ((c)->b)) == 0) { a }
+//#define LUAI_TRY(L,c,a)	setjmp(& ((c)->b))
+#define luai_jmpbuf	label_t
+
+#elif defined(__cplusplus)
 /* C++ exceptions */
 #define LUAI_THROW(L,c)	throw(c)
 #define LUAI_TRY(L,c,a)	try { a } catch(...) \
@@ -769,4 +789,4 @@ union luai_Cast { double l_d; long l_l; };
 
 
 #endif
-
+#undef LUA_CORE
