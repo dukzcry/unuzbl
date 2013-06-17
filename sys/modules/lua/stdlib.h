@@ -32,7 +32,6 @@
  */
 
 #include <sys/param.h>
-#include <sys/kmem.h>
 
 #ifndef _LUA_INCLUDE_STDLIB
 #define _LUA_INCLUDE_STDLIB
