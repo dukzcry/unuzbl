@@ -15,7 +15,6 @@ MALLOC_DECLARE(M_DEVBUF);
 
 extern int luaioctl(dev_t, u_long, void *, int, struct lwp *);
 static struct {
-  klua_State *K;
   lua_State *L;
 } xgifb_glbl;
 const struct pci_matchid xgifb_devices[] = {
@@ -74,7 +73,7 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
   struct lua_load l = {
     .state = "xgifb",
   };
-  klua_State *K;
+  static klua_State *K;
 
   switch (cmd) {
   case MODULE_CMD_INIT:
@@ -83,13 +82,15 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
       aprint_error("%s: LUACREATE\n", NAME);
       return -1;
     }
-    xgifb_glbl.K = K; /* for nextcoming calls */
     xgifb_glbl.L = K->L;
 
-    snprintf(l.path, MAXPATHLEN, "%s/xgifb/xgifb.lua", module_base);
+    snprintf(l.path, MAXPATHLEN, "%s/xgifb/xgifb.lbc", module_base);
     if (luaioctl(0, LUALOAD, &l, 0, NULL)) {
-      aprint_error("%s: LUALOAD\n", NAME);
-      goto fail;
+      snprintf(l.path, MAXPATHLEN, "%s/xgifb/xgifb.lua", module_base);
+      if (luaioctl(0, LUALOAD, &l, 0, NULL)) {
+	aprint_error("%s: LUALOAD\n", NAME);
+	goto fail;
+      }
     }
     K->ks_prot = true;
 
@@ -100,7 +101,7 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
     if (!(ret = config_fini_component(cfdriver_ioconf_xgifb,
 				      cfattach_ioconf_xgifb,
 				      cfdata_ioconf_xgifb)))
-      klua_close(xgifb_glbl.K);
+      klua_close(K);
     break;
   default:
     ret = ENOTTY;
