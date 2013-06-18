@@ -150,6 +150,7 @@ bool luaA_struct_registered_typeid(lua_State* L, luaA_Type type);
 int luaA_struct_push_typeid(lua_State* L, luaA_Type type,const void* c_in);
 void luaA_struct_to_typeid(lua_State* L, luaA_Type type, void* c_out, int index);
 
+#if 0
 /*
  ** enum function
  */
@@ -203,7 +204,7 @@ int luaA_call_name(lua_State* L, const char* func_name);
 typedef void (*luaA_Func)(void*,void*);
 
 void luaA_function_typeid(lua_State* L, void* src_func, luaA_Func auto_func, const char* name, luaA_Type ret_tid, int num_args, ...);
-
+#endif
 
 /*
 ** internal hashtable utility
