@@ -8,7 +8,7 @@ function xgifbMatch(pa, devs, num)
 	    return 0
 	 end
 end
-function xgifbAttach(parent, sc, pa)
+function xgifbAttach(pa)
 	 hw.pci_aprint_devinfo(pa);
 end
 

@@ -12,28 +12,23 @@
 
 #define NAME xgifb_cd.cd_name /* files.pci's symbol */
 MALLOC_DECLARE(M_DEVBUF);
-
 extern int luaioctl(dev_t, u_long, void *, int, struct lwp *);
-static struct {
-  lua_State *L;
-} xgifb_glbl;
+
 const struct pci_matchid xgifb_devices[] = {
   { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z7 },
   { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z9M },
   { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z11 }
 };
-
-struct xgifb_softc {
-  device_t sc_dev;
-
+static struct xgifb_softc {
+  lua_State *L;
   bus_space_tag_t sc_iot;
   bus_space_handle_t sc_ioh;
-};
+} xgifbcn;
 
 static int
 xgifb_match(device_t parent, cfdata_t match, void *aux)
 {
-  lua_State *L = xgifb_glbl.L;
+  lua_State *L = xgifbcn.L;
   struct pci_attach_args *pa = (struct pci_attach_args *) aux;
 
   lua_getglobal(L, "xgifbMatch");
@@ -49,7 +44,12 @@ xgifb_match(device_t parent, cfdata_t match, void *aux)
 static void
 xgifb_attach(device_t parent, device_t self, void *aux)
 {
-  lua_State *L = xgifb_glbl.L;
+  lua_State *L = xgifbcn.L;
+  int n, nfunc;
+  struct table_methods methods[] = {
+    //{ "__index", index_func }
+  };
+
   struct xgifb_softc *sc = device_private(self);
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
@@ -57,10 +57,17 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   if (!lua_isfunction(L, -1))
     return;
 
-  lua_pushlightuserdata(L, &parent);
-  lua_pushlightuserdata(L, sc);
+  /* Metatable for access to the C struct */
+  nfunc = __arraycount(methods);
+  lua_createtable(L, nfunc, 0);
+  for (n = 0; n < nfunc; n++) {
+    lua_pushcfunction(L, methods[n].f);
+    lua_setfield(L, -2, methods[n].n);
+  }
+  lua_setmetatable(L, -2);
+  /* */
   lua_pushlightuserdata(L, pa);
-  lua_pcall(L, 3, 0, 0);
+  lua_pcall(L, 1, 0, 0);
 }
 CFATTACH_DECL_NEW(xgifb, sizeof(struct xgifb_softc), xgifb_match,
 		  xgifb_attach, NULL, NULL);
@@ -82,7 +89,7 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
       aprint_error("%s: LUACREATE\n", NAME);
       return -1;
     }
-    xgifb_glbl.L = K->L;
+    xgifbcn.L = K->L;
 
     snprintf(l.path, MAXPATHLEN, "%s/xgifb/xgifb.lbc", module_base);
     if (luaioctl(0, LUALOAD, &l, 0, NULL)) {

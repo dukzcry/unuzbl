@@ -1,7 +1,7 @@
 .include "../Makefile.inc"
 
 KMOD=		xgifb
-IOCONF=	xgifb.ioconf
+IOCONF=		xgifb.ioconf
 SRCS=		xgifb.c
 
 NOGCCERROR=	1
