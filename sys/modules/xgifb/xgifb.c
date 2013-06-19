@@ -1,18 +1,21 @@
 #include <sys/module.h>
 #include <sys/device.h>
 
-#include <sys/lua.h>
 #include <sys/mallocvar.h>
 #include <sys/ioctl.h>
 
 #include <dev/pci/pcidevs.h>
+
 #include "luahw.h"
+#include "lautoc.h"
 
 #include "ioconf.c"
 
 #define NAME xgifb_cd.cd_name /* files.pci's symbol */
 MALLOC_DECLARE(M_DEVBUF);
 extern int luaioctl(dev_t, u_long, void *, int, struct lwp *);
+extern struct table_methods *struct_methods;
+extern int num_struct_methods;
 
 const struct pci_matchid xgifb_devices[] = {
   { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z7 },
@@ -29,6 +32,8 @@ static int
 xgifb_match(device_t parent, cfdata_t match, void *aux)
 {
   lua_State *L = xgifbcn.L;
+  int res;
+
   struct pci_attach_args *pa = (struct pci_attach_args *) aux;
 
   lua_getglobal(L, "xgifbMatch");
@@ -39,16 +44,14 @@ xgifb_match(device_t parent, cfdata_t match, void *aux)
   lua_pushlightuserdata(L, xgifb_devices);
   lua_pushinteger(L, __arraycount(xgifb_devices));
   lua_pcall(L, 3, 1, 0);
-  return lua_tointeger(L, -1);
+  res = lua_tointeger(L, -1); lua_pop(L, 1);
+  return res;
 }
 static void
 xgifb_attach(device_t parent, device_t self, void *aux)
 {
   lua_State *L = xgifbcn.L;
-  int n, nfunc;
-  struct table_methods methods[] = {
-    //{ "__index", index_func }
-  };
+  int n;
 
   struct xgifb_softc *sc = device_private(self);
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
@@ -58,16 +61,21 @@ xgifb_attach(device_t parent, device_t self, void *aux)
     return;
 
   /* Metatable for access to the C struct */
-  nfunc = __arraycount(methods);
-  lua_createtable(L, nfunc, 0);
-  for (n = 0; n < nfunc; n++) {
-    lua_pushcfunction(L, methods[n].f);
-    lua_setfield(L, -2, methods[n].n);
+  lua_createtable(L, 1, 0);
+  /* Locked in a top table */
+  lua_createtable(L, num_struct_methods, 0);
+  for (n = 0; n < num_struct_methods; n++) {
+    lua_pushcfunction(L, struct_methods[n].f);
+    lua_setfield(L, -2, struct_methods[n].n);
   }
   lua_setmetatable(L, -2);
+  /* Accesors bindings */
+  lua_pushinteger(L, luaA_type_find("xgifb_softc"));
+  lua_pushlightuserdata(L, sc);
+  lua_pushnil(L);
   /* */
   lua_pushlightuserdata(L, pa);
-  lua_pcall(L, 1, 0, 0);
+  lua_pcall(L, 2, 0, 0);
 }
 CFATTACH_DECL_NEW(xgifb, sizeof(struct xgifb_softc), xgifb_match,
 		  xgifb_attach, NULL, NULL);

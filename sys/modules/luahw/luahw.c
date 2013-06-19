@@ -1,16 +1,10 @@
 #include <sys/module.h>
 
-#include <sys/lua.h>
-
 #include <dev/pci/pcireg.h>
+
 #include "luahw.h"
 
 MODULE(MODULE_CLASS_LUA_BINDING, luahw, "lua");
-
-struct hw_reg {
-  const char *n;
-  int (*f)(lua_State *);
-};
 
 static int
 pci_matchbyid(lua_State *L)
@@ -25,6 +19,7 @@ pci_matchbyid(lua_State *L)
   pa = lua_touserdata(L, -3);
   ids = lua_touserdata(L, -2);
   nent = lua_tointeger(L, -1);
+  lua_pop(L, 3);
 
   for (i = 0, pm = ids; i < nent; i++, pm++)
     if (PCI_VENDOR(pa->pa_id) == pm->pm_vid &&
@@ -40,6 +35,7 @@ aprint_devinfo(lua_State *L)
 {
   struct pci_attach_args *pa = lua_touserdata(L, -1);
   pci_aprint_devinfo(pa, NULL);
+  lua_pop(L, -1);
 }
 
 int
@@ -47,16 +43,16 @@ luaopen_hw(void *ls)
 {
   lua_State *L = (lua_State *)ls;
   int n, nfunc;
-  struct hw_reg hw[] = {
+  struct table_methods methods[] = {
     { "pci_matchbyid", pci_matchbyid },
     { "pci_aprint_devinfo", aprint_devinfo }
   };
 
-  nfunc = __arraycount(hw);
+  nfunc = __arraycount(methods);
   lua_createtable(L, nfunc, 0);
   for (n = 0; n < nfunc; n++) {
-    lua_pushcfunction(L, hw[n].f);
-    lua_setfield(L, -2, hw[n].n);
+    lua_pushcfunction(L, methods[n].f);
+    lua_setfield(L, -2, methods[n].n);
   }
 
   lua_setglobal(L, "hw");
