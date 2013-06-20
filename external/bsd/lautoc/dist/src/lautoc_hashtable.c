@@ -7,7 +7,7 @@
 static int hash(const char* s, int size) {
   int h = 0;
   while (*s) h = h * 101 + *s++;
-  return abs(h) % size;
+  return (h < 0 ? -h : h) % size;
 }
 
 static luaA_Bucket* luaA_bucket_new(const char* string, void* item) {
