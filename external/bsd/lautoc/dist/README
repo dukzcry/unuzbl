@@ -1,1 +1,2 @@
-gmake as for now :(
+Sync options in Makefile with bsd.kmodule.mk. Gmake as for now :(
+
