@@ -1,9 +1,9 @@
 #include <sys/module.h>
 #include <sys/device.h>
-
+ 
 #include <sys/mallocvar.h>
 #include <sys/ioctl.h>
-
+ 
 #include <dev/pci/pcidevs.h>
 
 #include "luahw.h"
@@ -14,8 +14,8 @@
 #define NAME xgifb_cd.cd_name /* files.pci's symbol */
 MALLOC_DECLARE(M_DEVBUF);
 extern int luaioctl(dev_t, u_long, void *, int, struct lwp *);
-extern struct table_methods *struct_methods;
 extern int num_struct_methods;
+extern struct table_methods struct_methods[1];
 
 const struct pci_matchid xgifb_devices[] = {
   { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z7 },
@@ -104,6 +104,7 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
       return -1;
     }
     xgifbcn.L = K->L;
+    luaA_open();
 
     snprintf(l.path, MAXPATHLEN, "%s/xgifb/xgifb.lbc", module_base);
     if (luaioctl(0, LUALOAD, &l, 0, NULL)) {
@@ -114,7 +115,6 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
       }
     }
     K->ks_prot = true;
-    luaA_open();
 
     ret = config_init_component(cfdriver_ioconf_xgifb,
 				    cfattach_ioconf_xgifb, cfdata_ioconf_xgifb);
@@ -123,6 +123,7 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
     if (!(ret = config_fini_component(cfdriver_ioconf_xgifb,
 				      cfattach_ioconf_xgifb,
 				      cfdata_ioconf_xgifb)))
+      luaA_close();
       klua_close(K);
     break;
   default:

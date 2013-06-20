@@ -3,7 +3,7 @@
 #include "lautoc.h"
 #include "lautoc_helpers.h"
 
-int get_instance_ptr_idx(lua_State* L, int index) {
+static int get_instance_ptr_idx(lua_State* L, int index) {
   /* Stupid! */
   while (!lua_isnil(L, index)) index--;
   return index-1;
