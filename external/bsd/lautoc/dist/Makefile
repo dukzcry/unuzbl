@@ -1,6 +1,7 @@
 -include config.mk
 
 PLATFORM?= $(shell uname)
+ARCH?= $(shell uname -p)
 
 CC?=gcc
 AR?=ar
