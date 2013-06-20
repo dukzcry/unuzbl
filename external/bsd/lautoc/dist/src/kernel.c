@@ -4,13 +4,15 @@
 void *realloc(void *ptr, size_t size)
 {
   void *newptr;
+  size_t osize;
 
   if (!size)
     return NULL;
 
   newptr = malloc(size);
   if (ptr) {
-    memcpy(newptr, ptr, sizeof(*ptr));
+    osize = sizeof(*ptr);
+    memcpy(newptr, ptr, (osize < size) ? osize : size);
     free(ptr);
   }
   return newptr;
