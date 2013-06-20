@@ -22,11 +22,13 @@ const struct pci_matchid xgifb_devices[] = {
   { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z9M },
   { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z11 }
 };
-static struct xgifb_softc {
+typedef struct xgifb_softc {
   lua_State *L;
   bus_space_tag_t sc_iot;
   bus_space_handle_t sc_ioh;
-} xgifbcn;
+} xgifb_softc;
+
+static struct xgifb_softc xgifbcn;
 
 static int
 xgifb_match(device_t parent, cfdata_t match, void *aux)
@@ -59,6 +61,10 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   lua_getglobal(L, "xgifbAttach");
   if (!lua_isfunction(L, -1))
     return;
+
+  luaA_struct(L, xgifb_softc);
+  luaA_struct_member(L, xgifb_softc, sc_iot, void*);
+  luaA_struct_member(L, xgifb_softc, sc_ioh, void*);
 
   /* Metatable for access to the C struct */
   lua_createtable(L, 1, 0);
