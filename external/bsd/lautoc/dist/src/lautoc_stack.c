@@ -23,9 +23,9 @@ void luaA_stack_open(void) {
   luaA_conversion(unsigned long, luaA_push_unsigned_long, luaA_to_unsigned_long);
   luaA_conversion(long long, luaA_push_long_long, luaA_to_long_long);
   luaA_conversion(unsigned long long, luaA_push_unsigned_long_long, luaA_to_unsigned_long_long);
-  luaA_conversion(float, luaA_push_float, luaA_to_float);
+  /*luaA_conversion(float, luaA_push_float, luaA_to_float);
   luaA_conversion(double, luaA_push_double, luaA_to_double);
-  luaA_conversion(long double, luaA_push_long_double, luaA_to_long_double);
+  luaA_conversion(long double, luaA_push_long_double, luaA_to_long_double);*/
   
   luaA_conversion_push(const char, luaA_push_char);
   luaA_conversion_push(const signed char, luaA_push_signed_char);
@@ -38,9 +38,9 @@ void luaA_stack_open(void) {
   luaA_conversion_push(const unsigned long, luaA_push_unsigned_long);
   luaA_conversion_push(const long long, luaA_push_long_long);
   luaA_conversion_push(const unsigned long long, luaA_push_unsigned_long_long);
-  luaA_conversion_push(const float, luaA_push_float);
+  /*luaA_conversion_push(const float, luaA_push_float);
   luaA_conversion_push(const double, luaA_push_double);
-  luaA_conversion_push(const long double, luaA_push_long_double);
+  luaA_conversion_push(const long double, luaA_push_long_double);*/
   
   luaA_conversion(char*, luaA_push_char_ptr, luaA_to_char_ptr);
   luaA_conversion(const char*, luaA_push_const_char_ptr, luaA_to_const_char_ptr);
@@ -210,6 +210,7 @@ void luaA_to_unsigned_long_long(lua_State* L, luaA_Type type_id, void* c_out, in
   *(unsigned long long*)c_out = lua_tointeger(L, index);
 }
 
+#if 0
 int luaA_push_float(lua_State* L, luaA_Type type_id,const void* c_in) {
   lua_pushnumber(L, *(float*)c_in);
   return 1;
@@ -236,6 +237,7 @@ int luaA_push_long_double(lua_State* L, luaA_Type type_id,const void* c_in) {
 void luaA_to_long_double(lua_State* L, luaA_Type type_id, void* c_out, int index) {
   *(long double*)c_out = lua_tonumber(L, index);
 }
+#endif
 
 int luaA_push_char_ptr(lua_State* L, luaA_Type type_id,const void* c_in) {
   lua_pushstring(L, *(char**)c_in);
