@@ -54,7 +54,7 @@ else ifeq ($(findstring MINGW,$(PLATFORM)),MINGW)
 else ifeq ($(findstring NetBSD,$(PLATFORM)),NetBSD)
 	LUA_INCLUDE_DIR?= -I/usr/include
 	LUA_LIBRARY?= -llua
-	LAC_CFLAGS+= -nostdinc
+	LAC_CFLAGS+= -nostdinc -ffreestanding
 	LAC_CFLAGS+= -fno-strict-aliasing -Wno-pointer-sign
 	ifeq ($(ARCH),arm)
 	LAC_CFLAGS+= -mlong-calls
