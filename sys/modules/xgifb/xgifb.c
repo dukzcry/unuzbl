@@ -114,6 +114,7 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
       }
     }
     K->ks_prot = true;
+    luaA_open();
 
     ret = config_init_component(cfdriver_ioconf_xgifb,
 				    cfattach_ioconf_xgifb, cfdata_ioconf_xgifb);
@@ -130,6 +131,7 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
 
   return ret;
  fail:
+  luaA_close();
   klua_close(K);
   return -1;
 }
