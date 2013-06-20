@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "lautoc.h"
+#include "kernel.h"
 
 static int hash(const char* s, int size) {
   int h = 0;

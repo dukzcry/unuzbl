@@ -3,7 +3,6 @@
 
 #include "lua.h"
 #include "lautoc.h"
-#include "kernel.h"
 
 static luaA_Hashtable* push_table;
 static luaA_Hashtable* to_table;
