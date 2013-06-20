@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "lautoc.h"
+#include "kernel.h"
 
 typedef char* type_name;
 typedef size_t type_size;

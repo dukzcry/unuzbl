@@ -3,6 +3,7 @@
 
 #include "lua.h"
 #include "lautoc.h"
+#include "kernel.h"
 
 typedef struct {
   luaA_Type type;
