@@ -14,8 +14,6 @@
 #define NAME xgifb_cd.cd_name /* files.pci's symbol */
 MALLOC_DECLARE(M_DEVBUF);
 extern int luaioctl(dev_t, u_long, void *, int, struct lwp *);
-extern int num_struct_methods;
-extern struct table_methods struct_methods[1];
 
 const struct pci_matchid xgifb_devices[] = {
   { PCI_VENDOR_XGI, PCI_PRODUCT_XGI_VOLARI_Z7 },
@@ -53,7 +51,6 @@ static void
 xgifb_attach(device_t parent, device_t self, void *aux)
 {
   lua_State *L = xgifbcn.L;
-  int n;
 
   struct xgifb_softc *sc = device_private(self);
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
@@ -65,21 +62,7 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   luaA_struct(L, xgifb_softc);
   luaA_struct_member(L, xgifb_softc, sc_iot, void*);
   luaA_struct_member(L, xgifb_softc, sc_ioh, void*);
-
-  /* Metatable for access to the C struct */
-  lua_createtable(L, 1, 0);
-  /* Locked in a top table */
-  lua_createtable(L, num_struct_methods, 0);
-  for (n = 0; n < num_struct_methods; n++) {
-    lua_pushcfunction(L, struct_methods[n].f);
-    lua_setfield(L, -2, struct_methods[n].n);
-  }
-  lua_setmetatable(L, -2);
-  /* Accesors bindings */
-  lua_pushinteger(L, luaA_type_find("xgifb_softc"));
-  lua_pushlightuserdata(L, sc);
-  lua_pushnil(L);
-  /* */
+  boilerplate_func(L, "xgifb_softc", sc);
   lua_pushlightuserdata(L, pa);
   lua_pcall(L, 2, 0, 0);
 }
