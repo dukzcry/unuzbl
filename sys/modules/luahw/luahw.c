@@ -30,12 +30,29 @@ pci_matchbyid(lua_State *L)
   lua_pushinteger(L, 0);
   return 1;
 }
-static void
+static int
 aprint_devinfo(lua_State *L)
 {
   struct pci_attach_args *pa = lua_touserdata(L, -1);
   pci_aprint_devinfo(pa, NULL);
-  lua_pop(L, -1);
+  lua_pop(L, 1);
+  return 0;
+}
+static int
+mapreg_map(lua_State *L)
+{
+  int res;
+  bus_size_t size;
+
+  res = pci_mapreg_map(lua_touserdata(L, -6),
+		       PCI_MAPREG_START + lua_tointeger(L, -5),
+		       lua_tointeger(L, -4), lua_tointeger(L, -3),
+		       lua_touserdata(L, -2), lua_touserdata(L, -1),
+		       NULL, &size);
+  lua_pop(L, 6);
+  lua_pushinteger(L, res);
+  lua_pushinteger(L, size);
+  return 2;
 }
 
 int
@@ -45,7 +62,8 @@ luaopen_hw(void *ls)
   int n, nfunc;
   struct table_methods methods[] = {
     { "pci_matchbyid", pci_matchbyid },
-    { "pci_aprint_devinfo", aprint_devinfo }
+    { "pci_aprint_devinfo", aprint_devinfo },
+    { "pci_mapreg_map", mapreg_map }
   };
 
   nfunc = __arraycount(methods);
@@ -54,6 +72,15 @@ luaopen_hw(void *ls)
     lua_pushcfunction(L, methods[n].f);
     lua_setfield(L, -2, methods[n].n);
   }
+
+  lua_pushinteger(L, PCI_MAPREG_TYPE_MEM);
+  lua_setfield(L, -2, "PCI_MAPREG_TYPE_MEM");
+  lua_pushinteger(L, PCI_MAPREG_TYPE_IO);
+  lua_setfield(L, -2, "PCI_MAPREG_TYPE_IO");
+  lua_pushinteger(L, BUS_SPACE_MAP_LINEAR);
+  lua_setfield(L, -2, "BUS_SPACE_MAP_LINEAR");
+  lua_pushinteger(L, BUS_SPACE_MAP_PREFETCHABLE);
+  lua_setfield(L, -2, "BUS_SPACE_MAP_PREFETCHABLE");
 
   lua_setglobal(L, "hw");
   return 1;

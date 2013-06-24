@@ -24,6 +24,10 @@ typedef struct xgifb_softc {
   lua_State *L;
   bus_space_tag_t sc_iot;
   bus_space_handle_t sc_ioh;
+  bus_space_tag_t mmio_iot;
+  bus_space_handle_t mmio_ioh;
+  bus_space_tag_t iot;
+  bus_space_handle_t ioh;
 } xgifb_softc;
 
 static struct xgifb_softc xgifbcn;
@@ -45,19 +49,24 @@ xgifb_match(device_t parent, cfdata_t match, void *aux)
   lua_pushinteger(L, __arraycount(xgifb_devices));
   lua_pcall(L, 3, 1, 0);
   res = lua_tointeger(L, -1); lua_pop(L, 1);
+
   return res;
 }
 static void
 xgifb_attach(device_t parent, device_t self, void *aux)
 {
   lua_State *L = xgifbcn.L;
-
+ 
   struct xgifb_softc *sc = device_private(self);
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
   luaA_struct(L, xgifb_softc);
   luaA_struct_member(L, xgifb_softc, sc_iot, void*);
   luaA_struct_member(L, xgifb_softc, sc_ioh, void*);
+  luaA_struct_member(L, xgifb_softc, mmio_iot, void*);
+  luaA_struct_member(L, xgifb_softc, mmio_ioh, void*);
+  luaA_struct_member(L, xgifb_softc, iot, void*);
+  luaA_struct_member(L, xgifb_softc, ioh, void*);
 
   /* Accesors bindings, deep in stack */
   lua_pushinteger(L, luaA_type_find("xgifb_softc"));
@@ -114,9 +123,10 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
   case MODULE_CMD_FINI:
     if (!(ret = config_fini_component(cfdriver_ioconf_xgifb,
 				      cfattach_ioconf_xgifb,
-				      cfdata_ioconf_xgifb)))
+				      cfdata_ioconf_xgifb))) {
       luaA_close();
       klua_close(K);
+    }
     break;
   default:
     ret = ENOTTY;

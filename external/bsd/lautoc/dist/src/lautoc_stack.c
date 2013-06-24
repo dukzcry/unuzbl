@@ -45,7 +45,7 @@ void luaA_stack_open(void) {
   luaA_conversion(char*, luaA_push_char_ptr, luaA_to_char_ptr);
   luaA_conversion(const char*, luaA_push_const_char_ptr, luaA_to_const_char_ptr);
   luaA_conversion(void*, luaA_push_void_ptr, luaA_to_void_ptr);
-;
+
   luaA_conversion_push(void, luaA_push_void);
   
 }

@@ -5,7 +5,8 @@
 
 static int get_instance_ptr_idx(lua_State* L, int index) {
   /* Stupid! */
-  while (!(lua_isuserdata(L, index) && lua_isnumber(L, index-1))) index--;
+  while (!(lua_isuserdata(L, index) && lua_isnumber(L, index-1))
+	 && -index < LUAI_MAXCSTACK) index--;
   return index;
 }
 static int index_func(lua_State* L) {
