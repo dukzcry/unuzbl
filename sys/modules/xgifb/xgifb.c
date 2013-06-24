@@ -55,16 +55,25 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   struct xgifb_softc *sc = device_private(self);
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
-  lua_getglobal(L, "xgifbAttach");
-  if (!lua_isfunction(L, -1))
-    return;
-
   luaA_struct(L, xgifb_softc);
   luaA_struct_member(L, xgifb_softc, sc_iot, void*);
   luaA_struct_member(L, xgifb_softc, sc_ioh, void*);
+
+  /* Accesors bindings, deep in stack */
+  lua_pushinteger(L, luaA_type_find("xgifb_softc"));
+  lua_pushlightuserdata(L, sc);
+
+  lua_getglobal(L, "xgifbAttach");
+  if (!lua_isfunction(L, -1))
+    goto finish;
+
   boilerplate_func(L, "xgifb_softc", sc);
   lua_pushlightuserdata(L, pa);
   lua_pcall(L, 2, 0, 0);
+
+finish:
+  lua_pop(L, 2);
+  return;
 }
 CFATTACH_DECL_NEW(xgifb, sizeof(struct xgifb_softc), xgifb_match,
 		  xgifb_attach, NULL, NULL);

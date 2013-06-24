@@ -5,8 +5,8 @@
 
 static int get_instance_ptr_idx(lua_State* L, int index) {
   /* Stupid! */
-  while (!lua_isnil(L, index)) index--;
-  return index-1;
+  while (!(lua_isuserdata(L, index) && lua_isnumber(L, index-1))) index--;
+  return index;
 }
 static int index_func(lua_State* L) {
   const char* membername = lua_tostring(L, -1);
@@ -29,10 +29,6 @@ static int num_struct_methods = __arraycount(struct_methods);
 void boilerplate_func(lua_State* L, const char *type, void *obj) {
   int n;
 
-  /* Accesors bindings */
-  lua_pushinteger(L, luaA_type_find(type));
-  lua_pushlightuserdata(L, obj);
-  lua_pushnil(L);
   /* Metatable for access to the C struct */
   lua_createtable(L, 1, 0);
   /* Locked in a top table */
