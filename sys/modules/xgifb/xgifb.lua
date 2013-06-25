@@ -18,23 +18,23 @@ function xgifbAttach(sc, pa)
 	 res, fbsize = hw.pci_mapreg_map(pa, 0, hw.PCI_MAPREG_TYPE_MEM,
 	    hw.BUS_SPACE_MAP_LINEAR, sc.sc_iot, sc.sc_ioh)
 	 if res ~= 0 then
-	    core.print("can't map frame buffer\n")
+	    core.print(sc.dv_xname .. ": can't map frame buffer\n")
 	    return
 	 end
 	 res, mmiosize = hw.pci_mapreg_map(pa, 4, hw.PCI_MAPREG_TYPE_MEM,
 	   0, sc.mmio_iot, sc.mmio_ioh)
 	 if res ~= 0 then
-	    core.print("can't map mmio area\n")
+	    core.print(sc.dv_xname .. ": can't map mmio area\n")
 	    return
 	 end
 	 res, iosize = hw.pci_mapreg_map(pa, 8, hw.PCI_MAPREG_TYPE_IO,
 	    0, sc.iot, sc.ioh)
 	 if res ~= 0 then
-	    core.print("can't map registers\n")
+	    core.print(sc.dv_xname .. ": can't map registers\n")
 	    return
 	 end
 
-	 -- core.print(fbsize .. ' ' .. mmiosize .. ' ' .. iosize .. '\n')
+	 -- core.print(sc.dv_xname .. ': ' .. fbsize .. ' ' .. mmiosize .. ' ' .. iosize .. '\n')
 end
 
 function onClose()

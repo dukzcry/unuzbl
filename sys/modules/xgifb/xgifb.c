@@ -22,6 +22,7 @@ const struct pci_matchid xgifb_devices[] = {
 };
 typedef struct xgifb_softc {
   lua_State *L;
+  const char *dv_xname;
   bus_space_tag_t sc_iot;
   bus_space_handle_t sc_ioh;
   bus_space_tag_t mmio_iot;
@@ -60,7 +61,10 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   struct xgifb_softc *sc = device_private(self);
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
+  sc->dv_xname = self->dv_xname;
+
   luaA_struct(L, xgifb_softc);
+  luaA_struct_member(L, xgifb_softc, dv_xname, char*);
   luaA_struct_member(L, xgifb_softc, sc_iot, void*);
   luaA_struct_member(L, xgifb_softc, sc_ioh, void*);
   luaA_struct_member(L, xgifb_softc, mmio_iot, void*);
