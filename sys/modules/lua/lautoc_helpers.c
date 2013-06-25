@@ -5,9 +5,9 @@
 
 static int get_instance_ptr_idx(lua_State* L, int index) {
   /* Stupid! */
-  while (!(lua_isuserdata(L, index) && lua_isnumber(L, index-1))
+  while (!(lua_isstring(L, index) && !strcmp(lua_tostring(L, index), "binding"))
 	 && -index < LUAI_MAXCSTACK) index--;
-  return index;
+  return index-1;
 }
 static int index_func(lua_State* L) {
   const char* membername = lua_tostring(L, -1);

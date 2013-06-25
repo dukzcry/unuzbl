@@ -71,6 +71,7 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   /* Accesors bindings, deep in stack */
   lua_pushinteger(L, luaA_type_find("xgifb_softc"));
   lua_pushlightuserdata(L, sc);
+  lua_pushstring(L, "binding");
 
   lua_getglobal(L, "xgifbAttach");
   if (!lua_isfunction(L, -1))
@@ -81,7 +82,7 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   lua_pcall(L, 2, 0, 0);
 
 finish:
-  lua_pop(L, 2);
+  lua_pop(L, 3);
   return;
 }
 CFATTACH_DECL_NEW(xgifb, sizeof(struct xgifb_softc), xgifb_match,
