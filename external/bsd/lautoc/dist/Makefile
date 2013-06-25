@@ -9,7 +9,7 @@ AR?=ar
 LAC_CPPFLAGS= -I./include $(LUA_INCLUDE_DIR)
 LAC_CFLAGS= -std=gnu99 -Wall -Werror -Wno-unused -O2
 LAC_LDFLAGS= $(LUA_LIBRARY_DIR)
-LAC_LIBS= $(LUA_LIBRARY) -lm
+LAC_LIBS= $(LUA_LIBRARY)
 
 LIB_C_FILES= $(wildcard src/*.c)
 LIB_OBJ_FILES= $(addprefix obj/,$(notdir $(LIB_C_FILES:%.c=%.o)))
@@ -54,7 +54,7 @@ else ifeq ($(findstring MINGW,$(PLATFORM)),MINGW)
 	EXE_SUFFIX:=.exe
 else ifeq ($(findstring NetBSD,$(PLATFORM)),NetBSD)
 	LUA_INCLUDE_DIR?= -I/usr/include
-	LUA_LIBRARY?= -llua
+	LUA_LIBRARY?= -llua -lm
 	LAC_CFLAGS+= -nostdinc -ffreestanding
 	LAC_CFLAGS+= -fno-strict-aliasing -Wno-pointer-sign
 	ifeq ($(ARCH),arm)
@@ -64,9 +64,9 @@ else ifeq ($(findstring NetBSD,$(PLATFORM)),NetBSD)
 	else ifeq ($(ARCH),vax)
 	LAC_CFLAGS+= -fno-pic
         endif
-	SHARED_LIB_PREFIX:=lib 
+	SHARED_LIB_PREFIX:=lib
 	SHARED_LIB_SUFFIX:=.so
-	STATIC_LIB_PREFIX:=lib 
+	STATIC_LIB_PREFIX:=lib
 	STATIC_LIB_SUFFIX:=.a
 	EXE_SUFFIX:=
 endif
