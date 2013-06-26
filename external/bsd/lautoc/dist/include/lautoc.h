@@ -99,6 +99,7 @@ void luaA_to_char_ptr(lua_State* L, luaA_Type,  void* c_out, int index);
 int luaA_push_const_char_ptr(lua_State* L, luaA_Type, const void* c_in);
 void luaA_to_const_char_ptr(lua_State* L, luaA_Type,  void* c_out, int index);
 int luaA_push_void_ptr(lua_State* L, luaA_Type, const void* c_in);
+int luaA_push_addr_void_ptr(lua_State* L, luaA_Type, const void* c_in);
 void luaA_to_void_ptr(lua_State* L, luaA_Type type_id, void* c_out, int index);
 int luaA_push_void(lua_State* L, luaA_Type, const void* c_in);
 

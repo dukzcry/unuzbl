@@ -1,2 +1,4 @@
-Sync options in Makefile with bsd.kmodule.mk. Gmake as for now :(
+Keep options in Makefile in sync with bsd.kmodule.mk.
+Gmake as for now :(
 
+void** type = &obj
