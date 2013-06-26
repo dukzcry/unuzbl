@@ -29,6 +29,12 @@ typedef struct xgifb_softc {
   bus_space_handle_t mmio_ioh;
   bus_space_tag_t iot;
   bus_space_handle_t ioh;
+  bus_space_tag_t *sc_iotp;
+  bus_space_handle_t *sc_iohp;
+  bus_space_tag_t *mmio_iotp;
+  bus_space_handle_t *mmio_iohp;
+  bus_space_tag_t *iotp;
+  bus_space_handle_t *iohp;
 } xgifb_softc;
 
 static struct xgifb_softc xgifbcn;
@@ -62,6 +68,9 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
   sc->dv_xname = self->dv_xname;
+  sc->sc_iotp = sc->sc_iot; sc->sc_iohp = sc->sc_ioh;
+  sc->mmio_iotp = sc->mmio_iot; sc->mmio_iohp = sc->mmio_ioh;
+  sc->iotp = sc->iot; sc->iohp = sc->ioh;
 
   luaA_struct(L, xgifb_softc);
   luaA_struct_member(L, xgifb_softc, dv_xname, char*);
@@ -71,6 +80,12 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   luaA_struct_member(L, xgifb_softc, mmio_ioh, void*);
   luaA_struct_member(L, xgifb_softc, iot, void*);
   luaA_struct_member(L, xgifb_softc, ioh, void*);
+  luaA_struct_member(L, xgifb_softc, sc_iotp, void*);
+  luaA_struct_member(L, xgifb_softc, sc_iohp, void*);
+  luaA_struct_member(L, xgifb_softc, mmio_iotp, void*);
+  luaA_struct_member(L, xgifb_softc, mmio_iohp, void*);
+  luaA_struct_member(L, xgifb_softc, iotp, void*);
+  luaA_struct_member(L, xgifb_softc, iohp, void*);
 
   /* Accesors bindings, deep in stack */
   lua_pushinteger(L, luaA_type_find("xgifb_softc"));
@@ -84,6 +99,8 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   boilerplate_func(L, "xgifb_softc", sc);
   lua_pushlightuserdata(L, pa);
   lua_pcall(L, 2, 0, 0);
+
+  sc->ioh += 0x30;
 
 finish:
   lua_pop(L, 3);

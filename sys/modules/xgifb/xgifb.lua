@@ -11,26 +11,28 @@ end
 function xgifbAttach(sc, pa)
 	 local res
 	 local fbsize, mmiosize, iosize
-	 local sc_iot, sc_ioh, mmio_iot, mmio_ioh, iot, ioh
 
 	 hw.pci_aprint_devinfo(pa)
 
 	 res, fbsize = hw.pci_mapreg_map(pa, 0, hw.PCI_MAPREG_TYPE_MEM,
-	    hw.BUS_SPACE_MAP_LINEAR, sc.sc_iot, sc.sc_ioh)
+	    hw.BUS_SPACE_MAP_LINEAR, sc.sc_iotp, sc.sc_iohp)
 	 if res ~= 0 then
-	    core.print(sc.dv_xname .. ": can't map frame buffer\n")
+	    core.aprint_error(sc.dv_xname .. ": can't map frame buffer\n")
 	    return
 	 end
 	 res, mmiosize = hw.pci_mapreg_map(pa, 4, hw.PCI_MAPREG_TYPE_MEM,
-	   0, sc.mmio_iot, sc.mmio_ioh)
+	   0, sc.mmio_iotp, sc.mmio_iohp)
 	 if res ~= 0 then
-	    core.print(sc.dv_xname .. ": can't map mmio area\n")
+	    core.aprint_error(sc.dv_xname .. ": can't map mmio area\n")
+	    hw.bus_space_unmap(sc.sc_iot, sc.sc_ioh, fbsize)
 	    return
 	 end
 	 res, iosize = hw.pci_mapreg_map(pa, 8, hw.PCI_MAPREG_TYPE_IO,
-	    0, sc.iot, sc.ioh)
+	    0, sc.iotp, sc.iohp)
 	 if res ~= 0 then
-	    core.print(sc.dv_xname .. ": can't map registers\n")
+	    core.aprint_error(sc.dv_xname .. ": can't map registers\n")
+	    hw.bus_space_unmap(sc.mmio_iot, sc.mmio_ioh, mmiosize)
+	    hw.bus_space_unmap(sc.sc_iot, sc.sc_ioh, fbsize)
 	    return
 	 end
 
