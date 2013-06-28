@@ -26,6 +26,7 @@ typedef struct xgifb_softc {
   bus_space_tag_t sc_iot; bus_space_handle_t sc_ioh;
   bus_space_tag_t mmio_iot; bus_space_handle_t mmio_ioh;
   bus_space_tag_t iot; bus_space_handle_t ioh;
+  bus_space_handle_t iohp;
 } xgifb_softc;
 
 static struct xgifb_softc xgifbcn;
@@ -59,8 +60,9 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
   sc->dv_xname = self->dv_xname;
+  sc->iohp = &sc->ioh;
 
-  luaA_conversion(void_addr_ptr, luaA_push_addr_void_ptr, luaA_to_void_ptr);
+  luaA_conversion_push(void_addr_ptr, luaA_push_addr_void_ptr);
 
   luaA_struct(L, xgifb_softc);
   luaA_struct_member(L, xgifb_softc, dv_xname, char*);
@@ -70,7 +72,7 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   luaA_struct_member(L, xgifb_softc, mmio_ioh, void_addr_ptr);
   luaA_struct_member(L, xgifb_softc, iot, void_addr_ptr);
   /* For reloc from lua */
-  luaA_struct_member(L, xgifb_softc, ioh, unsigned long long);
+  luaA_struct_member(L, xgifb_softc, iohp, unsigned long long);
 
   /* Accesors bindings, deep in stack */
   luaA_conversion_push(boiler_binds, luaA_push_boiler);
