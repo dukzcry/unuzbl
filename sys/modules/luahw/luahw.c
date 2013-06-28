@@ -62,8 +62,8 @@ mapreg_map(lua_State *L)
 static int
 space_unmap(lua_State *L)
 {
-  bus_space_unmap((bus_space_tag_t) lua_touserdata(L, -3),
-		  (bus_space_handle_t) lua_touserdata(L, -2), 
+  bus_space_unmap(*(bus_space_tag_t *) lua_touserdata(L, -3),
+		  *(bus_space_handle_t *) lua_touserdata(L, -2), 
 		  lua_tointeger(L, -1));
   lua_pop(L, 3);
   return 0;

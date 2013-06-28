@@ -26,9 +26,6 @@ typedef struct xgifb_softc {
   bus_space_tag_t sc_iot; bus_space_handle_t sc_ioh;
   bus_space_tag_t mmio_iot; bus_space_handle_t mmio_ioh;
   bus_space_tag_t iot; bus_space_handle_t ioh;
-  bus_space_tag_t *sc_iotp; bus_space_handle_t *sc_iohp;
-  bus_space_tag_t *mmio_iotp; bus_space_handle_t *mmio_iohp;
-  bus_space_tag_t *iotp; bus_space_handle_t *iohp;
 } xgifb_softc;
 
 static struct xgifb_softc xgifbcn;
@@ -62,27 +59,18 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
   sc->dv_xname = self->dv_xname;
-  sc->sc_iotp = &sc->sc_iot; sc->sc_iohp = &sc->sc_ioh;
-  sc->mmio_iotp = &sc->mmio_iot; sc->mmio_iohp = &sc->mmio_ioh;
-  sc->iotp = &sc->iot; sc->iohp = &sc->ioh;
+
+  luaA_conversion(void_addr_ptr, luaA_push_addr_void_ptr, luaA_to_void_ptr);
 
   luaA_struct(L, xgifb_softc);
   luaA_struct_member(L, xgifb_softc, dv_xname, char*);
-  /* _map() needs addresses to fill in */
-  luaA_struct_member(L, xgifb_softc, sc_iot, void*);
-  luaA_struct_member(L, xgifb_softc, sc_ioh, void*);
-  luaA_struct_member(L, xgifb_softc, mmio_iot, void*);
-  luaA_struct_member(L, xgifb_softc, mmio_ioh, void*);
-  luaA_struct_member(L, xgifb_softc, iot, void*);
+  luaA_struct_member(L, xgifb_softc, sc_iot, void_addr_ptr);
+  luaA_struct_member(L, xgifb_softc, sc_ioh, void_addr_ptr);
+  luaA_struct_member(L, xgifb_softc, mmio_iot, void_addr_ptr);
+  luaA_struct_member(L, xgifb_softc, mmio_ioh, void_addr_ptr);
+  luaA_struct_member(L, xgifb_softc, iot, void_addr_ptr);
   /* For reloc from lua */
   luaA_struct_member(L, xgifb_softc, ioh, unsigned long long);
-  /* _unmap() needs values */
-  luaA_struct_member(L, xgifb_softc, sc_iotp, void*);
-  luaA_struct_member(L, xgifb_softc, sc_iohp, void*);
-  luaA_struct_member(L, xgifb_softc, mmio_iotp, void*);
-  luaA_struct_member(L, xgifb_softc, mmio_iohp, void*);
-  luaA_struct_member(L, xgifb_softc, iotp, void*);
-  luaA_struct_member(L, xgifb_softc, iohp, void*);
 
   /* Accesors bindings, deep in stack */
   luaA_conversion_push(boiler_binds, luaA_push_boiler);
