@@ -1,11 +1,10 @@
 #include <sys/param.h>
 
-#include "lautoc.h"
 #include "lautoc_helpers.h"
 
 static int get_instance_ptr_idx(lua_State* L, int index) {
   /* Stupid! */
-  while (!(lua_isstring(L, index) && !strcmp(lua_tostring(L, index), "binding"))
+  while (!(lua_isuserdata(L, index) && lua_touserdata(L, index) == &boiler_func)
 	 && -index < LUAI_MAXCSTACK) index--;
   return index-1;
 }
@@ -27,7 +26,7 @@ static struct table_methods struct_methods[] = {
   { "__newindex", newindex_func }
 };
 static int num_struct_methods = __arraycount(struct_methods);
-void boilerplate_func(lua_State* L, const char *type, void *obj) {
+void boiler_func(lua_State* L, const char *type, void *obj) {
   int n;
 
   /* Metatable for access to the C struct */
@@ -42,8 +41,15 @@ void boilerplate_func(lua_State* L, const char *type, void *obj) {
   /* */
 }
 
-static int luaA_push_addr_void_ptr(lua_State* L, luaA_Type type_id,const void* c_in) {
+int luaA_push_addr_void_ptr(lua_State* L, luaA_Type type_id,const void* c_in) {
   lua_pushlightuserdata(L, *(void_addr_ptr**)&c_in);                                                                           
   return 1;
 }
-luaA_conversion(void_addr_ptr, luaA_push_addr_void_ptr, luaA_to_void_ptr);
+int luaA_push_boiler(lua_State* L, luaA_Type t, const void* c_in) {
+  boiler_binds* p = (boiler_binds*)c_in;
+  lua_pushinteger(L, p->type);
+  lua_pushlightuserdata(L, p->data);
+  lua_pushlightuserdata(L, &boiler_func);
+  return 3;
+}
+//luaA_conversion(void_addr_ptr, luaA_push_addr_void_ptr, luaA_to_void_ptr);

@@ -85,15 +85,18 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   luaA_struct_member(L, xgifb_softc, iohp, void*);
 
   /* Accesors bindings, deep in stack */
-  lua_pushinteger(L, luaA_type_find("xgifb_softc"));
-  lua_pushlightuserdata(L, sc);
-  lua_pushstring(L, "binding");
+  luaA_conversion_push(boiler_binds, luaA_push_boiler);
+  struct boiler_binds binds = {
+    .type = luaA_type_find("xgifb_softc"),
+    .data = sc
+  };
+  luaA_push(L, boiler_binds, &binds);
 
   lua_getglobal(L, "xgifbAttach");
   if (!lua_isfunction(L, -1))
     goto finish;
 
-  boilerplate_func(L, "xgifb_softc", sc);
+  boiler_func(L, "xgifb_softc", sc);
   lua_pushlightuserdata(L, pa);
   lua_pcall(L, 2, 0, 0);
 
