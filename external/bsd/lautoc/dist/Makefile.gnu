@@ -7,7 +7,7 @@ CC?=gcc
 AR?=ar
 
 LAC_CPPFLAGS= -I./include $(LUA_INCLUDE_DIR)
-LAC_CFLAGS= -std=gnu99 -Wall -Werror -Wno-unused -O2
+LAC_CFLAGS= -std=c99 -Wall -Werror -Wno-unused -O2
 LAC_LDFLAGS= $(LUA_LIBRARY_DIR)
 LAC_LIBS= $(LUA_LIBRARY)
 
