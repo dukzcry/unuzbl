@@ -41,3 +41,9 @@ void boilerplate_func(lua_State* L, const char *type, void *obj) {
   lua_setmetatable(L, -2);
   /* */
 }
+
+static int luaA_push_addr_void_ptr(lua_State* L, luaA_Type type_id,const void* c_in) {
+  lua_pushlightuserdata(L, *(void_addr_ptr**)&c_in);                                                                           
+  return 1;
+}
+luaA_conversion(void_addr_ptr, luaA_push_addr_void_ptr, luaA_to_void_ptr);

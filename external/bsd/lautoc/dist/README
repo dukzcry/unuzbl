@@ -1,5 +1,3 @@
 0.9
 
-1) Keep options in Makefile in sync with bsd.kmodule.mk.
-2) void** type = &obj
-
+Keep options in Makefile in sync with bsd.kmodule.mk.

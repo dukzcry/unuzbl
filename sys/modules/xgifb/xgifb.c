@@ -23,18 +23,12 @@ const struct pci_matchid xgifb_devices[] = {
 typedef struct xgifb_softc {
   lua_State *L;
   const char *dv_xname;
-  bus_space_tag_t sc_iot;
-  bus_space_handle_t sc_ioh;
-  bus_space_tag_t mmio_iot;
-  bus_space_handle_t mmio_ioh;
-  bus_space_tag_t iot;
-  bus_space_handle_t ioh;
-  bus_space_tag_t *sc_iotp;
-  bus_space_handle_t *sc_iohp;
-  bus_space_tag_t *mmio_iotp;
-  bus_space_handle_t *mmio_iohp;
-  bus_space_tag_t *iotp;
-  bus_space_handle_t *iohp;
+  bus_space_tag_t sc_iot; bus_space_handle_t sc_ioh;
+  bus_space_tag_t mmio_iot; bus_space_handle_t mmio_ioh;
+  bus_space_tag_t iot; bus_space_handle_t ioh;
+  bus_space_tag_t *sc_iotp; bus_space_handle_t *sc_iohp;
+  bus_space_tag_t *mmio_iotp; bus_space_handle_t *mmio_iohp;
+  bus_space_tag_t *iotp; bus_space_handle_t *iohp;
 } xgifb_softc;
 
 static struct xgifb_softc xgifbcn;

@@ -3,8 +3,13 @@
 #include <dev/pci/pcireg.h>
 
 #include "luahw.h"
+#include "lautoc.h"
 
 MODULE(MODULE_CLASS_LUA_BINDING, luahw, "lua");
+
+static int c_call(lua_State* L) {
+  return luaA_call_name(L, lua_tostring(L, 1));
+}
 
 static int
 pci_matchbyid(lua_State *L)
@@ -70,6 +75,7 @@ luaopen_hw(void *ls)
   lua_State *L = (lua_State *)ls;
   int n, nfunc;
   struct table_methods methods[] = {
+    { "c_call", c_call },
     { "pci_matchbyid", pci_matchbyid },
     { "pci_aprint_devinfo", aprint_devinfo },
     { "pci_mapreg_map", mapreg_map },
