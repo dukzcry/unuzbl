@@ -52,4 +52,3 @@ int luaA_push_boiler(lua_State* L, luaA_Type t, const void* c_in) {
   lua_pushlightuserdata(L, &boiler_func);
   return 3;
 }
-//luaA_conversion(void_addr_ptr, luaA_push_addr_void_ptr, luaA_to_void_ptr);
