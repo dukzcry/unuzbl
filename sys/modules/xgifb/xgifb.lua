@@ -36,7 +36,7 @@ function xgifbAttach(sc, pa)
 	    return
 	 end
 
-	 -- core.print(sc.dv_xname .. ': ' .. fbsize .. ' ' .. mmiosize .. ' ' .. iosize .. '\n')
+	 sc.ioh = sc.ioh + 0x30
 end
 
 function onClose()

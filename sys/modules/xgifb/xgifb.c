@@ -68,18 +68,21 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
   sc->dv_xname = self->dv_xname;
-  sc->sc_iotp = sc->sc_iot; sc->sc_iohp = sc->sc_ioh;
-  sc->mmio_iotp = sc->mmio_iot; sc->mmio_iohp = sc->mmio_ioh;
-  sc->iotp = sc->iot; sc->iohp = sc->ioh;
+  sc->sc_iotp = &sc->sc_iot; sc->sc_iohp = &sc->sc_ioh;
+  sc->mmio_iotp = &sc->mmio_iot; sc->mmio_iohp = &sc->mmio_ioh;
+  sc->iotp = &sc->iot; sc->iohp = &sc->ioh;
 
   luaA_struct(L, xgifb_softc);
   luaA_struct_member(L, xgifb_softc, dv_xname, char*);
+  /* _map() needs addresses to fill in */
   luaA_struct_member(L, xgifb_softc, sc_iot, void*);
   luaA_struct_member(L, xgifb_softc, sc_ioh, void*);
   luaA_struct_member(L, xgifb_softc, mmio_iot, void*);
   luaA_struct_member(L, xgifb_softc, mmio_ioh, void*);
   luaA_struct_member(L, xgifb_softc, iot, void*);
-  luaA_struct_member(L, xgifb_softc, ioh, void*);
+  /* For reloc from lua */
+  luaA_struct_member(L, xgifb_softc, ioh, unsigned long long);
+  /* _unmap() needs values */
   luaA_struct_member(L, xgifb_softc, sc_iotp, void*);
   luaA_struct_member(L, xgifb_softc, sc_iohp, void*);
   luaA_struct_member(L, xgifb_softc, mmio_iotp, void*);
@@ -99,8 +102,6 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   boilerplate_func(L, "xgifb_softc", sc);
   lua_pushlightuserdata(L, pa);
   lua_pcall(L, 2, 0, 0);
-
-  sc->ioh += 0x30;
 
 finish:
   lua_pop(L, 3);
