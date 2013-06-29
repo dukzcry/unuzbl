@@ -28,7 +28,7 @@ function xgifbAttach(sc, pa)
 	    return
 	 end
 	 res, iosize = hw.pci_mapreg_map(pa, 8, hw.PCI_MAPREG_TYPE_IO,
-	    0, sc.iot, sc.ioh)
+	    0, sc.iot, sc.iohp)
 	 if res ~= 0 then
 	    core.aprint_error(sc.dv_xname .. ": can't map registers\n")
 	    hw.bus_space_unmap(sc.mmio_iot, sc.mmio_ioh, mmiosize)

@@ -71,8 +71,9 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   luaA_struct_member(L, xgifb_softc, mmio_iot, void_addr_ptr);
   luaA_struct_member(L, xgifb_softc, mmio_ioh, void_addr_ptr);
   luaA_struct_member(L, xgifb_softc, iot, void_addr_ptr);
+  luaA_struct_member(L, xgifb_softc, ioh, unsigned long long);
   /* For reloc from lua */
-  luaA_struct_member(L, xgifb_softc, iohp, unsigned long long);
+  luaA_struct_member(L, xgifb_softc, iohp, void*);
 
   /* Accesors bindings, deep in stack */
   luaA_conversion_push(boiler_binds, luaA_push_boiler);
