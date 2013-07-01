@@ -26,7 +26,7 @@ typedef struct xgifb_softc {
   bus_space_tag_t sc_iot; bus_space_handle_t sc_ioh;
   bus_space_tag_t mmio_iot; bus_space_handle_t mmio_ioh;
   bus_space_tag_t iot; bus_space_handle_t ioh;
-  bus_space_handle_t iohp;
+  bus_space_handle_t *sc_iohp; bus_space_handle_t *iohp;
 } xgifb_softc;
 
 static struct xgifb_softc xgifbcn;
@@ -60,19 +60,20 @@ xgifb_attach(device_t parent, device_t self, void *aux)
   struct pci_attach_args *const pa = (struct pci_attach_args *) aux;
 
   sc->dv_xname = self->dv_xname;
-  sc->iohp = &sc->ioh;
+  sc->sc_iohp = &sc->sc_ioh; sc->iohp = &sc->ioh;
 
   luaA_conversion_push(void_addr_ptr, luaA_push_addr_void_ptr);
 
   luaA_struct(L, xgifb_softc);
   luaA_struct_member(L, xgifb_softc, dv_xname, char*);
   luaA_struct_member(L, xgifb_softc, sc_iot, void_addr_ptr);
-  luaA_struct_member(L, xgifb_softc, sc_ioh, void_addr_ptr);
+   /* For ariths from lua */
+  luaA_struct_member(L, xgifb_softc, sc_ioh, unsigned long long);
   luaA_struct_member(L, xgifb_softc, mmio_iot, void_addr_ptr);
   luaA_struct_member(L, xgifb_softc, mmio_ioh, void_addr_ptr);
   luaA_struct_member(L, xgifb_softc, iot, void_addr_ptr);
   luaA_struct_member(L, xgifb_softc, ioh, unsigned long long);
-  /* For reloc from lua */
+  luaA_struct_member(L, xgifb_softc, sc_iohp, void*);
   luaA_struct_member(L, xgifb_softc, iohp, void*);
 
   /* Accesors bindings, deep in stack */
@@ -117,6 +118,10 @@ xgifb_modcmd(modcmd_t cmd, void *opaque)
     }
     xgifbcn.L = K->L;
     luaA_open();
+
+    lua_pushcfunction(K->L, luaopen_table);
+    lua_pushliteral(K->L, LUA_TABLIBNAME);
+    lua_call(L, 1, 0);
 
     snprintf(l.path, MAXPATHLEN, "%s/xgifb/xgifb.lbc", module_base);
     if (luaioctl(0, LUALOAD, &l, 0, NULL)) {
