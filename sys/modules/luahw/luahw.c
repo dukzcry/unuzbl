@@ -5,7 +5,7 @@
 #include "luahw.h"
 #include "lautoc.h"
 
-MODULE(MODULE_CLASS_LUA_BINDING, luahw, "lua");
+MODULE(MODULE_CLASS_MISC, luahw, "lua");
 
 static int c_call(lua_State* L) {
   return luaA_call_name(L, lua_tostring(L, 1));
