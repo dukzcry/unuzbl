@@ -1,0 +1,6 @@
+Against http://netbsd.org/~mbalmer/diffs/kernel_lua_010.diff
+
+1. No need to check for ENOMEM when M_WAITOK is set (by default)
+2. Switch to the kmem(9) from malloc(9)
+3. Allow 'require' of a specific module into a concrete state only once
+4. Don't pollute global lua_modules list when operating with state's lua_modules
