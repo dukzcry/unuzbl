@@ -1,0 +1,231 @@
+--- nginx-1.0.11/src/mail/ngx_mail_core_module.c	2011-09-23 03:32:23.000000000 +0400
++++ nginx-1.0.11/src/mail/ngx_mail_core_module.c.new	2014-02-24 07:58:30.000000000 +0400
+@@ -22,6 +22,7 @@ static char *ngx_mail_core_protocol(ngx_
+     void *conf);
+ static char *ngx_mail_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd,
+     void *conf);
++static void ngx_mail_core_exit_master(ngx_cycle_t *);
+ 
+ 
+ static ngx_command_t  ngx_mail_core_commands[] = {
+@@ -82,6 +83,15 @@ static ngx_command_t  ngx_mail_core_comm
+       offsetof(ngx_mail_core_srv_conf_t, resolver_timeout),
+       NULL },
+ 
++#if (NGX_MAIL_SSL)
++    { ngx_string("proxy_ssl_session_reuse"),
++      NGX_MAIL_MAIN_CONF|NGX_MAIL_SRV_CONF|NGX_CONF_FLAG,
++      ngx_conf_set_flag_slot,
++      NGX_MAIL_SRV_CONF_OFFSET,
++      offsetof(ngx_mail_core_srv_conf_t, ssl_session_reuse),
++      NULL },
++#endif
++
+       ngx_null_command
+ };
+ 
+@@ -90,7 +100,7 @@ static ngx_mail_module_t  ngx_mail_core_
+     NULL,                                  /* protocol */
+ 
+     ngx_mail_core_create_main_conf,        /* create main configuration */
+-    NULL,                                  /* init main configuration */
++    NULL,				   /* init main configuration */
+ 
+     ngx_mail_core_create_srv_conf,         /* create server configuration */
+     ngx_mail_core_merge_srv_conf           /* merge server configuration */
+@@ -103,15 +113,27 @@ ngx_module_t  ngx_mail_core_module = {
+     ngx_mail_core_commands,                /* module directives */
+     NGX_MAIL_MODULE,                       /* module type */
+     NULL,                                  /* init master */
+-    NULL,                                  /* init module */
++    NULL,   		                   /* init module */
+     NULL,                                  /* init process */
+     NULL,                                  /* init thread */
+-    NULL,                                  /* exit thread */
+-    NULL,                                  /* exit process */
+-    NULL,                                  /* exit master */
++    NULL,				   /* exit thread */
++    NULL,				   /* exit process */
++    /* instead of linking as "next" pool to any existing one to allow
++     * destructive operations on pool */
++    ngx_mail_core_exit_master,		   /* exit master */
+     NGX_MODULE_V1_PADDING
+ };
+ 
++static void
++ngx_mail_core_exit_master(ngx_cycle_t *cycle)
++{
++    ngx_mail_core_main_conf_t *cmcf = ngx_mail_cycle_get_module_main_conf(cycle,
++	ngx_mail_core_module);
++    if (cmcf) {
++	if (cmcf->ssl_concurrent_pool)
++	    ngx_destroy_pool(cmcf->ssl_concurrent_pool);
++    }
++}
+ 
+ static void *
+ ngx_mail_core_create_main_conf(ngx_conf_t *cf)
+@@ -135,6 +157,11 @@ ngx_mail_core_create_main_conf(ngx_conf_
+     {
+         return NULL;
+     }
++    
++#if (NGX_MAIL_SSL)
++    ngx_memzero(&cmcf->ssl_concurrent_lock, sizeof(ngx_event_mutex_t));
++    cmcf->ssl_concurrent_pool = NULL;
++#endif
+ 
+     return cmcf;
+ }
+@@ -159,12 +186,15 @@ ngx_mail_core_create_srv_conf(ngx_conf_t
+     cscf->timeout = NGX_CONF_UNSET_MSEC;
+     cscf->resolver_timeout = NGX_CONF_UNSET_MSEC;
+     cscf->so_keepalive = NGX_CONF_UNSET;
++#if (NGX_MAIL_SSL)
++    cscf->ssl_session_reuse = NGX_CONF_UNSET;
++#endif
+ 
+     cscf->resolver = NGX_CONF_UNSET_PTR;
+ 
+     cscf->file_name = cf->conf_file->file.name.data;
+     cscf->line = cf->conf_file->line;
+-
++    
+     return cscf;
+ }
+ 
+@@ -180,7 +210,31 @@ ngx_mail_core_merge_srv_conf(ngx_conf_t 
+                               30000);
+ 
+     ngx_conf_merge_value(conf->so_keepalive, prev->so_keepalive, 0);
++#if (NGX_MAIL_SSL)
++    ngx_conf_merge_value(conf->ssl_session_reuse, prev->ssl_session_reuse, /*1*/0);
+ 
++    if (conf->ssl_session_reuse == 1) {
++	ngx_mail_core_main_conf_t *cmcf = ngx_mail_cycle_get_module_main_conf(cf->cycle,
++	    ngx_mail_core_module);
++	if (cmcf) {
++	if (!cmcf->ssl_concurrent_pool) {
++	if ( (cmcf->ssl_concurrent_pool = ngx_create_pool(NGX_MAIL_SSL_REUSE_POOL_SIZE,
++		cf->log)) ) {
++		/* Your homework:
++		 * for huge amount of persistent connections you may consider of using
++		 * more advanced data struct, like b-tree and move ops on strings to
++		 * hashed ones */
++		 if ( !(cmcf->ssl_concurrent_reuse = ngx_list_create(cmcf->ssl_concurrent_pool,
++		    NGX_MAIL_SSL_REUSE_LIST_PART_SIZE, sizeof(ngx_ssl_concurrent_reuse_t))) )
++			ngx_destroy_pool(cmcf->ssl_concurrent_pool);	
++	}
++	if (!cmcf->ssl_concurrent_pool || !cmcf->ssl_concurrent_reuse) 
++	    goto list_error;
++	}
++	}
++	else goto list_error;
++    }
++#endif
+ 
+     ngx_conf_merge_str_value(conf->server_name, prev->server_name, "");
+ 
+@@ -196,8 +250,16 @@ ngx_mail_core_merge_srv_conf(ngx_conf_t 
+     }
+ 
+     ngx_conf_merge_ptr_value(conf->resolver, prev->resolver, NULL);
++    
++    ngx_mail_core_resolver(cf, NULL, conf);
+ 
+     return NGX_CONF_OK;
++list_error:
++    ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
++		    "can't create list for concurrent ssl connections" \
++		    " handling needs, please set proxy_ssl_session_reuse" \
++		    " directive to \"off\"");
++    return NGX_CONF_ERROR;
+ }
+ 
+ 
+@@ -227,7 +289,7 @@ ngx_mail_core_server(ngx_conf_t *cf, ngx
+     if (ctx->srv_conf == NULL) {
+         return NGX_CONF_ERROR;
+     }
+-
++    
+     for (m = 0; ngx_modules[m]; m++) {
+         if (ngx_modules[m]->type != NGX_MAIL_MODULE) {
+             continue;
+@@ -251,6 +313,7 @@ ngx_mail_core_server(ngx_conf_t *cf, ngx
+     cscf->ctx = ctx;
+ 
+     cmcf = ctx->main_conf[ngx_mail_core_module.ctx_index];
++    cf->cycle->conf_ctx[ngx_mail_core_module.index] = (void ***) ctx;
+ 
+     cscfp = ngx_array_push(&cmcf->servers);
+     if (cscfp == NULL) {
+@@ -269,7 +332,7 @@ ngx_mail_core_server(ngx_conf_t *cf, ngx
+     rv = ngx_conf_parse(cf, NULL);
+ 
+     *cf = pcf;
+-
++    
+     return rv;
+ }
+ 
+@@ -360,13 +423,13 @@ ngx_mail_core_listen(ngx_conf_t *cf, ngx
+     }
+ 
+     ngx_memzero(ls, sizeof(ngx_mail_listen_t));
+-
++    
+     ngx_memcpy(ls->sockaddr, u.sockaddr, u.socklen);
+ 
+     ls->socklen = u.socklen;
+     ls->wildcard = u.wildcard;
+     ls->ctx = cf->ctx;
+-
++    
+     for (m = 0; ngx_modules[m]; m++) {
+         if (ngx_modules[m]->type != NGX_MAIL_MODULE) {
+             continue;
+@@ -492,23 +555,36 @@ static char *
+ ngx_mail_core_resolver(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ {
+     ngx_mail_core_srv_conf_t  *cscf = conf;
+-
+-    ngx_url_t   u;
+-    ngx_str_t  *value;
++    ngx_str_t *value;
+ 
+     value = cf->args->elts;
++    
++    if (cmd == NULL) {
++	if (cscf->resolver != NULL)
++	    return "not our case";
++	else {
++	    //cscf->resolver = NGX_CONF_UNSET_PTR;
++	    /* resolver directive was not set via config, and it's
++	     * impossible to use system resolver at processing
++	     * stage, try localhost as our last chance */
++	    ngx_str_t host[2] = { { 0, 0 }, { 9, "127.0.0.1" } };
++	    value = host;
++	}
++    }
+ 
+-    if (cscf->resolver != NGX_CONF_UNSET_PTR) {
++    ngx_url_t   u;
++    
++    if (cmd && cscf->resolver != NGX_CONF_UNSET_PTR) {
+         return "is duplicate";
+     }
+-
++    
+     if (ngx_strcmp(value[1].data, "off") == 0) {
+         cscf->resolver = NULL;
+         return NGX_CONF_OK;
+     }
+-
++    
+     ngx_memzero(&u, sizeof(ngx_url_t));
+-
++    
+     u.host = value[1];
+     u.port = 53;
+ 

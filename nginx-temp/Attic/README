@@ -1,0 +1,18 @@
+Copypaste (M-w, C-y) <Author>
+Done against nginx code from OpenBSD CVS.
+1. Allow hostnames in "Auth-Server" header. Useful, when auth_http mission rules by nginx itself
+(i.e. no external script used, see http://vgimly.blogspot.com/2009/07/nginx.html for info). If host
+has few IPs pointing to various mail servers, and some is/are down, the first answered server will
+be used. If you're not running recursive DNS server at localhost, don't forget to set some via
+'resolver' directive. This implementation is ready for chrooted installs.
+2. Add possibility of secure connections to mail backends via "Auth-Protocol" header. Supported options
+are 'ssl' and 'starttls'. Other, the special keyword 'secure' might be used, indicating that any
+of two is acceptable: SSL is tried first, STARTTLS second; note that this is an expiremental
+feature, and some mail servers will not deal with it.
+3. If proxy SSL session reuse mechanism is activated (it's so, unless you explicitly set
+'proxy_ssl_session_reuse' directive to off state; it's current purpose is only to force session
+reusing for mail agents, which initiate multiple sessions, one by one, via single keepalive
+connections), consider of incrementing NGX_MAIL_SSL_REUSE_POOL_SIZE preproc directive's value by
+some to adjust your needs. It's in ngx_mail.h. Note that 'proxy_ssl_session_reuse' will not enable
+actual session reuse mechanism: for that you just need to set SSL session cache via
+'ssl_session_cache' directive, see docs for mail SSL module.

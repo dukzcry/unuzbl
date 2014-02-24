@@ -1,0 +1,315 @@
+--- nginx-1.0.11/src/mail/ngx_mail_auth_http_module.c	2012-01-05 16:28:58.000000000 +0400
++++ nginx-1.0.11/src/mail/ngx_mail_auth_http_module.c.new	2014-02-24 07:58:30.000000000 +0400
+@@ -191,7 +191,7 @@ ngx_mail_auth_http_init(ngx_mail_session
+     ctx->peer.log = s->connection->log;
+     ctx->peer.log_error = NGX_ERROR_ERR;
+ 
+-    rc = ngx_event_connect_peer(&ctx->peer);
++    rc = ngx_event_connect_peer(&ctx->peer, NULL);
+ 
+     if (rc == NGX_ERROR || rc == NGX_BUSY || rc == NGX_DECLINED) {
+         if (ctx->peer.connection) {
+@@ -448,6 +448,91 @@ done:
+     ctx->handler(s, ctx);
+ }
+ 
++static void
++ngx_mail_auth_http_resolve_name_handler(ngx_resolver_ctx_t *ctx)
++{
++    in_addr_t addr;
++    ngx_uint_t i;
++    ngx_connection_t *c;
++    ngx_mail_session_t *s;
++    ngx_addr_t *peer;
++    
++    s = ctx->data;
++    c = s->connection;
++    peer = ctx->spareptr;
++    
++    if (ctx->state) {
++	    ngx_log_error(NGX_LOG_INFO, c->log, 0,
++		"\"%V\" could not be resolved (%i: %s)", &ctx->name, ctx->state,
++		ngx_resolver_strerror(ctx->state));
++
++	ngx_close_connection(c);
++	//c->fd = -1;
++	
++	ngx_resolve_name_done(ctx);
++    }
++    else {
++	struct sockaddr_in *sin = (struct sockaddr_in *) peer->sockaddr;
++	u_char cached[13] = " ";
++	if (ctx->is_cached) {
++	    ngx_memcpy(cached, " from cache ", sizeof(cached));
++	    u_char *data = "HOSTNAME:PORT";
++	    int len = strlen(data);
++	    
++	    peer->name.len = len;
++	    peer->name.data = ngx_pnalloc(c->pool, len);
++	    if (peer->name.data == NULL) {
++		ngx_resolve_name_done(ctx);
++		ngx_close_connection(c);
++		ngx_destroy_pool(c->pool);
++		ngx_mail_session_internal_server_error(s);
++	    }
++	    ngx_memcpy(peer->name.data, data, len);
++	    
++	    ngx_mail_proxy_init(s, peer);
++	}
++	//struct sockaddr_in *sin = (struct sockaddr_in *) ngx_pcalloc(c->pool, sizeof(struct sockaddr_in));
++	//ngx_memcpy(sin, (struct sockaddr_in *) peer->sockaddr, sizeof(struct sockaddr_in));
++	
++	/* if connecting to same host: try the last server that
++	 * worked for us */
++	/*for (i = 0; i < ctx->naddrs; i++) {
++	    if (sin->sin_addr.s_addr == ctx->addrs[i]) {
++		if (ngx_mail_proxy_postinit(s, peer, ctx) != -1) {
++		    goto done;
++		}
++		else
++		    break;
++	    }
++	}*/
++
++	for (i = 0; i < ctx->naddrs; i++) {
++            addr = ctx->addrs[i];
++	    
++            ngx_log_error(NGX_LOG_INFO, c->log, 0,
++                "name of mail server was resolved%sto %ud.%ud.%ud.%ud",
++		cached,
++                (ntohl(addr) >> 24) & 0xff,
++                (ntohl(addr) >> 16) & 0xff,
++                (ntohl(addr) >> 8) & 0xff,
++                ntohl(addr) & 0xff);
++
++	    sin->sin_addr.s_addr = addr;
++	    peer->sockaddr = (struct sockaddr *) sin;
++	    
++	    if (i == ctx->naddrs - 1) {
++		ngx_mail_proxy_postinit(s, peer, NULL);
++		break;
++	    }
++	    else if (ngx_mail_proxy_postinit(s, peer, ctx) == -1)
++		continue;
++	    else
++		break;
++	}
++	
++	ngx_resolve_name_done(ctx);
++    }
++}
+ 
+ static void
+ ngx_mail_auth_http_process_headers(ngx_mail_session_t *s,
+@@ -477,10 +562,14 @@ ngx_mail_auth_http_process_headers(ngx_m
+             value.len = ctx->header_end - ctx->header_start;
+             value.data = ctx->header_start;
+ 
+-            ngx_log_debug2(NGX_LOG_DEBUG_MAIL, s->connection->log, 0,
++#if (!NGX_DEBUG_MAIL_PASSWD)
++	    if (ngx_strncasecmp(ctx->header_name_start,
++		(u_char *) "Auth-Pass", sizeof("Auth-Pas") - 1) != 0)
++#endif
++        	ngx_log_debug2(NGX_LOG_DEBUG_MAIL, s->connection->log, 0,
+                            "mail auth http header: \"%V: %V\"",
+                            &key, &value);
+-            }
++	    }
+ #endif
+ 
+             len = ctx->header_name_end - ctx->header_name_start;
+@@ -585,6 +674,75 @@ ngx_mail_auth_http_process_headers(ngx_m
+ 
+                 continue;
+             }
++	    
++	    s->con_proto = NGX_MAIL_AUTH_PROTO_UNSP;
++	    
++	    if (len == sizeof("Auth-Protocol") -1
++		&& ngx_strncasecmp(ctx->header_name_start,
++				   (u_char *) "Auth-Protocol",
++				   sizeof("Auth-Protocol") - 1)
++		  == 0)
++	    {
++		u_char *strp;
++		u_char problem1[] = "no supported protocol identified";
++		strp = problem1;
++		
++		len = ctx->header_end - ctx->header_start;
++		
++		if (len >= 3 && ctx->header_start[0] == 's') {
++		    if (len == 3
++			&& ctx->header_start[1] == 's'
++			&& ctx->header_start[2] == 'l')
++		    {
++#if (NGX_MAIL_SSL)
++			s->con_proto = NGX_MAIL_AUTH_PROTO_SSL;
++#else
++			u_char problem2[] = "\"ssl\" requires ngx_mail_ssl_module";
++			strp = problem2;
++#endif
++		    }
++		    if (len == 8
++			&& ctx->header_start[1] == 't'
++			&& ctx->header_start[2] == 'a'
++			&& ctx->header_start[3] == 'r'
++			&& ctx->header_start[4] == 't'
++			&& ctx->header_start[5] == 't'
++			&& ctx->header_start[6] == 'l'
++			&& ctx->header_start[7] == 's' )
++		    {
++#if (NGX_MAIL_SSL)
++			s->con_proto = NGX_MAIL_AUTH_PROTO_STLS;
++#else
++			u_char problem3[] = "\"starttls\" requires ngx_mail_ssl_module " \
++				", and OpenSSL built with TLS extension if you " \
++				"need TLS support";
++			strp = problem3;
++#endif
++		    }
++		    if (len == 6
++			&& ctx->header_start[1] == 'e'
++			&& ctx->header_start[2] == 'c'
++			&& ctx->header_start[3] == 'u'
++			&& ctx->header_start[4] == 'r'
++			&& ctx->header_start[5] == 'e')
++		    {
++#if (NGX_MAIL_SSL)
++			s->con_proto = NGX_MAIL_AUTH_PROTO_SECURE;
++			s->junk_flag = 0;
++#else			
++			u_char problem4[] = "\"secure\" requires ngx_mail_ssl_module";
++			strp = problem4;
++#endif
++		    }
++		}
++		if (!s->con_proto)
++		    ngx_log_error(NGX_LOG_WARN, s->connection->log, 0,
++			"problem while handling \"Auth-Protocol\" header " \
++			"sent from auth_http, plain connect to backend will " \
++			"be used: %s;", strp);
++		
++		continue;
++	    }
+ 
+             if (len == sizeof("Auth-User") - 1
+                 && ngx_strncasecmp(ctx->header_name_start,
+@@ -796,7 +954,75 @@ ngx_mail_auth_http_process_headers(ngx_m
+             sin->sin_port = htons((in_port_t) port);
+ 
+             sin->sin_addr.s_addr = ngx_inet_addr(ctx->addr.data, ctx->addr.len);
++	    
++	    /* Peer's sockaddr should be initialized /before/ being used by 
++	     * resolver */
++	    peer->sockaddr = (struct sockaddr *) sin;
++	    peer->socklen = sizeof(struct sockaddr_in);
++	    
++	    ngx_resolver_ctx_t *rctx = NULL;
++	    ngx_str_t *addr = &ctx->addr;
+             if (sin->sin_addr.s_addr == INADDR_NONE) {
++		/* I'm lazy to recompile nginx with debug option */
++		//ngx_log_error(NGX_LOG_INFO, s->connection->log, 0, 
++		//    "mail auth http read handler, s_addr = INADDR_NONE");
++		
++		ngx_mail_core_srv_conf_t *cscf;
++		
++		cscf = ngx_mail_get_module_srv_conf(s, ngx_mail_core_module);
++		if (cscf->resolver == NULL) {
++		    ngx_destroy_pool(ctx->pool);
++		    ngx_mail_session_internal_server_error(s);
++		    return;
++		}
++		
++		/* upstream timeout is lesser than resolver timeout */
++		if (cscf->timeout < cscf->resolver_timeout)
++		    cscf->resolver_timeout = cscf->timeout;
++		
++		rctx = ngx_resolve_start(cscf->resolver, NULL);
++		if (rctx == NULL) {
++		    ngx_destroy_pool(ctx->pool);
++		    ngx_mail_session_internal_server_error(s);
++		    return;
++		}
++
++		/* this is a proper way */
++		ngx_str_t host;
++		host.len = ctx->addr.len;
++		host.data = ngx_pnalloc(s->connection->pool, host.len);
++		if (host.data == NULL) {
++		    ngx_destroy_pool(ctx->pool);
++		    ngx_mail_session_internal_server_error(s);
++		    return;
++		}
++		ngx_memcpy(host.data, ctx->addr.data, host.len);
++
++		rctx->name = host;
++		/* Cause of AF_INET, we're not doing AAAA lookups
++		 * (which, by the way, are still not implemented) */
++		rctx->type = NGX_RESOLVE_A;
++		rctx->handler = ngx_mail_auth_http_resolve_name_handler;
++		//rctx->handler(rctx);
++		rctx->data = s;
++		rctx->spareptr = peer;
++		rctx->timeout = cscf->resolver_timeout;
++		
++		/* gethostbyname() is blocking, so using nginx
++		 * async resolver instead */
++		if (ngx_resolve_name(rctx) != NGX_OK) {
++		    ngx_log_error(NGX_LOG_INFO, s->connection->log, 0,
++			"ngx_resolve_addr() failed");
++		}
++		else 
++		{
++		    /* if not cached, resolver hasn't got anything yet */
++		    ngx_str_t fakename = { 9, "HOSTNAME" };
++		    addr = &fakename;
++		    //sin->sin_addr.s_addr = htonl(INADDR_ANY);
++		    goto peer_init;
++		}
++		
+                 ngx_log_error(NGX_LOG_ERR, s->connection->log, 0,
+                               "auth http server %V sent invalid server "
+                               "address:\"%V\"",
+@@ -805,11 +1031,9 @@ ngx_mail_auth_http_process_headers(ngx_m
+                 ngx_mail_session_internal_server_error(s);
+                 return;
+             }
+-
+-            peer->sockaddr = (struct sockaddr *) sin;
+-            peer->socklen = sizeof(struct sockaddr_in);
+-
+-            len = ctx->addr.len + 1 + ctx->port.len;
++	    	    
++peer_init:
++            len = addr->len + 1 + ctx->port.len;
+ 
+             peer->name.len = len;
+ 
+@@ -820,16 +1044,24 @@ ngx_mail_auth_http_process_headers(ngx_m
+                 return;
+             }
+ 
+-            len = ctx->addr.len;
++            len = addr->len;
+ 
+-            ngx_memcpy(peer->name.data, ctx->addr.data, len);
++            ngx_memcpy(peer->name.data, addr->data, len);
+ 
+             peer->name.data[len++] = ':';
+ 
+             ngx_memcpy(peer->name.data + len, ctx->port.data, ctx->port.len);
+ 
+             ngx_destroy_pool(ctx->pool);
+-            ngx_mail_proxy_init(s, peer);
++	    
++	    if (ngx_strcmp(addr->data, "HOSTNAME" ) == 0) {
++		if (!rctx->is_cached)
++		    ngx_mail_proxy_init(s, peer);
++	    }
++	    else {
++		ngx_mail_proxy_init(s, peer);
++		ngx_mail_proxy_postinit(s, peer, NULL);
++	    }
+ 
+             return;
+         }

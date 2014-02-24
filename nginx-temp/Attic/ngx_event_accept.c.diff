@@ -1,0 +1,25 @@
+--- nginx-1.0.11/src/event/ngx_event_accept.c	2011-09-23 03:32:16.000000000 +0400
++++ nginx-1.0.11/src/event/ngx_event_accept.c.new	2014-02-24 07:58:30.000000000 +0400
+@@ -234,14 +234,19 @@ ngx_event_accept(ngx_event_t *ev)
+ #endif
+ 
+         if (ls->addr_ntop) {
+-            c->addr_text.data = ngx_pnalloc(c->pool, ls->addr_text_max_len);
++	    size_t len = ls->addr_text_max_len;
++	    if (ls->acpt_with_port && len != NGX_SOCKADDR_STRLEN)
++		len += sizeof(":65535");
++	
++            c->addr_text.data = ngx_pnalloc(c->pool, len);
+             if (c->addr_text.data == NULL) {
+                 ngx_close_accepted_connection(c);
+                 return;
+             }
+-
++	    
+             c->addr_text.len = ngx_sock_ntop(c->sockaddr, c->addr_text.data,
+-                                             ls->addr_text_max_len, 0);
++						len, ls->acpt_with_port);
++					    /* with_port zeroed by ngx_create_listening() */
+             if (c->addr_text.len == 0) {
+                 ngx_close_accepted_connection(c);
+                 return;

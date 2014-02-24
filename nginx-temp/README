@@ -1,12 +1,1 @@
-Copypaste (M-w, C-y) <Author> 
-Written in hackish style, without styling, not for upstream tree for sure.
-Done against nginx-1.0.11 code from OpenBSD CVS.
-1. Allow hostnames in "Auth-Server" header. Useful, when auth_http mission rules by nginx itself
-(i.e. no external script used, see http://vgimly.blogspot.com/2009/07/nginx.html for info). If host
-has few IPs pointing to various mail servers, and some is/are down, the first answered server will
-be used. If you're not running recursive DNS server at localhost, don't forget to set some via
-'resolver' directive. This implementation is ready for chrooted installs.
-2. Add possibility of secure connections to backends via "Auth-Protocol" header. Supported options
-are 'ssl' and 'starttls'. Other, the special keyword 'secure' might be used, indicating that any
-of two is acceptable: SSL is tried first, STARTTLS second; note that this is an expiremental
-feature, and some mail servers will not deal with it.
+Here is your patch: https://raw.github.com/druga/aeriebsd-tree/master/usr.sbin/nginx/patch-nginx_mail_proxy_ssl_backends.diff

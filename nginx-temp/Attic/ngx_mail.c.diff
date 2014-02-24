@@ -1,0 +1,20 @@
+--- nginx-1.0.11/src/mail/ngx_mail.c	2011-09-23 03:32:23.000000000 +0400
++++ nginx-1.0.11/src/mail/ngx_mail.c.new	2014-02-24 07:58:30.000000000 +0400
+@@ -218,7 +218,6 @@ ngx_mail_block(ngx_conf_t *cf, ngx_comma
+ 
+     *cf = pcf;
+ 
+-
+     if (ngx_array_init(&ports, cf->temp_pool, 4, sizeof(ngx_mail_conf_port_t))
+         != NGX_OK)
+     {
+@@ -365,6 +364,9 @@ ngx_mail_optimize_servers(ngx_conf_t *cf
+             }
+ 
+             ls->addr_ntop = 1;
++#if (NGX_MAIL_SSL && defined ACCEPT_ADDRTEXT_WITH_PORT)
++	    ls->acpt_with_port = 1;
++#endif
+             ls->handler = ngx_mail_init_connection;
+             ls->pool_size = 256;
+ 
