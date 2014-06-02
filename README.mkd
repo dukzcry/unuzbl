@@ -1,3 +1,5 @@
+Nothing but the bytemagic pokery, bytecode generation, simple RAM and registers operations as of yet
+
 ###Specs
 
 - 32 64-bit GP registers

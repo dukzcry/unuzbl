@@ -1,3 +1,5 @@
+% Written by A. V. Lukyanov <lomka@gero.in>
+
 :- include('assembler.dep').
 
 /*:- op(500,fx,storing).
@@ -136,8 +138,8 @@ j(Opc,D,PC,L) :-
 	L my_storing jump_word(Opc,A).
 find_label(D,PC,A) :-
 	/*functor(D,l,1),*/ arg(1,D,D1),
-	(my_recorded(D1,_,A);
-	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))), !. % once
+	(my_recorded(D1,_,A), ! ;
+	throw(error(mode_error('undefined reference to',D1,'PC=',PC),_))).
 calc_absolute(D,PC,A) :-
 	functor(D,d,1), arg(1,D,D1), A is PC + D1.
 

@@ -1,3 +1,4 @@
+%% Written by A. V. Lukyanov <lomka@gero.in>
 % keeping SWI deps at min
 
 :- include('shared.pro').
@@ -60,7 +61,7 @@ ram_load(Ram,A,M,N/1) :-
 ram_store(Ram,A,Bs,M,O,Al) :-
 	ram_rule(M),
 	bytify_gen(Bs,M,R), ram_con(Ram,A,R,O),
-	% xxx: overriding isn't affordable; read &combine & write is too slow
+	% xxx: overriding isn't affordable; read & combine & write is too slow
 	(align_rule(A,8), Al = 0, ! ; Al = 1).
 reg_arg(R,A) :-
 	register(R), 

@@ -1,3 +1,5 @@
+% Written by A. V. Lukyanov <lomka@gero.in>
+
 register(X) :-
         number(X), between(0,31,X).
 ram_rule(M) :-
