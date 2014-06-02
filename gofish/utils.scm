@@ -1,3 +1,5 @@
+; Written by Artem Falcon <lomka@gero.in>
+
 (define (who-starts?) 
  (if (zero? ((lambda (num) (random-integer num)) 2)
   ) 'computer

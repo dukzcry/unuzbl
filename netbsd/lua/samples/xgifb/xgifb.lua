@@ -1,3 +1,5 @@
+-- Written by Artem Falcon <lomka@gero.in>
+
 require 'hw'
 require 'core'
 

@@ -1,3 +1,5 @@
+; Written by Artem Falcon <lomka@gero.in>
+
 (require-extension bind coops cplusplus-object)
 (bind* "#include <Application.h>\n#include <kernel/OS.h>\n"
  "#include \"app.h\"\n#include \"common/aes2501_app_common.h\"")

@@ -1,3 +1,5 @@
+// Written by Artem Falcon <lomka@gero.in>
+
 %{
 #include "lexer.h"
 #include "shared.h"

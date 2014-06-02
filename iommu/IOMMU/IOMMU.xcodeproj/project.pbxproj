@@ -1,0 +1,315 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		217DA82D192CFCE6006FD2B7 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 217DA82B192CFCE6006FD2B7 /* InfoPlist.strings */; };
+		217DA830192CFCE6006FD2B7 /* IOMMU.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 217DA82F192CFCE6006FD2B7 /* IOMMU.cpp */; };
+		2197EF13192D0C43006FD2B7 /* IOMMU.h in Headers */ = {isa = PBXBuildFile; fileRef = 2197EF12192D0C43006FD2B7 /* IOMMU.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		217DA823192CFCE6006FD2B7 /* IOMMU.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IOMMU.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		217DA827192CFCE6006FD2B7 /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
+		217DA82C192CFCE6006FD2B7 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		217DA82F192CFCE6006FD2B7 /* IOMMU.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IOMMU.cpp; sourceTree = "<group>"; };
+		217DA831192CFCE6006FD2B7 /* IOMMU-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "IOMMU-Prefix.pch"; sourceTree = "<group>"; };
+		2197EF12192D0C43006FD2B7 /* IOMMU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IOMMU.h; sourceTree = "<group>"; };
+		2197EF14192D0C4E006FD2B7 /* IOMMU-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "IOMMU-Info.plist"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		217DA81E192CFCE6006FD2B7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		217DA818192CFCE6006FD2B7 = {
+			isa = PBXGroup;
+			children = (
+				217DA828192CFCE6006FD2B7 /* IOMMU */,
+				217DA825192CFCE6006FD2B7 /* Frameworks */,
+				217DA824192CFCE6006FD2B7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		217DA824192CFCE6006FD2B7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				217DA823192CFCE6006FD2B7 /* IOMMU.kext */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		217DA825192CFCE6006FD2B7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				217DA826192CFCE6006FD2B7 /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		217DA826192CFCE6006FD2B7 /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				217DA827192CFCE6006FD2B7 /* Kernel.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		217DA828192CFCE6006FD2B7 /* IOMMU */ = {
+			isa = PBXGroup;
+			children = (
+				2197EF12192D0C43006FD2B7 /* IOMMU.h */,
+				217DA82F192CFCE6006FD2B7 /* IOMMU.cpp */,
+				217DA829192CFCE6006FD2B7 /* Supporting Files */,
+			);
+			path = IOMMU;
+			sourceTree = "<group>";
+		};
+		217DA829192CFCE6006FD2B7 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				2197EF14192D0C4E006FD2B7 /* IOMMU-Info.plist */,
+				217DA82B192CFCE6006FD2B7 /* InfoPlist.strings */,
+				217DA831192CFCE6006FD2B7 /* IOMMU-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		217DA81F192CFCE6006FD2B7 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2197EF13192D0C43006FD2B7 /* IOMMU.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		217DA822192CFCE6006FD2B7 /* IOMMU */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 217DA834192CFCE6006FD2B7 /* Build configuration list for PBXNativeTarget "IOMMU" */;
+			buildPhases = (
+				217DA81D192CFCE6006FD2B7 /* Sources */,
+				217DA81E192CFCE6006FD2B7 /* Frameworks */,
+				217DA81F192CFCE6006FD2B7 /* Headers */,
+				217DA820192CFCE6006FD2B7 /* Resources */,
+				217DA821192CFCE6006FD2B7 /* Rez */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = IOMMU;
+			productName = IOMMU;
+			productReference = 217DA823192CFCE6006FD2B7 /* IOMMU.kext */;
+			productType = "com.apple.product-type.kernel-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		217DA819192CFCE6006FD2B7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0510;
+			};
+			buildConfigurationList = 217DA81C192CFCE6006FD2B7 /* Build configuration list for PBXProject "IOMMU" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 217DA818192CFCE6006FD2B7;
+			productRefGroup = 217DA824192CFCE6006FD2B7 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				217DA822192CFCE6006FD2B7 /* IOMMU */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		217DA820192CFCE6006FD2B7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				217DA82D192CFCE6006FD2B7 /* InfoPlist.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		217DA821192CFCE6006FD2B7 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		217DA81D192CFCE6006FD2B7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				217DA830192CFCE6006FD2B7 /* IOMMU.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		217DA82B192CFCE6006FD2B7 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				217DA82C192CFCE6006FD2B7 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		217DA832192CFCE6006FD2B7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		217DA833192CFCE6006FD2B7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		217DA835192CFCE6006FD2B7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "IOMMU/IOMMU-Prefix.pch";
+				INFOPLIST_FILE = "IOMMU/IOMMU-Info.plist";
+				MODULE_NAME = cc.dukzcry.IOMMU;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug;
+		};
+		217DA836192CFCE6006FD2B7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "IOMMU/IOMMU-Prefix.pch";
+				INFOPLIST_FILE = "IOMMU/IOMMU-Info.plist";
+				MODULE_NAME = cc.dukzcry.IOMMU;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		217DA81C192CFCE6006FD2B7 /* Build configuration list for PBXProject "IOMMU" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				217DA832192CFCE6006FD2B7 /* Debug */,
+				217DA833192CFCE6006FD2B7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		217DA834192CFCE6006FD2B7 /* Build configuration list for PBXNativeTarget "IOMMU" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				217DA835192CFCE6006FD2B7 /* Debug */,
+				217DA836192CFCE6006FD2B7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 217DA819192CFCE6006FD2B7 /* Project object */;
+}

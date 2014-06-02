@@ -1,3 +1,5 @@
+; Written by Artem Falcon <lomka@gero.in>
+
 (define *deck* '())
 (define (set-deck!) (set! *deck* (make-deck)))
 (define *user-asked-pile* '())

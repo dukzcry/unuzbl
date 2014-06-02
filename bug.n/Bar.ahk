@@ -1,3 +1,4 @@
+// $dukzcry$
 /**
  *	bug.n - tiling window management
  *	Copyright (C) 2010 joten

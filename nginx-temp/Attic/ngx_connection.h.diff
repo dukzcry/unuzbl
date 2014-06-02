@@ -1,3 +1,4 @@
+$dukzcry$
 --- nginx-1.0.11/src/core/ngx_connection.h	2011-09-23 03:38:25.000000000 +0400
 +++ nginx-1.0.11/src/core/ngx_connection.h.new	2014-02-24 07:58:28.000000000 +0400
 @@ -45,6 +45,7 @@ struct ngx_listening_s {

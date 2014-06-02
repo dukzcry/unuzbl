@@ -1,3 +1,5 @@
+// Written by Artem Falcon <lomka@gero.in>
+
 class Expression; // Avoid non-declared type from tab.hpp
 
 #include "parser.tab.hpp"

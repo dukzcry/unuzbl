@@ -1,3 +1,5 @@
+// Written by Artem Falcon <lomka@gero.in>
+
 #include <sys/param.h>
 
 #include "lautoc_helpers.h"

@@ -1,3 +1,5 @@
+/* Written by Artem Falcon <lomka@gero.in> */
+
 #include "AesInputDevice.h"
 
 const static uint32 kPollThreadPriority = B_FIRST_REAL_TIME_PRIORITY + 4,

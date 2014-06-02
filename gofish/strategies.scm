@@ -1,3 +1,5 @@
+; Written by Artem Falcon <lomka@gero.in>
+
 #| 1. take into account ranks the player asked for +
  (1.1.) note number of asks for each +
 (2.) ask ranks for which you have most cards at first +

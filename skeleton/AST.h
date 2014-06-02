@@ -1,3 +1,5 @@
+// Written by Artem Falcon <lomka@gero.in>
+
 #ifndef _ATREE_
 #define _ATREE_
 
