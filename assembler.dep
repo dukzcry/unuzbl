@@ -1,6 +1,6 @@
 % SWI-Prolog
 
-:- include('shared.pro').
+:- include('shared.pl').
 
 %:- use_module(library(arithmetic)).
 % http://www.complang.tuwien.ac.at/ulrich/Prolog-inedit/lambda.pl

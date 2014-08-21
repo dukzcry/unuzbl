@@ -1,7 +1,7 @@
 %% Written by A. V. Lukyanov <lomka@gero.in>
 % keeping SWI deps at min
 
-:- include('shared.pro').
+:- include('shared.pl').
 :- include('simulator.dep').
 
 :- dynamic(unbytify_gen/4).
