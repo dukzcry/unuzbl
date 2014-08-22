@@ -1,5 +1,0 @@
-before_script: cd ./skeleton
-script: make
-after_success: ./test-app
-language: cpp
-compiler: gcc
