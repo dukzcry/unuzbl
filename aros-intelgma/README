@@ -1,2 +1,0 @@
-An effort of adding old chipsets support (primarly i855GM, since i have it) to AROS's IntelGMA driver. Someone requested this on AROS-Exec once.
-If you wish to learn something about IntelGMA and haven't much free time to look through whole hw docs, look at OpenBSD intel framebuffer driver at first, it shows simple BAR handling, initalizing and initial resource allocation and does it quite properly. For futher, take a look at intel DRM code from Linux kernel, it clears out some important moments.
