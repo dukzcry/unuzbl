@@ -1,2 +1,0 @@
-To produce lua bytecode for modules:
-kluac -o <module>.lbc <module>.lua

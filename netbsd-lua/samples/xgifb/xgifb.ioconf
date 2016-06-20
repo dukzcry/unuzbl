@@ -1,7 +1,0 @@
-ioconf		xgifb
-
-include		"conf/files"
-include		"dev/pci/files.pci"
-
-pseudo-root	pci*
-xgifb*		at pci?
