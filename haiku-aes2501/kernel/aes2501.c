@@ -1,4 +1,4 @@
-/* Written by Artem Falcon <lomka@gero.in>
+/* Written by Artem Lukyanov <dukzcry@ya.ru>
    Dumb driver which does init */
 
 #include "aes2501_common.h"

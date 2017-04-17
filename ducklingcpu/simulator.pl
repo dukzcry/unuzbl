@@ -1,4 +1,4 @@
-%% Written by A. V. Lukyanov <lomka@gero.in>
+%% Written by Artem Lukyanov <dukzcry@ya.ru>
 % keeping SWI deps at min
 
 :- include('shared.pl').

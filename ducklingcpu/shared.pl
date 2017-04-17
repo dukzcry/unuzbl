@@ -1,4 +1,4 @@
-% Written by A. V. Lukyanov <lomka@gero.in>
+% Written by Artem Lukyanov <dukzcry@ya.ru>
 
 register(X) :-
         number(X), between(0,31,X).

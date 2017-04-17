@@ -1,4 +1,4 @@
-; Written by Artem Falcon <lomka@gero.in>
+; Written by Artem Lukyanov <dukzcry@ya.ru>
 
 (require-extension bind coops cplusplus-object)
 (bind* "#include <Application.h>\n#include <kernel/OS.h>\n"

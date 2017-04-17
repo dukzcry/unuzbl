@@ -1,4 +1,4 @@
-% Written by A. V. Lukyanov <lomka@gero.in>
+% Written by Artem Lukyanov <dukzcry@ya.ru>
 
 :- include('assembler.dep').
 

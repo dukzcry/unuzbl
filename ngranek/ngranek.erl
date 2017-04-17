@@ -1,6 +1,6 @@
 -module(ngranek).
 
--author('A.V. Lukyanov <lomka@gero.in>').
+-author('Artem Lukyanov <dukzcry@ya.ru>').
 
 -include_lib("wx/include/gl.hrl").
 

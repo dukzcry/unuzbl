@@ -1,4 +1,4 @@
-/* Written by Artem Falcon <lomka@gero.in>
+/* Written by Artem Lukyanov <dukzcry@ya.ru>
    Early stage of libfpaes */
 
 #include "aes2501_lib.h"
